@@ -1,0 +1,328 @@
+{
+  "proyecto": "OptiLab",
+  "github_owner": "IsraelTiburcio-ai",
+  "fecha_revision": "2026-10-21",
+  "total": 28,
+  "resumen_por_gimnasio": {
+    "1": 5,
+    "2": 8,
+    "3": 5,
+    "4": 5,
+    "5": 5
+  },
+  "verificacion": "Repositorio público con has_pages=true y último flujo de despliegue Pages con conclusión success, verificado mediante GitHub. HTTP directo de los sitios no verificado en esta sesión.",
+  "juegos": [
+    {
+      "gimnasio": 1,
+      "nombre": "OptiQuest",
+      "repo": "OptiQuest1",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/OptiQuest1",
+      "juego_url": "https://israeltiburcio-ai.github.io/OptiQuest1/",
+      "tema": "Introducción y componentes de los sistemas",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 1,
+      "nombre": "System Catch",
+      "repo": "system-lab",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/system-lab",
+      "juego_url": "https://israeltiburcio-ai.github.io/system-lab/",
+      "tema": "Clasificación y características de sistemas",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 1,
+      "nombre": "Boundary Run",
+      "repo": "SystemScope",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/SystemScope",
+      "juego_url": "https://israeltiburcio-ai.github.io/SystemScope/",
+      "tema": "Fronteras, subsistemas y suprasistemas",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 1,
+      "nombre": "Network Bomb",
+      "repo": "complexity-lab",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/complexity-lab",
+      "juego_url": "https://israeltiburcio-ai.github.io/complexity-lab/",
+      "tema": "Complejidad de sistemas",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 1,
+      "nombre": "OR Express",
+      "repo": "or-mission",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/or-mission",
+      "juego_url": "https://israeltiburcio-ai.github.io/or-mission/",
+      "tema": "Fundamentos de investigación de operaciones",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 2,
+      "nombre": "Model Match",
+      "repo": "model-match",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/model-match",
+      "juego_url": "https://israeltiburcio-ai.github.io/model-match/",
+      "tema": "Clasificación de modelos",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 2,
+      "nombre": "LP Factory",
+      "repo": "lp-factory",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/lp-factory",
+      "juego_url": "https://israeltiburcio-ai.github.io/lp-factory/",
+      "tema": "Variables, restricciones y función objetivo",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 2,
+      "nombre": "Constraint Dash",
+      "repo": "constraint-dash",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/constraint-dash",
+      "juego_url": "https://israeltiburcio-ai.github.io/constraint-dash/",
+      "tema": "Planteamiento de restricciones",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 2,
+      "nombre": "Feasible Drop",
+      "repo": "feasible-drop",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/feasible-drop",
+      "juego_url": "https://israeltiburcio-ai.github.io/feasible-drop/",
+      "tema": "Región factible",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 2,
+      "nombre": "Solution Detective",
+      "repo": "solution-detective",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/solution-detective",
+      "juego_url": "https://israeltiburcio-ai.github.io/solution-detective/",
+      "tema": "Tipos de solución en programación lineal",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 2,
+      "nombre": "Planificador de Producción",
+      "repo": "planificador-produccion",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/planificador-produccion",
+      "juego_url": "https://israeltiburcio-ai.github.io/planificador-produccion/",
+      "tema": "Planeación de producción (ejercicio práctico)",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 2,
+      "nombre": "Mapa de Producción",
+      "repo": "mapa-produccion",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/mapa-produccion",
+      "juego_url": "https://israeltiburcio-ai.github.io/mapa-produccion/",
+      "tema": "Mapa de características de producción (revisar correspondencia con cuadro correcto)",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 2,
+      "nombre": "5 Claves de Planeación",
+      "repo": "claves-planeacion-produccion",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/claves-planeacion-produccion",
+      "juego_url": "https://israeltiburcio-ai.github.io/claves-planeacion-produccion/",
+      "tema": "Características de planeación de producción",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 3,
+      "nombre": "Memorama Simplex",
+      "repo": "memorama-simplex",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/memorama-simplex",
+      "juego_url": "https://israeltiburcio-ai.github.io/memorama-simplex/",
+      "tema": "Conceptos y equivalencias del método simplex",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 3,
+      "nombre": "Rompecabezas Algebraico",
+      "repo": "rompecabezas-simplex",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/rompecabezas-simplex",
+      "juego_url": "https://israeltiburcio-ai.github.io/rompecabezas-simplex/",
+      "tema": "Equivalencias algebraicas",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 3,
+      "nombre": "Ahorcado Simplex",
+      "repo": "ahorcado-simplex",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/ahorcado-simplex",
+      "juego_url": "https://israeltiburcio-ai.github.io/ahorcado-simplex/",
+      "tema": "Vocabulario de simplex",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 3,
+      "nombre": "Ordena el Simplex",
+      "repo": "ordena-simplex",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/ordena-simplex",
+      "juego_url": "https://israeltiburcio-ai.github.io/ordena-simplex/",
+      "tema": "Secuencia del método simplex",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 3,
+      "nombre": "Caza el Pivote",
+      "repo": "caza-el-pivote",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/caza-el-pivote",
+      "juego_url": "https://israeltiburcio-ai.github.io/caza-el-pivote/",
+      "tema": "Identificación de fila, columna y pivote",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 4,
+      "nombre": "Espejo Dual",
+      "repo": "espejo-dual",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/espejo-dual",
+      "juego_url": "https://israeltiburcio-ai.github.io/espejo-dual/",
+      "tema": "Construcción del modelo dual",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 4,
+      "nombre": "Balanza Dual",
+      "repo": "balanza-dual",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/balanza-dual",
+      "juego_url": "https://israeltiburcio-ai.github.io/balanza-dual/",
+      "tema": "Teoremas de dualidad",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 4,
+      "nombre": "Dominó de Holguras",
+      "repo": "domino-holguras",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/domino-holguras",
+      "juego_url": "https://israeltiburcio-ai.github.io/domino-holguras/",
+      "tema": "Holguras complementarias",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 4,
+      "nombre": "Mercado de Recursos",
+      "repo": "mercado-recursos-dual",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/mercado-recursos-dual",
+      "juego_url": "https://israeltiburcio-ai.github.io/mercado-recursos-dual/",
+      "tema": "Interpretación económica de precios sombra",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 4,
+      "nombre": "Semáforo de Cambios",
+      "repo": "semaforo-sensibilidad",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/semaforo-sensibilidad",
+      "juego_url": "https://israeltiburcio-ai.github.io/semaforo-sensibilidad/",
+      "tema": "Análisis de sensibilidad",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 5,
+      "nombre": "Desviación Express",
+      "repo": "desviacion-express",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/desviacion-express",
+      "juego_url": "https://israeltiburcio-ai.github.io/desviacion-express/",
+      "tema": "Variables de desviación en programación de metas",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 5,
+      "nombre": "Torre de Prioridades",
+      "repo": "torre-prioridades",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/torre-prioridades",
+      "juego_url": "https://israeltiburcio-ai.github.io/torre-prioridades/",
+      "tema": "Jerarquías y ponderaciones",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 5,
+      "nombre": "Rompecabezas de Metas",
+      "repo": "rompecabezas-metas",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/rompecabezas-metas",
+      "juego_url": "https://israeltiburcio-ai.github.io/rompecabezas-metas/",
+      "tema": "Construcción de restricciones meta",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 5,
+      "nombre": "Ruta de Metas",
+      "repo": "ruta-de-metas",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/ruta-de-metas",
+      "juego_url": "https://israeltiburcio-ai.github.io/ruta-de-metas/",
+      "tema": "Método gráfico de programación de metas",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    },
+    {
+      "gimnasio": 5,
+      "nombre": "Candado Simplex",
+      "repo": "candado-simplex",
+      "repositorio_url": "https://github.com/IsraelTiburcio-ai/candado-simplex",
+      "juego_url": "https://israeltiburcio-ai.github.io/candado-simplex/",
+      "tema": "Simplex modificado por prioridades",
+      "github_pages_enabled": true,
+      "ultima_ejecucion_pages": "success",
+      "http_pagina_verificado": false
+    }
+  ],
+  "observaciones": [
+    "Rescate Dual se propuso como sexto juego del Gimnasio 4, pero no apareció un repositorio homónimo en el inventario público de la cuenta.",
+    "Verificar con la profesora la pertinencia del juego Mapa de Producción antes de integrarlo como actividad evaluable: en conversaciones previas corrigió el cuadro objetivo del Gimnasio 2."
+  ]
+}
