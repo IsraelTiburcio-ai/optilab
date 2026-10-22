@@ -1,5 +1,39 @@
 # Pantalla grande · arena reutilizable
 
+## Entrega verificada · 22 de octubre de 2026
+
+**Estado: COMPLETADO y publicado.**
+
+- URL: https://israeltiburcio-ai.github.io/optilab/#/jugar/memorama-simplex
+- OptiLab, implementación `2b50ce0`: [Actions 39835531136](https://github.com/IsraelTiburcio-ai/optilab/actions/runs/39835531136), **success**.
+- Memorama, adaptación CSS `7a58545`: [Actions 39835143524](https://github.com/IsraelTiburcio-ai/memorama-simplex/actions/runs/39835143524), **success**.
+
+### QA ejecutado
+
+| Viewport | Arena pública Chromium | Arena pública WebKit | Partida intacta y resultado único |
+|---|---|---|---|
+| 390 × 844 | PASS | PASS | PASS |
+| 820 × 1180 | PASS | PASS | PASS |
+| 1180 × 820 | PASS | PASS | PASS |
+| 1440 × 900 | PASS | PASS | PASS |
+
+**10 pruebas públicas PASS** (5 por motor, sin interceptar recursos): cuatro recorridos completos y un caso de navegación/limpieza desde pantalla grande. El caso móvil usa un contexto táctil y toca el botón de salida. Los recorridos comprueban identidad del nodo/ventana/documento, `src` y sesión estables, cartas e intentos, continuidad del cronómetro, una sola carga del juego, un solo inicio y una sola finalización. Resultado real: ocho parejas en ocho intentos, 100%, guardado una vez y conservado tras recargar el gimnasio.
+
+La arena local también pasó cinco casos en Chromium y cinco en WebKit. Se cubrieron los **38 casos locales distintos de regresión y arena**: la ejecución completa aprobó 34 y detectó contraste insuficiente en el botón normal; tras corregir la precedencia CSS, los cuatro casos afectados se repitieron y aprobaron. Los cuatro casos públicos anteriores de `pilot-public.spec.ts` estaban omitidos de esa ejecución local por configuración, no se contabilizan como aprobados en ella. `npm run build`: **PASS**, incluido TypeScript.
+
+Se verificó también accesibilidad automática Axe en la arena, scroll anfitrión bloqueado, área táctil de salida de al menos 44 px, restauración del foco y posición de scroll. Se corrigió el caso de scroll en iPad vertical capturando su posición antes del cambio de layout.
+
+### Archivos de esta entrega
+
+OptiLab:
+- Nuevos: `src/components/GameArena.tsx`, `src/components/GameArena.css`, `tests/arena.spec.ts`, `docs/PANTALLA-GRANDE.md`.
+- Modificados: `src/pages/GamePlayer.tsx`, `README.md`.
+
+Memorama Simplex:
+- Modificados: `optilab-theme.css`, `index.html` (versión de la hoja de estilos).
+
+`GamePlayer.css`, `protocol.ts` y `GameCard.tsx` se inspeccionaron y no necesitaron cambios. Los otros 27 repositorios no se modificaron.
+
 ## Uso
 
 En el reproductor de Memorama Simplex, pulsar **Pantalla grande**. El juego ocupa el viewport con una barra mínima de título, regreso al gimnasio y **Salir de pantalla grande**. No abre otra pestaña ni requiere la API nativa de Fullscreen.
