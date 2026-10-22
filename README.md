@@ -2,6 +2,10 @@
 
 **Tu aventura por los gimnasios de Optimización I.**
 
+**Aplicación publicada:** https://israeltiburcio-ai.github.io/optilab/
+
+**Repositorio:** https://github.com/IsraelTiburcio-ai/optilab
+
 OptiLab convierte 28 microjuegos existentes en una aventura de autoestudio: cinco destinos, criaturas originales, una colección explorable y una bitácora local. Proyecto educativo independiente desarrollado para acompañar Optimización I en el contexto de Matemáticas Aplicadas y Computación de la UNAM.
 
 ## Problema y visión
@@ -112,6 +116,8 @@ git push -u origin main
 ```
 
 URL de destino: `https://israeltiburcio-ai.github.io/optilab/`. El estado efectivo de publicación debe comprobarse con `gh run list` y una petición HTTP, no inferirse solo de la configuración.
+
+Publicación inicial verificada: GitHub Actions [39733218496](https://github.com/IsraelTiburcio-ai/optilab/actions/runs/39733218496) concluyó `success`. El sitio respondió HTTP 200 y se verificó en Chromium el recorrido portada → mapa → Gimnasio 3, la recarga de su ruta y los 28 juegos del OptiDex.
 
 ## Cómo presentar OptiLab
 

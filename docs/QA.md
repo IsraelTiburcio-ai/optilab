@@ -61,7 +61,11 @@ Las cinco claves se comprobaron por álgebra y los criterios de la convención `
 - Medición Lighthouse/Core Web Vitals en red y dispositivos reales. Build observado: ~308 KB JS (~98 KB gzip), ~28 KB CSS (~7 KB gzip); SVG ligero, sin imágenes pesadas, vídeo ni audio automático.
 - Revisión docente de preguntas y de Mapa de Producción. La comprobación matemática no implica aprobación oficial de la profesora.
 
-## Reproducir
+## Verificación pública
+
+GitHub Actions `39733218496`: **success**. Sitio `https://israeltiburcio-ai.github.io/optilab/`: **HTTP 200**. En Chromium a 390×844 se ejecutó portada → mapa → Fortaleza Simplex, se recargó `#/gimnasio/3` y se comprobaron sus cinco juegos. OptiDex público: 28 registros. Sin errores JavaScript ni overflow horizontal en ese recorrido. Esta comprobación es adicional a las pruebas locales.
+
+## Comandos
 
 `npm ci`, `npx playwright install chromium`, `npm test`, `npm run build`.
 
