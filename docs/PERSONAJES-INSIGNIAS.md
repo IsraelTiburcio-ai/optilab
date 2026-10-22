@@ -1,5 +1,43 @@
 # Personalización · entrenadores e insignias Cloudinary
 
+## Entrega publicada y verificada · 22 de octubre de 2026
+
+**Estado: COMPLETADO.**
+
+- App: https://israeltiburcio-ai.github.io/optilab/
+- Selector: https://israeltiburcio-ai.github.io/optilab/#/entrenador
+- Repositorio modificado: únicamente `IsraelTiburcio-ai/optilab`.
+- Implementación: `51604bb`.
+- [GitHub Actions 39866153045](https://github.com/IsraelTiburcio-ai/optilab/actions/runs/39866153045): **success**.
+
+### Resultados reales
+
+| Viewport | Personalización pública Chromium | Personalización pública WebKit |
+|---|---|---|
+| 390 × 844 | PASS | PASS |
+| 820 × 1180 | PASS | PASS |
+| 1180 × 820 | PASS | PASS |
+| 1440 × 900 | PASS | PASS |
+
+- **16 casos públicos aprobados:** ocho por motor, incluyendo los cuatro recorridos de selección/recarga/cambio, migración de estado anterior, rutas directas/cancelación, teclado/ID desconocido y fallback por fallo de imagen.
+- **47 casos locales distintos cubiertos:** regresión anterior, cinco casos de arena, ocho de personalización e inspección de assets. La ejecución conjunta aprobó 46 y detectó contraste insuficiente en el nuevo enlace del mapa; se corrigió y el caso Axe afectado pasó al repetirse. Los cuatro casos de producción anteriores de `pilot-public.spec.ts` estaban omitidos en la ejecución local por configuración.
+- **Ocho casos de personalización en WebKit local aprobados**, con repetición exitosa de un caso afectado por latencia de imágenes; las esperas de verificación de CDN permiten carga real sin sustituir assets.
+- **Memorama público y pantalla grande:** recorrido 390×844 en Chromium PASS, con ampliaciones/restauraciones, ocho parejas, iframe intacto y un único resultado. La regresión local también pasó en los cuatro tamaños.
+- **Build de producción y TypeScript: PASS.**
+- Las quince imágenes originales se cargaron e inspeccionaron visualmente. Las pruebas de perfil también esperan que sus nueve insignias se descarguen y decodifiquen para comprobar `object-fit: contain` y capturas completas.
+
+Los viewports y motores son emulados. No se presentan estas pruebas como comprobaciones en iPhone/iPad físicos.
+
+### Archivos de la entrega
+
+Datos: `src/data/avatars.ts`, `src/data/badges.ts`.
+
+Componentes: `src/components/AssetImage.tsx`, `AvatarPortrait.tsx`, `GymBadge.tsx`, `Progress.tsx`.
+
+Pantallas/estilos: `src/pages/TrainerSelect.tsx`, `GymMap.tsx`, `Profile.tsx`, `src/styles/personalization.css`; integración en `src/App.tsx` y `src/store.tsx`.
+
+QA/documentación: `tests/personalization.spec.ts`, `tests/asset-inspection.spec.ts`, ajuste del recorrido inicial en `tests/adventure.spec.ts`, `README.md` y este documento.
+
 ## Experiencia
 
 La portada conserva su diseño. **Comenzar aventura** lleva a `#/entrenador` si no existe una elección confirmada, o al mapa si ya se guardó un entrenador. La pantalla ofrece seis personajes, selección táctil/teclado, vista previa, personalidad y confirmación. **Mi aventura → Cambiar entrenador** permite cambiarlo o cancelar sin modificar la elección.
