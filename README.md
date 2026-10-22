@@ -81,6 +81,10 @@ Abrir un juego no registra práctica ni victoria. Solo el alumno marca la práct
 
 La fase 2 conserva `optilab-v1` y añade `gameResults` sin borrar el progreso anterior. El reproductor tiene transición, navegación de regreso, resultados y alternativa externa ante errores de conexión. Especificación y patrón para los otros juegos: [docs/INTEGRACION-JUEGOS.md](docs/INTEGRACION-JUEGOS.md).
 
+**Abrir el piloto:** https://israeltiburcio-ai.github.io/optilab/#/jugar/memorama-simplex
+
+**Reporte de la fase 2:** [docs/QA-FASE-2.md](docs/QA-FASE-2.md). Incluye partidas completas probadas en Chromium y WebKit, tanto integradas como independientes, sobre las URLs públicas.
+
 Los datos permanecen en el navegador y origen actual: no se sincronizan entre dispositivos ni entre localhost y Pages. El almacenamiento bloqueado permite seguir utilizando la sesión e informa que no se conservará. El reinicio exige confirmación.
 
 ## Contenido académico
@@ -125,7 +129,7 @@ Publicación inicial verificada: GitHub Actions [39733218496](https://github.com
 
 1. Abre la portada en el iPad y elige **Comenzar aventura**.
 2. Selecciona **Fortaleza Simplex** y entra al gimnasio.
-3. Abre **Memorama Simplex**. Regresa a OptiLab y marca manualmente la práctica.
+3. Abre **Memorama Simplex** dentro de OptiLab, completa las ocho parejas y consulta el resultado. Regresa al gimnasio; la práctica manual sigue siendo un control separado.
 4. Consulta **Mi aventura**: se distingue práctica de evaluación.
 5. En **Entrenar**, elige Gimnasio 3, 10 minutos y traza la ruta de dos actividades.
 6. Abre **Reto final**, responde cinco reactivos y revisa las explicaciones.
@@ -138,8 +142,8 @@ Publicación inicial verificada: GitHub Actions [39733218496](https://github.com
 - Solo Memorama Simplex integra resultados; los otros 27 mantienen su funcionamiento externo independiente.
 - Progreso exclusivamente local, sin exportación o sincronización.
 - Tipografías de Google Fonts con fallback local; la aplicación no requiere la fuente remota para funcionar.
-- Sin sonido, instalación PWA ni modo offline en esta versión.
-- QA automatizado en Chromium; Safari/iOS y dispositivos físicos requieren comprobación adicional.
+- El shell no añade audio propio; Memorama conserva sus sonidos y control de silencio. Sin instalación PWA ni modo offline.
+- QA del MVP en Chromium y del piloto también en WebKit; dispositivos físicos y Safari iOS real requieren comprobación adicional.
 
 ## Próximas mejoras
 

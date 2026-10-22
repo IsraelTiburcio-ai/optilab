@@ -28,6 +28,7 @@ Antes de modificar el juego se comprobaron sus cabeceras HTTP y se abrió su ver
 - `index.html`: carga del puente y tema; versión de script para evitar caché del código anterior; repaso final enfocable.
 - `script.js`: notificaciones desde `startClock` (primera carta real) y `finish` (ocho parejas reales). El diálogo incluye su repaso en el orden de teclado.
 - `optilab-theme.css`: tema aplicado exclusivamente después de handshake validado; sin modificar mecánica, banco académico, aciertos o selección aleatoria.
+- `.github/workflows/pages.yml`: incluye explícitamente puente y tema en el artefacto publicado.
 
 `data.js` permanece sin cambios. La apariencia independiente mantiene su tema original.
 
@@ -115,6 +116,8 @@ npm run build
 Playwright levanta Vite en 5187 y el clon del juego en 5190. Intercepta únicamente las solicitudes al sitio del juego y sirve el candidato local conservando su origen real en el navegador. Esto prueba el origen remoto sin publicar código sin verificar. La prueba pública adicional no intercepta recursos.
 
 Sin `MEMORAMA_DIR`, las pruebas específicas de los dos candidatos locales quedan explícitamente omitidas; el resto se puede ejecutar con `npm test`.
+
+Para verificar producción sin interceptar recursos: `VERIFY_PUBLIC=1 npx playwright test tests/pilot-public.spec.ts --browser chromium` (o `--browser webkit`). Resultados reales y URLs de Actions: [QA-FASE-2.md](QA-FASE-2.md).
 
 ## Patrón para los otros 27
 
