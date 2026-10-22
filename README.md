@@ -32,7 +32,9 @@ npm run preview
 
 ## Qué incluye
 
-- Portada ilustrada, cinco OptiCriaturas SVG originales y cinco insignias originales.
+- Portada ilustrada y cinco OptiCriaturas SVG originales.
+- Selección RPG de seis entrenadores Cloudinary: Kai, Mika, Ares, Lyra, Zane y Nova; elección local y cambio desde Mi aventura.
+- Cinco insignias WebP con estado bloqueado/conseguido y cuatro recompensas futuras; SVG originales conservados como fallback.
 - Mapa HTML/SVG interactivo, vertical en móvil y panorámico en escritorio, con selección por teclado.
 - Cinco interiores temáticos y los 28 juegos del JSON original.
 - OptiDex: búsqueda por nombre/tema, filtros por gimnasio, pendientes, detalles y código original.
@@ -84,6 +86,8 @@ La fase 2 conserva `optilab-v1` y añade `gameResults` sin borrar el progreso an
 **Abrir el piloto:** https://israeltiburcio-ai.github.io/optilab/#/jugar/memorama-simplex
 
 El reproductor incluye **Pantalla grande**: arena CSS de viewport completo, salida siempre visible, bloqueo de scroll exterior y conservación de la misma partida al ampliar/restaurar. Detalles y pruebas: [docs/PANTALLA-GRANDE.md](docs/PANTALLA-GRANDE.md).
+
+La personalización añade `avatarId` al mismo estado local sin eliminar el progreso anterior. La primera aventura ofrece el selector; las rutas directas permanecen abiertas. Mapeo visual de las nueve insignias, fuentes y pruebas: [docs/PERSONAJES-INSIGNIAS.md](docs/PERSONAJES-INSIGNIAS.md).
 
 **Reporte de la fase 2:** [docs/QA-FASE-2.md](docs/QA-FASE-2.md). Incluye partidas completas probadas en Chromium y WebKit, tanto integradas como independientes, sobre las URLs públicas.
 

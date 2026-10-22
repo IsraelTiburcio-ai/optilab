@@ -1,6 +1,7 @@
 import {createContext, useContext, useEffect, useState, type ReactNode} from 'react';
 import {games, gyms, gymGames} from './data';
 import {savedResults, type SavedGameResult} from './integration/protocol';
+import {isAvatarId} from './data/avatars';
 
 export interface Result {date: string; answers: number[]; score: number}
 interface Progress {
@@ -11,10 +12,11 @@ interface Progress {
   gameResults: SavedGameResult[];
   nickname: string;
   route: string[];
+  avatarId: string | null;
 }
 const empty = (): Progress => ({
   practiced: {}, visited: [], badges: [], results: [], gameResults: [],
-  nickname: 'Entrenador OptiLab', route: [],
+  nickname: 'Entrenador OptiLab', route: [], avatarId: null,
 });
 function load(): Progress {
   try {
@@ -23,6 +25,7 @@ function load(): Progress {
     return {
       ...empty(),
       nickname: typeof p.nickname === 'string' ? p.nickname.slice(0, 30) : empty().nickname,
+      avatarId: isAvatarId(p.avatarId) ? p.avatarId : null,
       practiced: Object.fromEntries(Object.entries(p.practiced || {}).filter(
         (entry): entry is [string, string] => games.some(g => g.repo === entry[0]) && typeof entry[1] === 'string',
       )),
@@ -63,6 +66,7 @@ function useProgressState() {
     }),
     setRoute: (route: string[]) => setState(p => ({...p, route})),
     nickname: (nickname: string) => setState(p => ({...p, nickname})),
+    selectAvatar: (avatarId: string) => {if (isAvatarId(avatarId)) setState(p => ({...p, avatarId}));},
     reset: () => setState(empty()),
   };
 }
