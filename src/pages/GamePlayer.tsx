@@ -4,6 +4,7 @@ import {ArrowUpRight, RotateCcw, Shield} from 'lucide-react';
 import {Mascot} from '../Art';
 import {useProgress} from '../store';
 import {GameResultPanel} from '../components/GameResultPanel';
+import {GameArena} from '../components/GameArena';
 import {GAME_ID, GAME_URL, GAME_ORIGIN, PROTOCOL, parseMessage, type SavedGameResult} from '../integration/protocol';
 import './GamePlayer.css';
 
@@ -81,14 +82,17 @@ function PlayerSession({retry}: {retry: () => void}) {
     <div className="player-navigation"><Link className="back-link" to="/gimnasio/3">← Regresar al gimnasio</Link>
       <a className="text-button" href={GAME_URL} target="_blank" rel="noopener noreferrer">Abrir juego independiente <ArrowUpRight size={15}/></a></div>
     <header className="player-title"><div><span className="eyebrow">FORTALEZA SIMPLEX · PILOTO INTEGRADO</span><h1>Memorama Simplex</h1><p>Encuentra conexiones. Tu partida se queda en esta aventura.</p></div><Mascot id={3}/></header>
-    <div className="player-status" role="status"><Shield size={17}/><span>{status}</span>
-      <button className="text-button" onClick={retry}><RotateCcw size={14}/> Reconectar</button></div>
+    <GameArena title="Memorama Simplex" region="Fortaleza Simplex" returnTo="/gimnasio/3" controls={
+      <div className="player-status" role="status"><Shield size={17}/><span>{status}</span>
+        <button className="text-button" onClick={retry}><RotateCcw size={14}/> Reconectar</button></div>
+    }>
     <div className={`player-frame-shell ${phase === 'loading' ? 'is-loading' : ''}`}>
       {showFrame && <iframe ref={frame} src={source} title="Memorama Simplex · juego integrado" referrerPolicy="strict-origin-when-cross-origin"
         onError={() => {setPhase('unavailable'); setShowFrame(false);}} allow="autoplay 'none'; camera 'none'; microphone 'none'; geolocation 'none'"/>}
       {phase === 'loading' && <div className="player-loading"><Mascot id={3}/><p>Preparando el tablero de la fortaleza…</p></div>}
       {phase === 'unavailable' && <section className="player-fallback"><h2>El portal necesita otro camino</h2><p>La conexión no está disponible. Puedes reintentar o jugar en el sitio independiente. Abrirlo no registra una victoria en OptiLab.</p><a className="button primary" href={GAME_URL} target="_blank" rel="noopener noreferrer">Jugar en otra pestaña <ArrowUpRight size={18}/></a><button className="button" onClick={retry}>Reintentar conexión</button></section>}
     </div>
+    </GameArena>
     {result ? <GameResultPanel result={result} live/> : previous && <details className="previous-game-result"><summary>Consultar último resultado guardado</summary><GameResultPanel result={previous}/></details>}
     <p className="muted player-honesty">Solo se registra finalización cuando el juego informa las ocho parejas encontradas. Salir antes no cuenta como completar; puedes registrar práctica manual desde su ficha.</p>
   </div>;

@@ -83,6 +83,8 @@ La fase 2 conserva `optilab-v1` y añade `gameResults` sin borrar el progreso an
 
 **Abrir el piloto:** https://israeltiburcio-ai.github.io/optilab/#/jugar/memorama-simplex
 
+El reproductor incluye **Pantalla grande**: arena CSS de viewport completo, salida siempre visible, bloqueo de scroll exterior y conservación de la misma partida al ampliar/restaurar. Detalles y pruebas: [docs/PANTALLA-GRANDE.md](docs/PANTALLA-GRANDE.md).
+
 **Reporte de la fase 2:** [docs/QA-FASE-2.md](docs/QA-FASE-2.md). Incluye partidas completas probadas en Chromium y WebKit, tanto integradas como independientes, sobre las URLs públicas.
 
 Los datos permanecen en el navegador y origen actual: no se sincronizan entre dispositivos ni entre localhost y Pages. El almacenamiento bloqueado permite seguir utilizando la sesión e informa que no se conservará. El reinicio exige confirmación.
