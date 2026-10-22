@@ -1,10 +1,77 @@
-import {createContext,useContext,useEffect,useState,type ReactNode} from 'react';
-import {games,gyms,gymGames} from './data';
-export interface Result {date:string; answers:number[]; score:number}
-interface Progress {practiced:Record<string,string>; visited:number[]; badges:number[]; results:Result[]; nickname:string; route:string[]}
-const empty=():Progress=>({practiced:{},visited:[],badges:[],results:[],nickname:'Entrenador OptiLab',route:[]});
-function load():Progress {try {const p=JSON.parse(localStorage.getItem('optilab-v1')||'null'); if(!p || typeof p!=='object') return empty();return {...empty(),nickname:typeof p.nickname==='string'?p.nickname.slice(0,30):empty().nickname,practiced:Object.fromEntries(Object.entries(p.practiced||{}).filter((entry):entry is [string,string]=>games.some(g=>g.repo===entry[0])&&typeof entry[1]==='string')),visited:Array.isArray(p.visited)?p.visited.filter((n:number)=>gyms.some(g=>g.id===n)):[],results:Array.isArray(p.results)?p.results.filter((r:Result)=>r&&Array.isArray(r.answers)&&r.answers.length===5&&r.answers.every(n=>Number.isInteger(n)&&n>=0&&n<3)&&typeof r.score==='number'&&typeof r.date==='string').slice(-30):[],route:Array.isArray(p.route)?p.route.filter((k:string)=>games.some(g=>g.repo===k)):[]}}catch{return empty()}}
-const Context=createContext<ReturnType<typeof useProgressState>|null>(null);
-function useProgressState(){const [state,setState]=useState(load);const [storageOK,setStorageOK]=useState(true);const badges=gyms.filter(g=>gymGames(g.id).every(x=>state.practiced[x.repo])).map(g=>g.id);useEffect(()=>{try{localStorage.setItem('optilab-v1',JSON.stringify({...state,badges}));setStorageOK(true)}catch{setStorageOK(false)}},[state]);return {state,badges,storageOK,toggle:(id:string)=>setState(p=>{const practiced={...p.practiced};if(practiced[id])delete practiced[id];else practiced[id]=new Date().toISOString();return {...p,practiced}}),visit:(id:number)=>setState(p=>p.visited.includes(id)?p:{...p,visited:[...p.visited,id]}),saveResult:(r:Result)=>setState(p=>({...p,results:[...p.results,r].slice(-30)})),setRoute:(route:string[])=>setState(p=>({...p,route})),nickname:(nickname:string)=>setState(p=>({...p,nickname})),reset:()=>setState(empty())}}
-export function ProgressProvider({children}:{children:ReactNode}){const value=useProgressState();return <Context.Provider value={value}>{children}</Context.Provider>}
-export function useProgress(){const c=useContext(Context);if(!c)throw new Error('ProgressProvider requerido');return c}
+import {createContext, useContext, useEffect, useState, type ReactNode} from 'react';
+import {games, gyms, gymGames} from './data';
+import {savedResults, type SavedGameResult} from './integration/protocol';
+
+export interface Result {date: string; answers: number[]; score: number}
+interface Progress {
+  practiced: Record<string, string>;
+  visited: number[];
+  badges: number[];
+  results: Result[];
+  gameResults: SavedGameResult[];
+  nickname: string;
+  route: string[];
+}
+const empty = (): Progress => ({
+  practiced: {}, visited: [], badges: [], results: [], gameResults: [],
+  nickname: 'Entrenador OptiLab', route: [],
+});
+function load(): Progress {
+  try {
+    const p = JSON.parse(localStorage.getItem('optilab-v1') || 'null');
+    if (!p || typeof p !== 'object') return empty();
+    return {
+      ...empty(),
+      nickname: typeof p.nickname === 'string' ? p.nickname.slice(0, 30) : empty().nickname,
+      practiced: Object.fromEntries(Object.entries(p.practiced || {}).filter(
+        (entry): entry is [string, string] => games.some(g => g.repo === entry[0]) && typeof entry[1] === 'string',
+      )),
+      visited: Array.isArray(p.visited) ? p.visited.filter((n: number) => gyms.some(g => g.id === n)) : [],
+      results: Array.isArray(p.results) ? p.results.filter((r: Result) => r && Array.isArray(r.answers) &&
+        r.answers.length === 5 && r.answers.every(n => Number.isInteger(n) && n >= 0 && n < 3) &&
+        typeof r.score === 'number' && typeof r.date === 'string').slice(-30) : [],
+      gameResults: savedResults(p.gameResults),
+      route: Array.isArray(p.route) ? p.route.filter((k: string) => games.some(g => g.repo === k)) : [],
+    };
+  } catch { return empty(); }
+}
+const Context = createContext<ReturnType<typeof useProgressState> | null>(null);
+function useProgressState() {
+  const [state, setState] = useState(load);
+  const [storageOK, setStorageOK] = useState(true);
+  const badges = gyms.filter(g => gymGames(g.id).every(x => state.practiced[x.repo])).map(g => g.id);
+  useEffect(() => {
+    try {
+      localStorage.setItem('optilab-v1', JSON.stringify({...state, badges}));
+      setStorageOK(true);
+    } catch { setStorageOK(false); }
+  }, [state]);
+  return {
+    state, badges, storageOK,
+    toggle: (id: string) => setState(p => {
+      const practiced = {...p.practiced};
+      if (practiced[id]) delete practiced[id];
+      else practiced[id] = new Date().toISOString();
+      return {...p, practiced};
+    }),
+    visit: (id: number) => setState(p => p.visited.includes(id) ? p : {...p, visited: [...p.visited, id]}),
+    saveResult: (r: Result) => setState(p => ({...p, results: [...p.results, r].slice(-30)})),
+    saveGameResult: (result: SavedGameResult) => setState(p => {
+      if (!savedResults([result]).length || p.gameResults.some(r => r.runId === result.runId)) return p;
+      // Completion is separate from manual practice and exploration badges.
+      return {...p, gameResults: [...p.gameResults, result].slice(-50)};
+    }),
+    setRoute: (route: string[]) => setState(p => ({...p, route})),
+    nickname: (nickname: string) => setState(p => ({...p, nickname})),
+    reset: () => setState(empty()),
+  };
+}
+export function ProgressProvider({children}: {children: ReactNode}) {
+  const value = useProgressState();
+  return <Context.Provider value={value}>{children}</Context.Provider>;
+}
+export function useProgress() {
+  const context = useContext(Context);
+  if (!context) throw new Error('ProgressProvider requerido');
+  return context;
+}

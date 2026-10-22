@@ -71,13 +71,15 @@ tests/          Recorridos funcionales, accesibilidad, HTTP y responsive
 
 El JSON de la raíz se importa directamente; no se duplica ni se reconstruyen manualmente sus registros. Se validan campos esenciales, HTTPS, gimnasio, IDs únicos y total. Los datos inválidos provocan un error explícito y el límite de errores muestra una recuperación. Campos de verificación del catálogo se conservan en la fuente original; no se presentan como resultados actuales de ejecución.
 
-Los juegos usan `repo` como identidad estable y un único `GameCard` reutilizable. Los enlaces abren otra pestaña con `noopener noreferrer`; no hay iframes ni modificaciones a sus repositorios.
+Los juegos usan `repo` como identidad estable y un único `GameCard` reutilizable. Memorama Simplex tiene una integración piloto por iframe y protocolo `postMessage` validado; los otros 27 abren otra pestaña con `noopener noreferrer`. Solo se modifica el repositorio de Memorama para este piloto. Hay cinco portadas SVG originales diferenciadas para los juegos de Simplex.
 
 ## Progreso local y honestidad
 
 Clave: `optilab-v1` de `localStorage`. Guarda práctica por repositorio y fecha ISO, gimnasios visitados, insignias derivadas, últimos 30 resultados, apodo y ruta activa. Las insignias se recalculan coherentemente al marcar/desmarcar; no constituyen una evaluación académica.
 
-Abrir un juego no registra práctica ni victoria. Solo el alumno puede marcarlo. OptiLab no recibe resultados de los juegos externos. Los resultados evaluados corresponden exclusivamente a los cinco reactivos internos. No se afirma dominio global.
+Abrir un juego no registra práctica ni victoria. Solo el alumno marca la práctica manual. El piloto de Memorama registra por separado la finalización y precisión que el juego comunica al encontrar sus ocho parejas; los otros 27 no comunican resultados. Los diagnósticos académicos corresponden a los cinco reactivos internos. Ni una partida ni una insignia afirman dominio global.
+
+La fase 2 conserva `optilab-v1` y añade `gameResults` sin borrar el progreso anterior. El reproductor tiene transición, navegación de regreso, resultados y alternativa externa ante errores de conexión. Especificación y patrón para los otros juegos: [docs/INTEGRACION-JUEGOS.md](docs/INTEGRACION-JUEGOS.md).
 
 Los datos permanecen en el navegador y origen actual: no se sincronizan entre dispositivos ni entre localhost y Pages. El almacenamiento bloqueado permite seguir utilizando la sesión e informa que no se conservará. El reinicio exige confirmación.
 
@@ -133,7 +135,7 @@ Publicación inicial verificada: GitHub Actions [39733218496](https://github.com
 
 - Un solo diagnóstico de cinco preguntas; no cubre todo el programa ni certifica conocimientos.
 - Duraciones de juegos sin medir: el tiempo solo orienta la extensión de la ruta.
-- Juegos externos independientes y sujetos a su disponibilidad; no se integran sus resultados.
+- Solo Memorama Simplex integra resultados; los otros 27 mantienen su funcionamiento externo independiente.
 - Progreso exclusivamente local, sin exportación o sincronización.
 - Tipografías de Google Fonts con fallback local; la aplicación no requiere la fuente remota para funcionar.
 - Sin sonido, instalación PWA ni modo offline en esta versión.
