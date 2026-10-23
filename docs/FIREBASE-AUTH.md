@@ -1,6 +1,6 @@
 # Firebase Authentication · fase 01 · PR de revisión
 
-Relacionado con [issue #2](https://github.com/IsraelTiburcio-ai/optilab/issues/2), dentro del [EPIC #1](https://github.com/IsraelTiburcio-ai/optilab/issues/1). Estado: implementación y QA local/emulada disponibles; prueba manual real pendiente. **No fusionar ni desplegar hasta aprobarla.**
+Relacionado con [issue #2](https://github.com/IsraelTiburcio-ai/optilab/issues/2), dentro del [EPIC #1](https://github.com/IsraelTiburcio-ai/optilab/issues/1). Estado: implementación y QA local/emulada disponibles; configuración real comprobada y prueba manual interactiva pendiente. **No fusionar ni desplegar hasta aprobarla.**
 
 Entrega: **[PR borrador #11](https://github.com/IsraelTiburcio-ai/optilab/pull/11)**, base `main`, rama `feat/firebase-auth`. Las capturas de revisión están incluidas en la PR.
 
@@ -17,25 +17,27 @@ Entrega: **[PR borrador #11](https://github.com/IsraelTiburcio-ai/optilab/pull/1
 
 No hay importación de `firebase/firestore`, escrituras de documentos, cambios de reglas, roles o estadísticas competitivas. Los tickets de esas capacidades siguen abiertos y separados.
 
-## Configuración pública y bloqueo actual
+## Configuración pública y validación pendiente
 
 Proyecto indicado por el propietario: `optilab-cd829`, app `OptiLab Web`.
 
 | Variable | Valor recibido / estado |
 |---|---|
-| `VITE_FIREBASE_API_KEY` | **Pendiente: no recibida ni configurada** |
+| `VITE_FIREBASE_API_KEY` | Configurada en Repository Variables y aceptada por Authentication; no se publica su valor en esta documentación |
 | `VITE_FIREBASE_AUTH_DOMAIN` | `optilab-cd829.firebaseapp.com` |
 | `VITE_FIREBASE_PROJECT_ID` | `optilab-cd829` |
 | `VITE_FIREBASE_STORAGE_BUCKET` | `optilab-cd829.firebasestorage.app` |
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | `401863964479` |
 | `VITE_FIREBASE_APP_ID` | `1:401863964479:web:55365cb9445f026075058a` |
 
-Los cinco valores públicos conocidos ya se guardaron como **Repository Variables** en GitHub. La API key no se inventó ni se recuperó de credenciales privadas. El endpoint público de Hosting `__/firebase/init.json` no estaba disponible (404), por lo que no proporcionó la configuración faltante; esto no verifica ni contradice el estado de los proveedores de Authentication en Console.
+Inicialmente solo estaban los cinco valores proporcionados y el endpoint público de Hosting no suministró la key (404). Después el propietario configuró la API key en GitHub. Se comprobaron las seis variables y la consulta pública de Authentication respondió HTTP 200, con proyecto numérico `401863964479` y dominios autorizados `localhost` e `israeltiburcio-ai.github.io`, entre otros. `127.0.0.1` no está autorizado. No se inventó ni se expone una key en esta documentación.
 
-### Qué debe proporcionar/configurar el propietario
+Se probó también la inicialización y recarga de una sesión invitada local con configuración real, sin emulador: `optilab-v1` intacto, cero solicitudes Firestore y ninguna creación de cuenta ni envío de correo. **Google y los flujos reales de correo todavía requieren intervención manual**: [checklist exacta](QA-AUTH-REAL.md).
+
+### Configuración local y futuras actualizaciones de la key
 
 1. Firebase Console → Configuración del proyecto → Tus apps → **OptiLab Web** → configuración SDK → copiar **`apiKey` web pública**.
-2. GitHub → `IsraelTiburcio-ai/optilab` → Settings → Secrets and variables → Actions → **Variables** → crear `VITE_FIREBASE_API_KEY` con ese valor. También puede usar:
+2. La Repository Variable `VITE_FIREBASE_API_KEY` ya existe. Si se actualiza, usar GitHub → `IsraelTiburcio-ai/optilab` → Settings → Secrets and variables → Actions → **Variables**, o:
 
 ```sh
 gh variable set VITE_FIREBASE_API_KEY --repo IsraelTiburcio-ai/optilab
@@ -116,7 +118,8 @@ Firebase 12.19.0 y sus componentes App 0.16.2/App Compat 0.5.18 se fijaron por c
 
 ## Checklist manual pendiente antes de merge
 
-- [ ] API key web real configurada y build de revisión autorizado.
+- [x] API key web real y cinco valores restantes comprobados; inicialización local de lectura validada.
+- [ ] Build/entorno de revisión autorizado para comprobar el dominio publicado, sin desplegar por inferencia.
 - [ ] Google real: popup, retorno, recarga, logout en el dominio autorizado.
 - [ ] Correo real: alta, entrega del enlace de verificación, verificación y actualización.
 - [ ] Recuperación real, enlace/cambio de contraseña y reingreso.
@@ -124,4 +127,4 @@ Firebase 12.19.0 y sus componentes App 0.16.2/App Compat 0.5.18 se fijaron por c
 - [ ] Safari/iPhone/iPad físicos cuando estén disponibles.
 - [ ] Aprobar explícitamente la PR y el despliegue; no fusionar solo por CI verde.
 
-No se ejecutaron estas pruebas reales porque falta la API key y no se desplegaron cambios sin aprobar. Se necesita un entorno de revisión autorizado para validar el dominio publicado antes de declarar cumplido ese criterio.
+La configuración real y el arranque/recarga como invitado sí se comprobaron. No se ejecutaron accesos Google, altas ni correos reales: requieren la cuenta y acción del propietario. Tampoco se desplegaron cambios sin aprobar. Se necesita un entorno de revisión autorizado para validar el dominio publicado antes de declarar cumplido ese criterio.

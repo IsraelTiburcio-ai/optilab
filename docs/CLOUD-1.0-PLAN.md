@@ -32,4 +32,4 @@ Entrega de revisión: **[PR borrador #11](https://github.com/IsraelTiburcio-ai/o
 
 La PR se entrega sin fusionar ni desplegar. Authentication no significa sincronización: el progreso sigue en `optilab-v1`. No se crean documentos Firestore, grupos, roles, métricas competitivas ni nuevas reglas de producción. No se activa Blaze.
 
-La verificación manual de Firebase real es condición de revisión: falta la API key pública de `OptiLab Web`. Los cinco valores públicos recibidos se configuraron como variables del repositorio; no se creó una key ficticia ni se solicitó una cuenta de servicio. Detalles: [FIREBASE-AUTH.md](FIREBASE-AUTH.md).
+La verificación manual de Firebase real es condición de revisión. La API key, inicialmente ausente, ya fue configurada por el propietario y validada junto con los cinco valores públicos restantes. No se creó una key ficticia ni se solicitó una cuenta de servicio. Se comprobó el arranque local real sin escrituras; el acceso Google/correo y la entrega de enlaces siguen pendientes de intervención del propietario. Detalles: [FIREBASE-AUTH.md](FIREBASE-AUTH.md) y [checklist manual](QA-AUTH-REAL.md).

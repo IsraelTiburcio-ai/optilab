@@ -82,7 +82,7 @@ Los juegos usan `repo` como identidad estable y un único `GameCard` reutilizabl
 
 La planificación está en [EPIC #1](https://github.com/IsraelTiburcio-ai/optilab/issues/1), con nueve entregas separadas y [milestone 1](https://github.com/IsraelTiburcio-ai/optilab/milestone/1). Solo se implementa Authentication [#2](https://github.com/IsraelTiburcio-ai/optilab/issues/2) en `feat/firebase-auth`: `#/cuenta`, Google, correo/contraseña, verificación, recuperación y cierre de sesión. Se conserva el invitado y no se escribe en Firestore.
 
-**Pendiente para Firebase real:** falta `VITE_FIREBASE_API_KEY` de la app web. Sin configuración, Cuenta explica el bloqueo y permite seguir como invitado. No confundir las pruebas con Auth Emulator con validación en producción. No fusionar/desplegar antes de QA manual. Configuración y pruebas: [docs/FIREBASE-AUTH.md](docs/FIREBASE-AUTH.md); seguimiento: [docs/CLOUD-1.0-PLAN.md](docs/CLOUD-1.0-PLAN.md).
+**Pendiente:** validación manual interactiva de Firebase real. La API key web ya está en Repository Variables y la configuración/arranque local se comprobaron; Google con cuenta real y los correos requieren intervención del propietario. Sin configuración local, Cuenta explica el bloqueo y permite seguir como invitado. No confundir las pruebas con Auth Emulator con acceso real. No fusionar/desplegar antes de QA manual. [Pasos exactos](docs/QA-AUTH-REAL.md), [configuración](docs/FIREBASE-AUTH.md) y [seguimiento](docs/CLOUD-1.0-PLAN.md).
 
 Clave: `optilab-v1` de `localStorage`. Guarda práctica por repositorio y fecha ISO, gimnasios visitados, insignias derivadas, últimos 30 resultados, apodo y ruta activa. Las insignias se recalculan coherentemente al marcar/desmarcar; no constituyen una evaluación académica.
 
