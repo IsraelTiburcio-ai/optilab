@@ -116,6 +116,19 @@ test('required progress fields cannot be omitted and unknown singleton paths rem
 
 test('client cannot grant role, membership, enrollment or verified statistics, even in an atomic batch',async()=>{
   const client=db('a',{role:'admin',teacher:true});
+  // Well-formed forgeries must fail too: malformed payloads alone would not
+  // catch an insecure rule that lets users assign themselves valid grants.
+  const courseGrant={schemaVersion:1,courseId:'course-test',uid:'a',status:'active'};
+  await assertFails(put(client,'courses/course-test/staff/a',courseGrant));
+  await assertFails(put(client,`${group('group-a')}/staff/a`,grant('a','group-a')));
+  await assertFails(put(client,`${group('group-b')}/members/a`,grant('a','group-b')));
+  await assertFails(put(client,'users/a/enrollments/forged',grant('a','group-b')));
+  const rankingPath=`${group('group-a')}/leaderboard/a`;
+  const validRanking=(await read(client,rankingPath)).data();
+  await assertFails(put(client,rankingPath,{...validRanking,points:999999,updatedAt:serverTimestamp()}));
+  const summaryPath=`${group('group-a')}/studentSummaries/a`;
+  const validSummary=(await read(client,summaryPath)).data();
+  await assertFails(put(client,summaryPath,{...validSummary,practicedCount:28,updatedAt:serverTimestamp()}));
   for(const path of ['staff/a','users/a/staff/a','courses/course-test/staff/a',`${group('group-a')}/staff/a`,
     `${group('group-b')}/members/a`,'courses/course-test/members/forged','users/a/enrollments/fake',
     `${group('group-a')}/leaderboard/a`,`${group('group-a')}/studentSummaries/a`]) {
@@ -255,13 +268,21 @@ test('malformed private projections fail closed, including injected email',async
   await assertFails(read(db('teacher-a'),`${group('group-a')}/studentSummaries/a`));
 });
 test('broad lists, collection-group scans and future admin/editor routes denied',async()=>{
+  const reserved=['courses/course-test/activities/draft-test',`${group('group-a')}/groupActivities/activity-test`,
+    `${group('group-a')}/publishedActivities/activity-test`,`${group('group-a')}/activityPlacements/3`,
+    `${group('group-a')}/activityAttempts/attempt-test`,`${group('group-a')}/invitations/invite-test`,
+    'gyms/3','activities/private-test'];
+  // Seed actual documents: absence alone must not mask a draft/privacy leak.
+  await operator(async c=>{
+    const batch=writeBatch(c);
+    for(const path of reserved)batch.set(ref(c,path),{...scope('group-a'),status:path.includes('activities/')?'draft':'published',createdBy:'teacher-a'});
+    await batch.commit();
+  });
   for(const client of [db('a'),db('teacher-a'),db('teacher-b')]) {
     for(const path of ['users','courses',`${base}`,`${group('group-a')}/members`,`${group('group-a')}/leaderboard`]) {
       await assertFails(getDocs(query(collection(client,path),limit(20))));
     }
-    for(const path of ['courses/course-test/activities/draft-test',`${group('group-a')}/groupActivities/activity-test`,
-      `${group('group-a')}/activityPlacements/3`,`${group('group-a')}/activityAttempts/attempt-test`,
-      `${group('group-a')}/invitations/invite-test`,'gyms/3','activities/private-test']) {
+    for(const path of reserved) {
       await assertFails(read(client,path));
       await assertFails(put(client,path,{status:'published',createdBy:'teacher-a'}));
     }
