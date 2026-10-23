@@ -2,6 +2,8 @@ import {createContext, useContext, useEffect, useState, type ReactNode} from 're
 import {games, gyms, gymGames} from './data';
 import {savedResults, type SavedGameResult} from './integration/protocol';
 import {isAvatarId} from './data/avatars';
+import {isCompanionId, type CompanionId, type EvolutionStage} from './data/companions';
+import {evolutionProgress, reconcileMilestones, type EvolutionMilestone, type UnlockStage} from './lib/evolutionRules';
 
 export interface Result {date: string; answers: number[]; score: number}
 interface Progress {
@@ -13,19 +15,31 @@ interface Progress {
   nickname: string;
   route: string[];
   avatarId: string | null;
+  companionId: CompanionId | null;
+  evolutionMilestones: EvolutionMilestone[];
+  evolutionCelebratedStage: EvolutionStage;
 }
 const empty = (): Progress => ({
   practiced: {}, visited: [], badges: [], results: [], gameResults: [],
   nickname: 'Entrenador OptiLab', route: [], avatarId: null,
+  companionId:null, evolutionMilestones:[], evolutionCelebratedStage:1,
 });
+function withEvolution(progress: Progress): Progress {
+  const milestones = reconcileMilestones(progress.practiced, progress.evolutionMilestones, games);
+  const {stage} = evolutionProgress(progress.practiced, milestones, games);
+  return {...progress,evolutionMilestones:milestones,evolutionCelebratedStage:Math.min(progress.evolutionCelebratedStage,stage) as EvolutionStage};
+}
 function load(): Progress {
   try {
     const p = JSON.parse(localStorage.getItem('optilab-v1') || 'null');
     if (!p || typeof p !== 'object') return empty();
-    return {
+    return withEvolution({
       ...empty(),
       nickname: typeof p.nickname === 'string' ? p.nickname.slice(0, 30) : empty().nickname,
       avatarId: isAvatarId(p.avatarId) ? p.avatarId : null,
+      companionId: isCompanionId(p.companionId) ? p.companionId : null,
+      evolutionMilestones: p.evolutionMilestones,
+      evolutionCelebratedStage: [1,2,3].includes(p.evolutionCelebratedStage) ? p.evolutionCelebratedStage : 1,
       practiced: Object.fromEntries(Object.entries(p.practiced || {}).filter(
         (entry): entry is [string, string] => games.some(g => g.repo === entry[0]) && typeof entry[1] === 'string',
       )),
@@ -35,7 +49,7 @@ function load(): Progress {
         typeof r.score === 'number' && typeof r.date === 'string').slice(-30) : [],
       gameResults: savedResults(p.gameResults),
       route: Array.isArray(p.route) ? p.route.filter((k: string) => games.some(g => g.repo === k)) : [],
-    };
+    });
   } catch { return empty(); }
 }
 const Context = createContext<ReturnType<typeof useProgressState> | null>(null);
@@ -43,6 +57,7 @@ function useProgressState() {
   const [state, setState] = useState(load);
   const [storageOK, setStorageOK] = useState(true);
   const badges = gyms.filter(g => gymGames(g.id).every(x => state.practiced[x.repo])).map(g => g.id);
+  const evolution = evolutionProgress(state.practiced,state.evolutionMilestones,games);
   useEffect(() => {
     try {
       localStorage.setItem('optilab-v1', JSON.stringify({...state, badges}));
@@ -50,12 +65,13 @@ function useProgressState() {
     } catch { setStorageOK(false); }
   }, [state]);
   return {
-    state, badges, storageOK,
+    state, badges, storageOK, evolution,
     toggle: (id: string) => setState(p => {
+      if (!games.some(g=>g.repo===id)) return p;
       const practiced = {...p.practiced};
       if (practiced[id]) delete practiced[id];
       else practiced[id] = new Date().toISOString();
-      return {...p, practiced};
+      return withEvolution({...p, practiced});
     }),
     visit: (id: number) => setState(p => p.visited.includes(id) ? p : {...p, visited: [...p.visited, id]}),
     saveResult: (r: Result) => setState(p => ({...p, results: [...p.results, r].slice(-30)})),
@@ -67,6 +83,12 @@ function useProgressState() {
     setRoute: (route: string[]) => setState(p => ({...p, route})),
     nickname: (nickname: string) => setState(p => ({...p, nickname})),
     selectAvatar: (avatarId: string) => {if (isAvatarId(avatarId)) setState(p => ({...p, avatarId}));},
+    selectCompanion: (companionId: CompanionId) => {if (isCompanionId(companionId)) setState(p => ({...p,companionId}));},
+    acknowledgeEvolution: (stage: UnlockStage) => setState(p => {
+      const unlocked = evolutionProgress(p.practiced,p.evolutionMilestones,games).stage;
+      if (stage !== p.evolutionCelebratedStage + 1 || stage > unlocked) return p;
+      return {...p,evolutionCelebratedStage:stage};
+    }),
     reset: () => setState(empty()),
   };
 }

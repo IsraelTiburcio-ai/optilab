@@ -14,7 +14,7 @@ export default function TrainerSelect() {
   const avatar = getAvatar(selected);
   const confirm = () => {
     selectAvatar(selected);
-    navigate(fromProfile ? '/aventura' : '/mapa');
+    navigate(fromProfile ? '/aventura' : state.companionId ? '/mapa' : '/companero');
   };
   return <section className="trainer-selection" style={{'--trainer-accent': avatar.color} as CSSProperties}>
     <header className="page-title"><span className="eyebrow">TU HISTORIA EMPIEZA CONTIGO</span>

@@ -34,6 +34,7 @@ npm run preview
 
 - Portada ilustrada y cinco OptiCriaturas SVG originales.
 - Selección RPG de seis entrenadores Cloudinary: Kai, Mika, Ares, Lyra, Zane y Nova; elección local y cambio desde Mi aventura.
+- Cinco familias de OptiCriaturas con tres formas oficiales cada una, selección de compañero y evolución por constancia; equipo protagonista en la portada.
 - Cinco insignias WebP con estado bloqueado/conseguido y cuatro recompensas futuras; SVG originales conservados como fallback.
 - Mapa HTML/SVG interactivo, vertical en móvil y panorámico en escritorio, con selección por teclado.
 - Cinco interiores temáticos y los 28 juegos del JSON original.
@@ -88,6 +89,8 @@ La fase 2 conserva `optilab-v1` y añade `gameResults` sin borrar el progreso an
 El reproductor incluye **Pantalla grande**: arena CSS de viewport completo, salida siempre visible, bloqueo de scroll exterior y conservación de la misma partida al ampliar/restaurar. Detalles y pruebas: [docs/PANTALLA-GRANDE.md](docs/PANTALLA-GRANDE.md).
 
 La personalización añade `avatarId` al mismo estado local sin eliminar el progreso anterior. La primera aventura ofrece el selector; las rutas directas permanecen abiertas. Mapeo visual de las nueve insignias, fuentes y pruebas: [docs/PERSONAJES-INSIGNIAS.md](docs/PERSONAJES-INSIGNIAS.md).
+
+El flujo inicial continúa con la elección de compañero. Las etapas 2 y 3 se desbloquean con 6 juegos en 2 gimnasios y 18 en 4, respectivamente; los hitos se conservan al desmarcar o cambiar familia. La portada muestra al entrenador y la forma activa juntos en el paisaje. Reglas, migración y pruebas: [docs/OPTICRIATURAS.md](docs/OPTICRIATURAS.md).
 
 **Reporte de la fase 2:** [docs/QA-FASE-2.md](docs/QA-FASE-2.md). Incluye partidas completas probadas en Chromium y WebKit, tanto integradas como independientes, sobre las URLs públicas.
 

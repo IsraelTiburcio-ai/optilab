@@ -34,11 +34,12 @@ for (const [width,height] of [[390,844],[820,1180],[1180,820],[1440,900]]) {
       const audit = await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
       expect(audit.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))).toEqual([]);
       await page.getByRole('button',{name:'Comenzar aventura',exact:true}).click();
+      await page.getByRole('button',{name:'Elegir compañero',exact:true}).click();
       await expect(page.locator('.traveler-strip')).toContainText('Nova');
       await page.reload();await expect(page.locator('.traveler-strip')).toContainText('Nova');
       expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('optilab-v1')!).avatarId)).toBe('avatar-06');
       await page.goto(go(''));
-      await page.getByRole('link',{name:'Comenzar aventura',exact:true}).click();
+      await page.getByRole('link',{name:'Continuar aventura',exact:true}).click();
       await expect(page.locator('.world-map')).toBeVisible();
       await expect(page.getByRole('heading',{name:'Elige a tu entrenador'})).toHaveCount(0);
       await page.goto(go('aventura'));
@@ -120,6 +121,7 @@ test('selección por teclado y recuperación de un ID de avatar desconocido',asy
   await expect(page.getByRole('radio',{name:'Mika',exact:true})).toBeChecked();
   await expect(page.locator('.trainer-story h2')).toHaveText('Mika');
   await page.getByRole('button',{name:'Comenzar aventura'}).click();
+  await page.getByRole('button',{name:'Elegir compañero',exact:true}).click();
   await expect(page.locator('.traveler-strip')).toContainText('Mika');
   const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('optilab-v1')!));
   expect(stored.avatarId).toBe('avatar-02');expect(stored.nickname).toBe('Mi bitácora');expect(stored.practiced).toHaveProperty('memorama-simplex');
@@ -132,6 +134,7 @@ test('assets fallidos conservan selección, nombres e insignias mediante SVG',as
   await page.getByRole('radio',{name:'Zane',exact:true}).check();
   await expect(page.locator('.trainer-story h2')).toHaveText('Zane');
   await page.getByRole('button',{name:'Comenzar aventura'}).click();
+  await page.getByRole('button',{name:'Elegir compañero',exact:true}).click();
   await expect(page.locator('.traveler-strip')).toContainText('Zane');
   await page.goto(go('aventura'));
   for(const item of await page.locator('.badge-collection .gym-badge').all())await item.scrollIntoViewIfNeeded();

@@ -40,7 +40,7 @@ QA/documentación: `tests/personalization.spec.ts`, `tests/asset-inspection.spec
 
 ## Experiencia
 
-La portada conserva su diseño. **Comenzar aventura** lleva a `#/entrenador` si no existe una elección confirmada, o al mapa si ya se guardó un entrenador. La pantalla ofrece seis personajes, selección táctil/teclado, vista previa, personalidad y confirmación. **Mi aventura → Cambiar entrenador** permite cambiarlo o cancelar sin modificar la elección.
+La portada conserva su diseño inicial hasta confirmar el equipo. **Comenzar aventura** lleva a `#/entrenador` si falta entrenador; después continúa en `#/companero` si falta compañero. Con ambos elegidos, **Continuar aventura** lleva al mapa y la escena muestra al equipo. La pantalla de entrenador ofrece seis personajes, selección táctil/teclado, vista previa, personalidad y confirmación. **Mi aventura → Cambiar entrenador** permite cambiarlo o cancelar sin modificar la elección. Véase también [OPTICRIATURAS.md](OPTICRIATURAS.md).
 
 Kai, Mika, Ares, Lyra, Zane y Nova son opciones equivalentes: no cambian juegos, resultados, rutas ni acceso a gimnasios. El personaje se muestra en el perfil y en la cabecera de expedición del mapa. No se exige nombre ni registro.
 

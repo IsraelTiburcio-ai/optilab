@@ -3,6 +3,7 @@ import {Link} from 'react-router-dom';
 import {Flag, LockKeyhole, Shield, Trophy} from 'lucide-react';
 import {games, gyms, gymGames, questions} from '../data';
 import {getAvatar} from '../data/avatars';
+import {getCompanionForm} from '../data/companions';
 import {getBadgeAsset, specialBadges} from '../data/badges';
 import {useProgress} from '../store';
 import {Badge as BadgeSymbol} from '../Art';
@@ -10,25 +11,38 @@ import {AssetImage} from '../components/AssetImage';
 import {AvatarPortrait} from '../components/AvatarPortrait';
 import {GymBadge, badgeEarnedDate} from '../components/GymBadge';
 import {Progress} from '../components/Progress';
+import {CompanionPortrait} from '../components/CompanionPortrait';
+import {CompanionProgress} from '../components/CompanionProgress';
+import {EvolutionLine} from '../components/EvolutionLine';
 
 export default function Profile() {
-  const {state, badges, nickname, reset} = useProgress();
+  const {state, badges, nickname, reset, evolution} = useProgress();
   const [confirm, setConfirm] = useState(false);
   const last = state.results.at(-1);
   const avatar = getAvatar(state.avatarId);
+  const form = getCompanionForm(state.companionId,state.companionId?evolution.stage:1);
   return <>
     <header className="page-title"><span className="eyebrow">TU BITÁCORA PERSONAL</span><h1>Mi aventura</h1>
       <p>No hay dos caminos iguales. Este es el que estás construyendo tú.</p></header>
-    <section className="profile-intro paper trainer-profile">
+    <section className="profile-intro paper trainer-profile team-profile">
+      <div className="profile-team-art">
       <div className="profile-portrait-stage"><AvatarPortrait id={state.avatarId} eager/>
         <span>{avatar.name}{!state.avatarId && ' · predeterminado'}</span>
       </div>
+      <div className="profile-companion-stage"><CompanionPortrait id={state.companionId} stage={state.companionId?evolution.stage:1} eager/>
+        <strong>{form.name}</strong><span>{state.companionId?`Etapa ${evolution.stage} de 3`:'Vista predeterminada · por elegir'}</span>
+      </div></div>
       <div><label className="eyebrow" htmlFor="nickname">TU APODO LOCAL</label>
         <input id="nickname" className="nickname" maxLength={30} value={state.nickname} onChange={e => nickname(e.target.value)}/>
         <p>{state.visited.length} gimnasios visitados · {Object.keys(state.practiced).length}/28 juegos practicados · {badges.length}/5 insignias</p>
         <small>Tu práctica es autorregistrada. Visitar, practicar y evaluar son estados diferentes.</small>
         <Link className="button change-trainer" to="/entrenador?volver=aventura">Cambiar entrenador</Link>
       </div>
+    </section>
+    <section className="paper companion-profile" aria-label="Mi compañero de aventura">
+      <div className="section-heading"><h2>Tu compañero de aventura</h2><Link className="button" to="/companero?volver=aventura">{state.companionId?'Cambiar compañero':'Elegir compañero'}</Link></div>
+      <CompanionProgress/>
+      {state.companionId?<EvolutionLine id={state.companionId}/>:<p className="muted">Todavía no has confirmado una familia. La vista de Nexo es un ejemplo: elige a quien quieras para comenzar vuestra historia.</p>}
     </section>
     <div className="section-heading"><h2>Insignias de exploración</h2><span>{badges.length} de 5</span></div>
     <p className="muted">Marca todos los juegos de un gimnasio como practicados para obtener su insignia. Reconocen constancia, no dominio académico.</p>
@@ -63,7 +77,7 @@ export default function Profile() {
       <Link className="button" to="/entrenar">Mi entrenamiento</Link>
     </section></div>
     <section className="local-note"><Shield/><p>Esta aventura se guarda únicamente en este navegador. No se sincroniza entre dispositivos y puede perderse al borrar los datos del sitio.</p></section>
-    {confirm ? <div className="reset-confirm" role="alert"><p>¿Borrar toda tu aventura local, apodo, entrenador, ruta y resultados? No se puede deshacer.</p>
+    {confirm ? <div className="reset-confirm" role="alert"><p>¿Borrar toda tu aventura local, apodo, entrenador, compañero, evoluciones, ruta y resultados? No se puede deshacer.</p>
       <button className="button danger" onClick={() => {reset(); setConfirm(false);}}>Sí, borrar progreso</button><button className="button" onClick={() => setConfirm(false)}>Cancelar</button>
     </div> : <button className="text-button" onClick={() => setConfirm(true)}>Reiniciar progreso local</button>}
   </>;
