@@ -1,0 +1,54 @@
+name: Progress sync emulator checks (no deploy)
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read-only pinned Memorama QA fixture
+        uses: actions/checkout@v4
+        with:
+          repository: IsraelTiburcio-ai/memorama-simplex
+          ref: 7a58545df7d3a657e85c2a87091f3277cdae97c0
+          path: .qa-memorama
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - run: npm run build
+      - name: Use official Ubuntu archive for browser dependencies
+        run: |
+          sudo python3 - <<'PY'
+          from pathlib import Path
+          sources = [Path('/etc/apt/sources.list')]
+          sources += list(Path('/etc/apt/sources.list.d').glob('*.list'))
+          sources += list(Path('/etc/apt/sources.list.d').glob('*.sources'))
+          for source in sources:
+              if source.is_file():
+                  original = source.read_text()
+                  updated = original.replace('http://azure.archive.ubuntu.com/ubuntu', 'https://archive.ubuntu.com/ubuntu')
+                  updated = updated.replace('https://azure.archive.ubuntu.com/ubuntu', 'https://archive.ubuntu.com/ubuntu')
+                  if updated != original:
+                      source.write_text(updated)
+          PY
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm run test:sync:production
+        if: matrix.browser == 'chromium'
+      - run: npm run test:sync
+        env:
+          SYNC_BROWSER: ${{ matrix.browser }}
+          MEMORAMA_DIR: ${{ github.workspace }}/.qa-memorama

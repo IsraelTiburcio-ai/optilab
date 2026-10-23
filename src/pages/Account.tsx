@@ -10,7 +10,7 @@ import {CompanionPortrait} from '../components/CompanionPortrait';
 type Mode = 'login' | 'register' | 'reset';
 export default function Account() {
   const auth = useAuth();
-  const {state, evolution} = useProgress();
+  const {state, evolution, sync} = useProgress();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -47,8 +47,8 @@ export default function Account() {
     <div className="account-layout"><aside className="account-story">
       <span className="eyebrow">EL EQUIPO SIGUE SIENDO TUYO</span><h2>Una cuenta.<br/>{' '}Tu mismo camino.</h2>
       <div className="account-team" aria-hidden="true"><AvatarPortrait id={state.avatarId} decorative eager/><CompanionPortrait id={state.companionId} stage={state.companionId ? evolution.stage : 1} decorative eager/></div>
-      <div className="account-local-info"><Shield size={20}/><div><strong>Tu progreso todavía es local</strong><p>Al entrar o salir no se importa, borra ni sincroniza tu aventura. Las prácticas, personajes e insignias siguen en este navegador, también al cambiar de cuenta.</p></div></div>
-      <p className="account-future-note">La sincronización entre dispositivos y los grupos llegarán en una fase posterior. Esta cuenta todavía no los activa.</p>
+      <div className="account-local-info"><Shield size={20}/><div><strong>{sync?'Tu progreso está aislado por cuenta':'Tu progreso todavía es local'}</strong><p>{sync?'La importación requiere tu consentimiento. Al salir vuelve el perfil invitado, sin mostrar la aventura privada de esta cuenta.':'Al entrar o salir no se importa, borra ni sincroniza tu aventura. Las prácticas, personajes e insignias siguen en este navegador, también al cambiar de cuenta.'}</p></div></div>
+      <p className="account-future-note">{sync?'Prueba local con Auth + Firestore Emulator. No se activaron grupos ni Firestore productivo.':'La sincronización entre dispositivos y los grupos llegarán en una fase posterior. Esta cuenta todavía no los activa.'}</p>
     </aside>
     <section className="account-panel paper" aria-label="Acceso a la cuenta" aria-busy={busy || auth.status === 'loading'}>
       {auth.settings.status === 'ready' && auth.settings.emulatorUrl && <p className="auth-temporary" role="status">Entorno de pruebas local · Firebase Auth Emulator. No son cuentas reales.</p>}
@@ -70,7 +70,7 @@ export default function Account() {
           <button className="button" disabled={busy} onClick={() => void run(auth.sendVerification, 'Enviamos un correo de verificación. Revisa tu bandeja de entrada y correo no deseado.')}>Reenviar verificación</button>
           <button className="text-button" disabled={busy} onClick={() => void run(auth.refreshUser, 'Estado de la cuenta actualizado.')}>Ya verifiqué mi correo</button>
         </div>}
-        <p className="account-session-note">Firebase mantiene tu sesión. No se ha creado un perfil ni se ha guardado progreso en Firestore.</p>
+        <p className="account-session-note">{sync?'Auth Emulator mantiene la sesión. El panel indica si el progreso fue confirmado en Firestore Emulator.':'Firebase mantiene tu sesión. No se ha creado un perfil ni se ha guardado progreso en Firestore.'}</p>
         <Link className="button primary" to="/aventura">Volver a mi aventura <ArrowRight size={17}/></Link>
         <button className="button account-logout" disabled={busy} onClick={() => void run(auth.logout, 'Sesión cerrada. Puedes continuar como invitado; tu progreso local sigue aquí.')}><LogOut size={16}/> Cerrar sesión</button>
       </div> : <>

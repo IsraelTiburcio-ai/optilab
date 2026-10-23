@@ -11,6 +11,9 @@
     }
   ],
   "fieldOverrides": [
+    {"collectionGroup": "sync", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "fields", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "receipts", "fieldPath": "*", "indexes": []},
     {"collectionGroup": "users", "fieldPath": "*", "indexes": []},
     {"collectionGroup": "progress", "fieldPath": "*", "indexes": []},
     {"collectionGroup": "evolutionMilestones", "fieldPath": "*", "indexes": []},

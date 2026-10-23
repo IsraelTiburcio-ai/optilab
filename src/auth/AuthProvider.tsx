@@ -1,6 +1,7 @@
 import {createContext, useContext, useEffect, useRef, useState, type ReactNode} from 'react';
 import {authSettings} from './config';
 import type {AccountUser, AuthClient} from './types';
+import {acceptInteractiveLogin,announceLogout,logoutBlocked,logoutGeneration,subscribeSessions} from './sessionSignals';
 
 type AuthStatus = 'loading' | 'guest' | 'authenticated' | 'unavailable' | 'error';
 const Context = createContext<{
@@ -11,7 +12,7 @@ const Context = createContext<{
 } | null>(null);
 
 /** Identity only. Never imports, resets, keys or remounts the ProgressProvider. */
-export function AuthProvider({children}: {children: ReactNode}) {
+export function AuthProvider({children,coordinateSessions=false}: {children: ReactNode;coordinateSessions?:boolean}) {
   const [status, setStatus] = useState<AuthStatus>(authSettings.status === 'ready' ? 'loading' : 'unavailable');
   const [user, setUser] = useState<AccountUser | null>(null);
   const [temporary, setTemporary] = useState(false);
@@ -22,26 +23,50 @@ export function AuthProvider({children}: {children: ReactNode}) {
     const settings = authSettings;
     let active = true;
     let unsubscribe: (() => void) | undefined;
+    let stopSignals:(()=>void)|undefined;
     import('./firebaseClient').then(module => module.initializeAuthClient(settings)).then(service => {
       if (!active) return;
       client.current = service;
       setTemporary(service.persistence === 'memory');
-      unsubscribe = service.subscribe(account => {
+      const publish=(account:AccountUser|null,force=false)=>{
         if (!active) return;
-        currentUid.current = account?.uid || null;
-        setUser(account);
-        setStatus(account ? 'authenticated' : 'guest');
-      }, () => {if (active) {setUser(null); currentUid.current = null; setStatus('error');}});
+        if(!force&&(service.currentAccount()?.uid??null)!==(account?.uid??null))return;
+        const visible=account&&!(coordinateSessions&&logoutBlocked(account.uid))?account:null;
+        currentUid.current=visible?.uid??null;setUser(visible);setStatus(visible?'authenticated':'guest');
+      };
+      unsubscribe = service.subscribe(publish, () => {if (active) {setUser(null); currentUid.current = null; setStatus('error');}});
+      if(coordinateSessions)stopSignals=subscribeSessions(signal=>{
+        if(!active)return;
+        const account=service.currentAccount();
+        // Do not race a fresh interactive login by calling signOut repeatedly in
+        // peer tabs. The fence hides the session and blocks transport immediately;
+        // the initiating tab performs SDK signOut, and native SDK persistence follows.
+        if(signal.kind==='logout'&&account?.uid===signal.uid)publish(null,true);
+        else if(signal.kind==='accepted'&&account?.uid===signal.uid)publish(account);
+      });
     }).catch(() => {if (active) setStatus('error');});
-    return () => {active = false; unsubscribe?.(); client.current = null;};
-  }, []);
+    return () => {active = false; unsubscribe?.();stopSignals?.(); client.current = null;};
+  }, [coordinateSessions]);
   const service = () => {
     if (!client.current || status === 'loading' || status === 'unavailable' || status === 'error') throw new Error('Auth unavailable');
     return client.current;
   };
+  const interactive=async(action:(client:AuthClient)=>Promise<void>)=>{
+    const sdk=service();
+    if(!coordinateSessions){await action(sdk);return;}
+    const generation=logoutGeneration();await action(sdk);
+    const account=sdk.currentAccount();
+    if(account&&acceptInteractiveLogin(account.uid,generation)){
+      currentUid.current=account.uid;setUser(account);setStatus('authenticated');
+    } else {setUser(null);currentUid.current=null;setStatus('guest');throw Object.assign(new Error('Session changed during login'),{code:'auth/session-changed'});}
+  };
   return <Context.Provider value={{status, user, temporary, settings: authSettings,
-    login: (email,password) => service().login(email,password), register: (email,password) => service().register(email,password),
-    google: () => service().google(), logout: () => service().logout(), resetPassword: email => service().resetPassword(email),
+    login: (email,password) => interactive(sdk=>sdk.login(email,password)), register: (email,password) => interactive(sdk=>sdk.register(email,password)),
+    google: () => interactive(sdk=>sdk.google()), logout: async () => {
+      const sdk=service(),uid=sdk.currentAccount()?.uid;
+      if(coordinateSessions&&uid){announceLogout(uid);setUser(null);currentUid.current=null;setStatus('guest');}
+      await sdk.logout();
+    }, resetPassword: email => service().resetPassword(email),
     sendVerification: () => service().sendVerification(),
     refreshUser: async () => {
       const uid = currentUid.current;

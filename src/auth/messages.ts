@@ -16,6 +16,7 @@ export function authErrorMessage(error: unknown): string {
     case 'auth/invalid-api-key': case 'auth/api-key-not-valid.-please-pass-a-valid-api-key.': case 'auth/app-not-authorized': return 'La configuración pública de Firebase necesita revisión. Tu aventura local sigue disponible.';
     case 'auth/verification-send-failed': return 'Tu cuenta ya está creada, pero no pudimos enviar la verificación. Puedes solicitarla de nuevo desde esta pantalla.';
     case 'auth/no-current-user': return 'Tu sesión ya no está activa. Vuelve a entrar para continuar.';
+    case 'auth/session-changed': return 'La sesión cambió en otra pestaña durante el acceso. Vuelve a entrar; no se abrió el progreso de otra cuenta.';
     default: return 'No pudimos completar esta acción. Inténtalo de nuevo; tu progreso local permanece en este navegador.';
   }
 }

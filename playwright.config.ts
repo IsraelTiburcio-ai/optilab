@@ -1,7 +1,7 @@
 import {defineConfig} from '@playwright/test';
 
 export default defineConfig({
-  testDir: './tests', testIgnore: ['**/auth/**', '**/firestore/**'], timeout: 45000,
+  testDir: './tests', testIgnore: ['**/auth/**', '**/firestore/**', '**/sync/**'], timeout: 45000,
   use: {baseURL: 'http://127.0.0.1:5187/optilab/', browserName: 'chromium'},
   webServer: [{
     command: 'npm run dev -- --port 5187 --strictPort',
@@ -12,6 +12,7 @@ export default defineConfig({
       VITE_FIREBASE_API_KEY: '', VITE_FIREBASE_AUTH_DOMAIN: '', VITE_FIREBASE_PROJECT_ID: '',
       VITE_FIREBASE_STORAGE_BUCKET: '', VITE_FIREBASE_MESSAGING_SENDER_ID: '', VITE_FIREBASE_APP_ID: '',
       VITE_FIREBASE_AUTH_EMULATOR_URL: '',
+      VITE_FIRESTORE_EMULATOR_HOST: '', VITE_PROGRESS_SYNC: '',
     },
   }, ...(process.env.MEMORAMA_DIR ? [{
     command: 'python3 -m http.server 5190 --bind 127.0.0.1', cwd: process.env.MEMORAMA_DIR,

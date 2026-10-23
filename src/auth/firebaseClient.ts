@@ -18,9 +18,12 @@ export function initializeAuthClient(settings: Extract<FirebaseSettings, {status
   if (clientPromise) return clientPromise;
   clientPromise = (async () => {
     const name = 'optilab-accounts';
-    const app = getApps().find(app => app.name === name) || initializeApp(settings.config, name);
+    const previous=getApps().find(app=>app.name===name);
+    if(previous&&(previous.options.projectId!==settings.config.projectId||previous.options.apiKey!==settings.config.apiKey))
+      throw new Error('Firebase configuration changed; reload before authenticating.');
+    const app = previous || initializeApp(settings.config, name);
     const auth = getAuth(app);
-    if (settings.emulatorUrl) connectAuthEmulator(auth, settings.emulatorUrl, {disableWarnings: true});
+    if (settings.emulatorUrl&&!auth.emulatorConfig) connectAuthEmulator(auth, settings.emulatorUrl, {disableWarnings: true});
     auth.languageCode = 'es';
     let persistence: AuthClient['persistence'] = 'local';
     try {
@@ -37,6 +40,7 @@ export function initializeAuthClient(settings: Extract<FirebaseSettings, {status
     };
     return {
       persistence,
+      currentAccount: () => accountUser(auth.currentUser),
       subscribe: (next, error) => onAuthStateChanged(auth, user => next(accountUser(user)), error),
       login: async (email, password) => { await signInWithEmailAndPassword(auth, email, password); },
       register: async (email, password) => {

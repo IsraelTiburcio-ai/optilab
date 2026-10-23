@@ -108,3 +108,18 @@ export interface AcademicSummary extends GroupScope {
   trust:ActivityAttempt['trust']; attempts:number; participants:number;
   measuredSamples:number; updatedAt:Timestamp;
 }
+
+/** Issue #4: separate namespace, not a silent conversion of progress/current v1. */
+export interface SyncHeadV2 {
+  schemaVersion:2; uid:Uid; epoch:number; revision:number;
+  createdAt:Timestamp; updatedAt:Timestamp; operationId:string;
+}
+export interface SyncFieldV2 {
+  schemaVersion:2; uid:Uid; epoch:number; revision:number; operationId:string;
+  /** Validated by field ID; practice Timestamp|null, visits true, bounded preferences or milestone. */
+  value:unknown;
+}
+export interface SyncReceiptV2 {
+  schemaVersion:2; uid:Uid; epoch:number; operationId:string;
+  kind:'edit'|'import'|'reset'|'restore'; sourceHash:string; createdAt:Timestamp;
+}
