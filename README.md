@@ -59,7 +59,7 @@ Los nombres narrativos no sustituyen los temas académicos. El título del prime
 
 ## Arquitectura y stack
 
-React 19 + TypeScript estricto + Vite + React Router (`HashRouter`), CSS personalizado mobile-first y Lucide para iconografía de interfaz. Sin backend ni autenticación.
+React 19 + TypeScript estricto + Vite + React Router (`HashRouter`), CSS personalizado mobile-first y Lucide para iconografía de interfaz. Esta rama propone Firebase Authentication opcional; el progreso sigue siendo local y todavía no se sincroniza.
 
 ```text
 src/
@@ -77,6 +77,12 @@ El JSON de la raíz se importa directamente; no se duplica ni se reconstruyen ma
 Los juegos usan `repo` como identidad estable y un único `GameCard` reutilizable. Memorama Simplex tiene una integración piloto por iframe y protocolo `postMessage` validado; los otros 27 abren otra pestaña con `noopener noreferrer`. Solo se modifica el repositorio de Memorama para este piloto. Hay cinco portadas SVG originales diferenciadas para los juegos de Simplex.
 
 ## Progreso local y honestidad
+
+### Cloud 1.0 — primera fase en revisión
+
+La planificación está en [EPIC #1](https://github.com/IsraelTiburcio-ai/optilab/issues/1), con nueve entregas separadas y [milestone 1](https://github.com/IsraelTiburcio-ai/optilab/milestone/1). Solo se implementa Authentication [#2](https://github.com/IsraelTiburcio-ai/optilab/issues/2) en `feat/firebase-auth`: `#/cuenta`, Google, correo/contraseña, verificación, recuperación y cierre de sesión. Se conserva el invitado y no se escribe en Firestore.
+
+**Pendiente para Firebase real:** falta `VITE_FIREBASE_API_KEY` de la app web. Sin configuración, Cuenta explica el bloqueo y permite seguir como invitado. No confundir las pruebas con Auth Emulator con validación en producción. No fusionar/desplegar antes de QA manual. Configuración y pruebas: [docs/FIREBASE-AUTH.md](docs/FIREBASE-AUTH.md); seguimiento: [docs/CLOUD-1.0-PLAN.md](docs/CLOUD-1.0-PLAN.md).
 
 Clave: `optilab-v1` de `localStorage`. Guarda práctica por repositorio y fecha ISO, gimnasios visitados, insignias derivadas, últimos 30 resultados, apodo y ruta activa. Las insignias se recalculan coherentemente al marcar/desmarcar; no constituyen una evaluación académica.
 

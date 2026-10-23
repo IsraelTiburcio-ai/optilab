@@ -37,6 +37,7 @@ export default function Profile() {
         <p>{state.visited.length} gimnasios visitados · {Object.keys(state.practiced).length}/28 juegos practicados · {badges.length}/5 insignias</p>
         <small>Tu práctica es autorregistrada. Visitar, practicar y evaluar son estados diferentes.</small>
         <Link className="button change-trainer" to="/entrenador?volver=aventura">Cambiar entrenador</Link>
+        <Link className="text-button account-profile-link" to="/cuenta">Cuenta e inicio de sesión</Link>
       </div>
     </section>
     <section className="paper companion-profile" aria-label="Mi compañero de aventura">

@@ -1,0 +1,34 @@
+name: Auth PR checks (no deploy)
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Firebase Auth Emulator + SDK browser tests
+        run: npx --yes firebase-tools@15.0.0 emulators:exec --only auth --project demo-optilab-auth --config firebase.auth-emulator.json "npm run test:auth -- --browser ${{ matrix.browser }}"
+        env:
+          CI: 'true'
+      - name: Guest/config regression
+        run: npx playwright test tests/account-guest.spec.ts tests/auth-config.spec.ts --browser ${{ matrix.browser }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: auth-qa-${{ matrix.browser }}
+          path: auth-qa-results/
+          retention-days: 7
