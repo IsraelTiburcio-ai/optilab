@@ -1,5 +1,7 @@
 # Firestore · permisos, emulador y operación controlada
 
+**Extensión de #4:** [ADR-002](architecture/ADR-002-progress-sync.md) y [PROGRESS-SYNC.md](PROGRESS-SYNC.md) documentan el nuevo namespace v2 y cliente restringido a desarrollo/emuladores. El registro de entrega #3 conservado abajo describe su corte original; no implica que las reglas productivas hayan cambiado. V1 no se convierte ni bifurca silenciosamente.
+
 Issue #3, rama `feat/firestore-security`. [ADR](architecture/ADR-001-firestore-security.md), [presupuesto Spark](FIRESTORE-BUDGET.md), contratos `src/types/cloud.ts`.
 
 ## Estado de entrega

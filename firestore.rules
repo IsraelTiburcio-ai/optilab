@@ -21,24 +21,23 @@ service cloud.firestore {
         'espejo-dual','balanza-dual','domino-holguras','mercado-recursos-dual','semaforo-sensibilidad',
         'desviacion-express','torre-prioridades','rompecabezas-metas','ruta-de-metas','candado-simplex'];
     }
-    function practiceDate(p, key) {
-      let value = p.get(key, request.time);
+    function practiceDate(value) {
       return value is timestamp && value <= request.time;
     }
     function practice(p) {
       return p is map && p.keys().hasOnly(games())
-        && practiceDate(p,'OptiQuest1') && practiceDate(p,'system-lab')
-        && practiceDate(p,'SystemScope') && practiceDate(p,'complexity-lab') && practiceDate(p,'or-mission')
-        && practiceDate(p,'model-match') && practiceDate(p,'lp-factory') && practiceDate(p,'constraint-dash')
-        && practiceDate(p,'feasible-drop') && practiceDate(p,'solution-detective')
-        && practiceDate(p,'planificador-produccion') && practiceDate(p,'mapa-produccion')
-        && practiceDate(p,'claves-planeacion-produccion') && practiceDate(p,'memorama-simplex')
-        && practiceDate(p,'rompecabezas-simplex') && practiceDate(p,'ahorcado-simplex')
-        && practiceDate(p,'ordena-simplex') && practiceDate(p,'caza-el-pivote')
-        && practiceDate(p,'espejo-dual') && practiceDate(p,'balanza-dual') && practiceDate(p,'domino-holguras')
-        && practiceDate(p,'mercado-recursos-dual') && practiceDate(p,'semaforo-sensibilidad')
-        && practiceDate(p,'desviacion-express') && practiceDate(p,'torre-prioridades')
-        && practiceDate(p,'rompecabezas-metas') && practiceDate(p,'ruta-de-metas') && practiceDate(p,'candado-simplex');
+        && practiceDate(p.get('OptiQuest1',request.time)) && practiceDate(p.get('system-lab',request.time))
+        && practiceDate(p.get('SystemScope',request.time)) && practiceDate(p.get('complexity-lab',request.time)) && practiceDate(p.get('or-mission',request.time))
+        && practiceDate(p.get('model-match',request.time)) && practiceDate(p.get('lp-factory',request.time)) && practiceDate(p.get('constraint-dash',request.time))
+        && practiceDate(p.get('feasible-drop',request.time)) && practiceDate(p.get('solution-detective',request.time))
+        && practiceDate(p.get('planificador-produccion',request.time)) && practiceDate(p.get('mapa-produccion',request.time))
+        && practiceDate(p.get('claves-planeacion-produccion',request.time)) && practiceDate(p.get('memorama-simplex',request.time))
+        && practiceDate(p.get('rompecabezas-simplex',request.time)) && practiceDate(p.get('ahorcado-simplex',request.time))
+        && practiceDate(p.get('ordena-simplex',request.time)) && practiceDate(p.get('caza-el-pivote',request.time))
+        && practiceDate(p.get('espejo-dual',request.time)) && practiceDate(p.get('balanza-dual',request.time)) && practiceDate(p.get('domino-holguras',request.time))
+        && practiceDate(p.get('mercado-recursos-dual',request.time)) && practiceDate(p.get('semaforo-sensibilidad',request.time))
+        && practiceDate(p.get('desviacion-express',request.time)) && practiceDate(p.get('torre-prioridades',request.time))
+        && practiceDate(p.get('rompecabezas-metas',request.time)) && practiceDate(p.get('ruta-de-metas',request.time)) && practiceDate(p.get('candado-simplex',request.time));
     }
     function selection(values, allowed, maximum) {
       return values is list && values.size() <= maximum && values.toSet().size() == values.size()
@@ -98,6 +97,47 @@ service cloud.firestore {
         && d.practice.size() >= (stage == '2' ? 6 : 18)
         && gymCount(d.practice) >= (stage == '2' ? 2 : 4);
     }
+    // v2 is a NEW namespace; no implicit overwrite or conversion of v1 progress.
+    function uuid(v) { return v is string && v.matches('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'); }
+    function syncHead(d,uid) {
+      return exact(d,['schemaVersion','uid','epoch','revision','createdAt','updatedAt','operationId'])
+        && d.schemaVersion is int && d.schemaVersion == 2 && d.uid == uid && d.epoch is int && d.epoch >= 1 && d.epoch <= 1000000
+        && d.revision is int && d.revision >= 1 && d.revision <= 2147483647
+        && validDate(d.createdAt) && d.updatedAt == request.time && uuid(d.operationId);
+    }
+    function currentEpoch(uid,epoch) {
+      let h=getAfter(/databases/$(database)/documents/users/$(uid)/sync/current).data;
+      return h.schemaVersion == 2 && h.uid == uid && epoch == string(h.epoch) && h.updatedAt == request.time && advancingHead(uid);
+    }
+    function advancingHead(uid) {
+      let path=/databases/$(database)/documents/users/$(uid)/sync/current;
+      return !exists(path) || getAfter(path).data.revision == get(path).data.revision + 1;
+    }
+    function fieldValue(key,v) {
+      return key in ['milestone--2','milestone--3'] ? milestoneValue(v,key) :
+        (key.matches('^practice--.*') && key.replace('^practice--','') in games() && (v == null || validDate(v)))
+        || (key in ['visit--1','visit--2','visit--3','visit--4','visit--5'] && v == true)
+        || (key == 'nickname' && v is string && v.size() <= 30)
+        || (key == 'route' && selection(v,games(),28))
+        || (key == 'avatarId' && (v == null || v in ['avatar-01','avatar-02','avatar-03','avatar-04','avatar-05','avatar-06']))
+        || (key == 'companionId' && (v == null || v in ['nexo','poli','piv','dua','brio']))
+        || (key == 'celebrated' && v is int && v in [1,2,3]);
+    }
+    function milestoneValue(v,key) {
+      return exact(v,['stage','ruleVersion','unlockedAt','practice'])
+        && v.ruleVersion is int && v.ruleVersion == 1 && v.stage is int
+        && ((key == 'milestone--2' && v.stage == 2) || (key == 'milestone--3' && v.stage == 3))
+        && validDate(v.unlockedAt) && practice(v.practice)
+        && v.practice.size() >= (v.stage == 2 ? 6 : 18) && gymCount(v.practice) >= (v.stage == 2 ? 2 : 4);
+    }
+    function syncField(d,uid,epoch,key) {
+      let h=getAfter(/databases/$(database)/documents/users/$(uid)/sync/current).data;
+      return exact(d,['schemaVersion','uid','epoch','revision','operationId','value'])
+        && d.schemaVersion is int && d.schemaVersion == 2 && d.uid == uid && d.epoch is int && d.epoch == h.epoch && epoch == string(h.epoch)
+        && d.revision is int
+        && d.revision == h.revision && d.operationId == h.operationId && h.updatedAt == request.time
+        && h.schemaVersion == 2 && h.uid == uid && advancingHead(uid) && uuid(d.operationId) && fieldValue(key,d.value);
+    }
     match /users/{uid} {
       allow get: if owner(uid);
       allow create: if owner(uid) && exact(request.resource.data,['schemaVersion','uid','createdAt'])
@@ -106,13 +146,59 @@ service cloud.firestore {
       allow list, update, delete: if false;
       match /progress/{document} {
         allow get: if owner(uid) && document == 'current';
-        allow create: if owner(uid) && document == 'current' && progress(request.resource.data,uid)
+        allow create: if owner(uid) && document == 'current' && !existsAfter(/databases/$(database)/documents/users/$(uid)/sync/current) && progress(request.resource.data,uid)
           && request.resource.data.createdAt == request.time && request.resource.data.revision == 1;
-        allow update: if owner(uid) && document == 'current' && progress(request.resource.data,uid)
+        allow update: if owner(uid) && document == 'current' && !existsAfter(/databases/$(database)/documents/users/$(uid)/sync/current) && progress(request.resource.data,uid)
           && request.resource.data.createdAt == resource.data.createdAt
           && request.resource.data.uid == resource.data.uid
           && request.resource.data.revision == resource.data.revision + 1;
         allow list, delete: if false;
+      }
+      match /sync/{document} {
+        allow get: if owner(uid) && document == 'current';
+        allow create: if owner(uid) && document == 'current' && syncHead(request.resource.data,uid)
+          && !existsAfter(/databases/$(database)/documents/users/$(uid)/progress/current)
+          && request.resource.data.epoch == 1 && request.resource.data.revision == 1 && request.resource.data.createdAt == request.time;
+        allow update: if owner(uid) && document == 'current' && syncHead(request.resource.data,uid)
+          && request.resource.data.createdAt == resource.data.createdAt && resource.data.schemaVersion == 2
+          && request.resource.data.revision == resource.data.revision + 1
+          && request.resource.data.epoch in [resource.data.epoch,resource.data.epoch+1];
+        allow list,delete: if false;
+      }
+      match /epochs/{epoch} {
+        allow read,write: if false;
+        match /fields/{key} {
+          allow get: if owner(uid);
+          allow list: if owner(uid) && page(40);
+          allow create: if owner(uid) && syncField(request.resource.data,uid,epoch,key);
+          allow update: if owner(uid) && syncField(request.resource.data,uid,epoch,key)
+            && request.resource.data.revision > resource.data.revision;
+          allow delete: if false;
+        }
+        match /diagnostics/{attemptId} {
+          allow get: if owner(uid);
+          allow list: if owner(uid) && page(50);
+          allow create: if owner(uid) && currentEpoch(uid,epoch) && id(attemptId) && diagnostic(request.resource.data,uid);
+          allow update,delete: if false;
+        }
+        match /gameRuns/{runId} {
+          allow get: if owner(uid);
+          allow list: if owner(uid) && page(50);
+          allow create: if owner(uid) && currentEpoch(uid,epoch) && run(request.resource.data,uid,runId);
+          allow update,delete: if false;
+        }
+        match /receipts/{receiptId} {
+          allow get: if owner(uid);
+          allow create: if owner(uid) && currentEpoch(uid,epoch)
+            && exact(request.resource.data,['schemaVersion','uid','epoch','kind','operationId','sourceHash','createdAt'])
+            && request.resource.data.schemaVersion == 2 && request.resource.data.uid == uid
+            && request.resource.data.epoch is int && epoch == string(request.resource.data.epoch) && uuid(request.resource.data.operationId)
+            && request.resource.data.kind in ['edit','import','reset','restore'] && request.resource.data.createdAt == request.time
+            && ((request.resource.data.kind == 'import' && request.resource.data.sourceHash.matches('^[0-9a-f]{64}$') && receiptId == 'i_'+request.resource.data.sourceHash)
+              || (request.resource.data.kind != 'import' && receiptId == 'o_'+request.resource.data.operationId
+                && request.resource.data.sourceHash is string && request.resource.data.sourceHash.size() <= 64));
+          allow list,update,delete: if false;
+        }
       }
       match /diagnostics/{attemptId} {
         allow get: if owner(uid);

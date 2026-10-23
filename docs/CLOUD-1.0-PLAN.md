@@ -25,12 +25,12 @@ Cada ticket incluye contexto, alcance, dependencias, criterios, pruebas, segurid
 
 Se inspeccionaron issues abiertos/cerrados, milestones y labels antes de crear. No existían tickets o milestones equivalentes. La creación buscó títulos/identificadores existentes y reutilizó labels para no duplicar entidades en una repetición. La asociación de milestone, etiquetas y referencias se verificó mediante la API después de crear.
 
-## Corte de esta PR
+## Corte actual de sincronización #4
 
-Solo se implementa [#3](https://github.com/IsraelTiburcio-ai/optilab/issues/3) en `feat/firestore-security`: contratos, reglas, índices y tests de emulador. [ADR](architecture/ADR-001-firestore-security.md), [permisos/pruebas](FIRESTORE-SECURITY.md), [presupuesto](FIRESTORE-BUDGET.md). Los módulos #4–#10/#12 no están implementados.
+PR #13 de [#3](https://github.com/IsraelTiburcio-ai/optilab/issues/3) fusionada/publicada en Pages en `adc8b17`; sus reglas/índices NO se publicaron en Firebase y #3 sigue abierto por aprobación/operación pendiente. Se implementa exclusivamente [#4](https://github.com/IsraelTiburcio-ai/optilab/issues/4) en `feat/cloud-progress-sync`, desde ese baseline, solo en emuladores. [ADR-002](architecture/ADR-002-progress-sync.md), [instrucciones/presupuesto/rollback](PROGRESS-SYNC.md). Los módulos #5–#10/#12 siguen planificados.
 
 La PR #11 de Auth ya está fusionada/publicada. El reporte [AUTH-RELEASE-REVIEW.md](AUTH-RELEASE-REVIEW.md) distingue evidencia automática, QA local y el smoke publicado informado por el propietario.
 
-Esta entrega de #3 se prepara sin fusionar ni desplegar reglas. El progreso sigue en `optilab-v1`; la app no genera solicitudes Firestore. No se crean documentos, grupos, roles ni datos reales en producción y no se activa Blaze.
+Esta entrega de #4 se prepara sin fusionar ni desplegar funcionalidad/reglas/índices. Producción mantiene `optilab-v1` y no genera solicitudes Firestore. El modo explícito de desarrollo usa solo demo-optilab-sync; no se crean datos reales, grupos, roles o servicios de pago.
 
 Orden recomendado: #3 → #4 → #5 → #6 → #12; #7 tras #4/#6; #9 base tras #5/#7 y Liga #8 cuando exista verificación confiable. El mecanismo privilegiado y sus costos se deberán aprobar antes de habilitar administración autónoma, publicación docente o estadísticas competitivas.

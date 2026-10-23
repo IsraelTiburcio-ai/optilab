@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 import {Link} from 'react-router-dom';
 import {Flag, LockKeyhole, Shield, Trophy} from 'lucide-react';
 import {games, gyms, gymGames, questions} from '../data';
@@ -16,8 +16,10 @@ import {CompanionProgress} from '../components/CompanionProgress';
 import {EvolutionLine} from '../components/EvolutionLine';
 
 export default function Profile() {
-  const {state, badges, nickname, reset, evolution} = useProgress();
+  const {state, badges, nickname, reset, evolution, sync} = useProgress();
   const [confirm, setConfirm] = useState(false);
+  const [nicknameDraft,setNicknameDraft]=useState<string|null>(null);
+  const nicknameBase=useRef<{baseRevision:number;predecessor:string|null}|null>(null);
   const last = state.results.at(-1);
   const avatar = getAvatar(state.avatarId);
   const form = getCompanionForm(state.companionId,state.companionId?evolution.stage:1);
@@ -32,8 +34,13 @@ export default function Profile() {
       <div className="profile-companion-stage"><CompanionPortrait id={state.companionId} stage={state.companionId?evolution.stage:1} eager/>
         <strong>{form.name}</strong><span>{state.companionId?`Etapa ${evolution.stage} de 3`:'Vista predeterminada · por elegir'}</span>
       </div></div>
-      <div><label className="eyebrow" htmlFor="nickname">TU APODO LOCAL</label>
-        <input id="nickname" className="nickname" maxLength={30} value={state.nickname} onChange={e => nickname(e.target.value)}/>
+      <div><label className="eyebrow" htmlFor="nickname">{sync?'TU APODO DE CUENTA':'TU APODO LOCAL'}</label>
+        <input id="nickname" className="nickname" maxLength={30} value={nicknameDraft??state.nickname}
+          onFocus={()=>{if(sync)nicknameBase.current=sync.engine.captureBase('nickname');}}
+          onChange={e=>sync?setNicknameDraft(e.target.value):nickname(e.target.value)}
+          onBlur={()=>{if(sync&&nicknameDraft!==null){sync.engine.change({...sync.engine.getSnapshot().progress,nickname:nicknameDraft},
+            {nickname:nicknameBase.current??sync.engine.captureBase('nickname')});setNicknameDraft(null);}}}/>
+        {sync&&<small>El apodo se guarda al salir del campo.</small>}
         <p>{state.visited.length} gimnasios visitados · {Object.keys(state.practiced).length}/28 juegos practicados · {badges.length}/5 insignias</p>
         <small>Tu práctica es autorregistrada. Visitar, practicar y evaluar son estados diferentes.</small>
         <Link className="button change-trainer" to="/entrenador?volver=aventura">Cambiar entrenador</Link>
@@ -77,9 +84,9 @@ export default function Profile() {
       {state.route.length ? <ol>{state.route.map(id => <li key={id}>{games.find(g => g.repo === id)?.nombre}{state.practiced[id] ? ' · Practicado' : ''}</li>)}</ol> : <p>Traza una ruta y guarda aquí tus próximas misiones.</p>}
       <Link className="button" to="/entrenar">Mi entrenamiento</Link>
     </section></div>
-    <section className="local-note"><Shield/><p>Esta aventura se guarda únicamente en este navegador. No se sincroniza entre dispositivos y puede perderse al borrar los datos del sitio.</p></section>
-    {confirm ? <div className="reset-confirm" role="alert"><p>¿Borrar toda tu aventura local, apodo, entrenador, compañero, evoluciones, ruta y resultados? No se puede deshacer.</p>
-      <button className="button danger" onClick={() => {reset(); setConfirm(false);}}>Sí, borrar progreso</button><button className="button" onClick={() => setConfirm(false)}>Cancelar</button>
-    </div> : <button className="text-button" onClick={() => setConfirm(true)}>Reiniciar progreso local</button>}
+    <section className="local-note"><Shield/><p>{sync?'Perfil aislado por cuenta. Sincronización solo con los emuladores; consulta el estado y los respaldos arriba.':'Esta aventura se guarda únicamente en este navegador. No se sincroniza entre dispositivos y puede perderse al borrar los datos del sitio.'}</p></section>
+    {confirm ? <div className="reset-confirm" role="alert"><p>{sync?'¿Reiniciar esta aventura de cuenta? Se guardará un respaldo y se creará una generación nueva. La historia Cloud anterior permanece; no es eliminación definitiva.':'¿Borrar toda tu aventura local, apodo, entrenador, compañero, evoluciones, ruta y resultados? No se puede deshacer.'}</p>
+      <button className="button danger" onClick={() => {reset(); setConfirm(false);}}>{sync?'Sí, reiniciar aventura':'Sí, borrar progreso'}</button><button className="button" onClick={() => setConfirm(false)}>Cancelar</button>
+    </div> : <button className="text-button" onClick={() => setConfirm(true)}>{sync?'Reiniciar aventura de cuenta':'Reiniciar progreso local'}</button>}
   </>;
 }

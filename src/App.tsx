@@ -21,6 +21,9 @@ import {EvolutionNotice} from './components/EvolutionCelebration';
 import './styles/personalization.css';
 import './styles/companions.css';
 import './styles/auth.css';
+import {syncEnabled} from './progress/config';
+import './styles/sync.css';
+const SyncPanel=lazy(()=>import('./progress/SyncPanel'));
 const Account=lazy(()=>import('./pages/Account'));
 const links=[['/','Inicio',HomeIcon],['/mapa','Mapa',MapIcon],['/optidex','OptiDex',BookOpen],['/entrenar','Entrenar',Signpost],['/aventura','Mi aventura',UserRound],['/cuenta','Cuenta',KeyRound]] as const;
 function PageTitle({kicker,title,description}:{kicker:string;title:string;description:string}){return <header className="page-title"><span className="eyebrow">{kicker}</span><h1>{title}</h1><p>{description}</p></header>}
@@ -78,6 +81,7 @@ export default function App(){
       <Link className="header-progress" to="/aventura"><Shield size={18}/><span>{Object.keys(state.practiced).length} / 28</span></Link>
     </header>
     <main id="contenido" tabIndex={-1} ref={main}>
+      {syncEnabled&&<Suspense fallback={null}><SyncPanel/></Suspense>}
       {!storageOK&&<p className="notice" role="status">El almacenamiento no está disponible. Puedes seguir explorando; esta sesión no se conservará al recargar.</p>}
       <EvolutionNotice/>
       <Routes>

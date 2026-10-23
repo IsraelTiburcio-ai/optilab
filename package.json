@@ -10,7 +10,13 @@
     "test": "playwright test",
     "test:auth": "playwright test --config playwright.auth.config.ts",
     "test:firestore": "node scripts/test-firestore.mjs",
-    "test:firestore:rules": "node --test --test-reporter=spec --test-concurrency=1 tests/firestore/*.test.mjs"
+    "test:firestore:rules": "node --test --test-reporter=spec --test-concurrency=1 tests/firestore/*.test.mjs",
+    "test:sync": "node scripts/test-sync.mjs",
+    "test:sync:core": "node --import tsx --test --test-reporter=spec --test-concurrency=1 tests/sync/*.test.ts",
+    "test:sync:ui": "playwright test --config playwright.sync.config.ts",
+    "test:sync:production": "node scripts/test-sync-production.mjs",
+    "dev:sync": "node scripts/dev-sync.mjs",
+    "emulators:sync": "node scripts/emulators-sync.mjs"
   },
   "dependencies": {
     "firebase": "12.19.0",
@@ -26,6 +32,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.4",
+    "tsx": "4.20.6",
     "typescript": "~5.9.3",
     "vite": "^7.1.7"
   },
