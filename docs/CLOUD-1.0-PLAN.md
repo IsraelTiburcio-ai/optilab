@@ -1,6 +1,6 @@
 # OptiLab Cloud 1.0 · seguimiento verificado
 
-Repositorio: `IsraelTiburcio-ai/optilab`. Base actual de #3: `main` en `5df2258`, con Authentication publicada mediante PR #11. QA público Safari/iPhone y logout entre pestañas reportados PASS por el propietario; #2 cerrado. Pendientes físicos restantes en el reporte Auth.
+Repositorio: `IsraelTiburcio-ai/optilab`. Corte actual: main `7ab4e83`, con PR #11/#13/#14 fusionadas y Pages estático exitoso. #2 cerrado; #3/#4 conservan seguimiento de aprobación/puertas productivas, sin reglas/índices publicados. QA emulado Chrome/Safari de una misma Mac: 5/5 reportado por el propietario; Mac/iPhone y activación real pendientes. [Consolidación](QA-CLOUD-PROGRESS-RELEASE.md).
 
 ## GitHub
 
@@ -25,12 +25,12 @@ Cada ticket incluye contexto, alcance, dependencias, criterios, pruebas, segurid
 
 Se inspeccionaron issues abiertos/cerrados, milestones y labels antes de crear. No existían tickets o milestones equivalentes. La creación buscó títulos/identificadores existentes y reutilizó labels para no duplicar entidades en una repetición. La asociación de milestone, etiquetas y referencias se verificó mediante la API después de crear.
 
-## Corte actual de sincronización #4
+## Consolidación #4 y preparación #5
 
-PR #13 de [#3](https://github.com/IsraelTiburcio-ai/optilab/issues/3) fusionada/publicada en Pages en `adc8b17`; sus reglas/índices NO se publicaron en Firebase y #3 sigue abierto por aprobación/operación pendiente. Se implementa exclusivamente [#4](https://github.com/IsraelTiburcio-ai/optilab/issues/4) en `feat/cloud-progress-sync`, desde ese baseline, solo en emuladores. [ADR-002](architecture/ADR-002-progress-sync.md), [instrucciones/presupuesto/rollback](PROGRESS-SYNC.md). Los módulos #5–#10/#12 siguen planificados.
+PR #13 de [#3](https://github.com/IsraelTiburcio-ai/optilab/issues/3) fusionada en `adc8b17` y PR #14 de [#4](https://github.com/IsraelTiburcio-ai/optilab/issues/4) fusionada en `7ab4e83`; sus reglas/índices NO se publicaron en Firebase y sus puertas productivas siguen pendientes. [ADR-002](architecture/ADR-002-progress-sync.md), [instrucciones/presupuesto/rollback](PROGRESS-SYNC.md). #5 ahora tiene una propuesta de confianza y plan, sin funciones administrativas implementadas; #6–#10/#12 siguen planificados.
 
 La PR #11 de Auth ya está fusionada/publicada. El reporte [AUTH-RELEASE-REVIEW.md](AUTH-RELEASE-REVIEW.md) distingue evidencia automática, QA local y el smoke publicado informado por el propietario.
 
-Esta entrega de #4 se prepara sin fusionar ni desplegar funcionalidad/reglas/índices. Producción mantiene `optilab-v1` y no genera solicitudes Firestore. El modo explícito de desarrollo usa solo demo-optilab-sync; no se crean datos reales, grupos, roles o servicios de pago.
+La entrega #4 ya está fusionada como código exclusivo de emuladores. Producción mantiene `optilab-v1` y no genera solicitudes Firestore ni carga el módulo sync en el smoke publicado. #5 está solo en preparación mediante [ADR-003](architecture/ADR-003-academic-administration.md)/[plan](GROUPS-IMPLEMENTATION-PLAN.md): no se implementan funciones privilegiadas antes de aprobar el mecanismo de confianza. Sin datos reales, nuevos roles ni servicios de pago.
 
 Orden recomendado: #3 → #4 → #5 → #6 → #12; #7 tras #4/#6; #9 base tras #5/#7 y Liga #8 cuando exista verificación confiable. El mecanismo privilegiado y sus costos se deberán aprobar antes de habilitar administración autónoma, publicación docente o estadísticas competitivas.
