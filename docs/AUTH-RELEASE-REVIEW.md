@@ -39,6 +39,8 @@ No se inventan resultados de otros entornos. Las capturas previas de la PR sigue
 
 El diff de `store.tsx`, evolución, catálogo, protocolo y GameArena contra `main` se revisa para comprobar su conservación. La cancelación previa de WebKit fue durante instalación de dependencias: no se cuenta como PASS; se fija el runner de checks en Ubuntu 24.04, imagen usada en pruebas anteriores, para evitar cambios implícitos de plataforma, y se ejecutan los checks de nuevo.
 
+El run [39917628150](https://github.com/IsraelTiburcio-ai/optilab/actions/runs/39917628150) confirmó Chromium PASS, pero WebKit seguía descargando paquetes lentamente desde `azure.archive.ubuntu.com`; se canceló durante instalación, sin atribuirle un PASS. El workflow cambia ese mirror por `https://archive.ubuntu.com/ubuntu`, conservando la verificación de firmas y las pruebas completas. El nuevo resultado de ambos jobs se registra en la PR.
+
 Se detectó que el propietario ya tiene `.env.local` para QA real. No se leyó su key en el reporte ni se editó ese archivo. La suite general ahora fuerza explícitamente configuración Firebase vacía en su servidor aislado (5187), para no heredar el proyecto real ni reutilizar un servidor ajeno; las pruebas de invitado comprueban cero solicitudes Auth. La suite Auth mantiene sus fixtures `demo-` explícitos (5188). Este ajuste aísla QA, no cambia la app o el progreso.
 
 ### Automatización repetida en esta revisión

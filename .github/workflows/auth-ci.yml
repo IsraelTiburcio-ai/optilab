@@ -20,6 +20,23 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: Use official Ubuntu archive for browser dependencies
+        # Azure's mirror stalled WebKit package downloads in consecutive runs.
+        # Keep Ubuntu's signed sources; only change the mirror transport/host.
+        run: |
+          sudo python3 - <<'PY'
+          from pathlib import Path
+          sources = [Path('/etc/apt/sources.list')]
+          sources += list(Path('/etc/apt/sources.list.d').glob('*.list'))
+          sources += list(Path('/etc/apt/sources.list.d').glob('*.sources'))
+          for source in sources:
+              if source.is_file():
+                  original = source.read_text()
+                  updated = original.replace('http://azure.archive.ubuntu.com/ubuntu', 'https://archive.ubuntu.com/ubuntu')
+                  updated = updated.replace('https://azure.archive.ubuntu.com/ubuntu', 'https://archive.ubuntu.com/ubuntu')
+                  if updated != original:
+                      source.write_text(updated)
+          PY
       - run: npx playwright install --with-deps ${{ matrix.browser }}
       - name: Firebase Auth Emulator + SDK browser tests
         run: npx --yes firebase-tools@15.0.0 emulators:exec --only auth --project demo-optilab-auth --config firebase.auth-emulator.json "npm run test:auth -- --browser ${{ matrix.browser }}"
