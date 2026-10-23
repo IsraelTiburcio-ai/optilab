@@ -4,6 +4,8 @@ for (const [width,height] of [[390,844],[820,1180],[1180,820],[1440,900]]) test(
   await page.setViewportSize({width,height});
   // Audit the settled/reduced-motion view, not the transient opacity of the RPG entry animation.
   await page.emulateMedia({reducedMotion:'reduce'});
+  const authRequests:string[]=[];
+  page.on('request',r=>{if(/identitytoolkit\.googleapis\.com|securetoken\.googleapis\.com/.test(r.url()))authRequests.push(r.method())});
   await page.goto('#/cuenta');
   await expect(page.getByRole('heading',{name:'Tu cuenta OptiLab'})).toBeVisible();
   await expect(page.getByRole('button',{name:'Continuar con Google'})).toBeDisabled();
@@ -15,4 +17,5 @@ for (const [width,height] of [[390,844],[820,1180],[1180,820],[1440,900]]) test(
   expect(audit.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))).toEqual([]);
   await page.getByRole('link',{name:'Continuar como invitado'}).click();
   await expect(page.locator('.map-node')).toHaveCount(5);
+  expect(authRequests).toEqual([]);
 });

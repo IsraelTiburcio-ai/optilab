@@ -6,7 +6,8 @@ permissions:
   contents: read
 jobs:
   auth:
-    runs-on: ubuntu-latest
+    # Keep browser system dependencies on the tested LTS image during ubuntu-latest migrations.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       matrix:

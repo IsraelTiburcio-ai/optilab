@@ -1,6 +1,8 @@
 # Checklist manual · Firebase Authentication real · PR #11
 
-La [PR #11](https://github.com/IsraelTiburcio-ai/optilab/pull/11) permanece abierta como borrador. No fusionar ni desplegar hasta registrar los resultados. No se inició el issue #3.
+La [PR #11](https://github.com/IsraelTiburcio-ai/optilab/pull/11) permanece abierta y sin fusionar ni desplegar. El propietario ya reportó PASS en Google real, correo/contraseña, envío/verificación (llegó a Spam), recuperación, recarga persistente, logout y conservación exacta de `optilab-v1`; observó cero solicitudes Firestore durante recarga/navegación. Se conservan abajo los pasos reproducibles.
+
+Resultados atribuidos, revisión final, pendientes físicos y plan de publicación/reversión: [AUTH-RELEASE-REVIEW.md](AUTH-RELEASE-REVIEW.md). No se inició el issue #3. El estado “listo para revisión” no constituye permiso de merge/despliegue.
 
 ## Comprobado automáticamente
 
@@ -10,7 +12,7 @@ La [PR #11](https://github.com/IsraelTiburcio-ai/optilab/pull/11) permanece abie
 - Con la configuración real y sin emulador, una sesión de navegador limpia inicializó Cuenta y recargó conservando literalmente `optilab-v1`. Se observaron **0 solicitudes Firestore** y **0 operaciones de creación/acceso/envío de correo**. No se crearon cuentas ni se enviaron correos reales.
 - App/Auth son los únicos servicios Firebase importados por el cliente. No hay código Firestore ni escritura propia del estado de autenticación en `optilab-v1`.
 
-Lo anterior no demuestra todavía que Google o los flujos de correo reales funcionen de extremo a extremo. Los proveedores habilitados y la entrega de correos se confirman con los pasos siguientes.
+La comprobación automática anterior fue solo lectura. La validación interactiva posterior es la reportada por el propietario, no una prueba ejecutada por el agente ni evidencia del dominio público.
 
 ## Tus pasos exactos
 
@@ -61,4 +63,4 @@ Lo anterior no demuestra todavía que Google o los flujos de correo reales funci
 
 ## Aún requieren intervención humana
 
-Google con tu cuenta, entrega y apertura de correos, contraseña nueva, cierre/reapertura de tu navegador y comportamiento en Safari/dispositivos físicos. Ninguno se marca como aprobado a partir del emulador o de la consulta pública. La validación sobre el dominio publicado seguirá pendiente hasta disponer de un entorno autorizado; no se desplegó esta PR para probarlo.
+Ya existe reporte manual PASS del propietario para Google, correo, verificación y recuperación. No se extrapola a reinicio completo del navegador, Safari/dispositivos físicos o dominio publicado. Esos pendientes están detallados en el reporte final; no se desplegó esta PR para probarlos.

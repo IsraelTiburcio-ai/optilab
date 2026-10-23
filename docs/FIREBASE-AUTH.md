@@ -1,8 +1,8 @@
 # Firebase Authentication · fase 01 · PR de revisión
 
-Relacionado con [issue #2](https://github.com/IsraelTiburcio-ai/optilab/issues/2), dentro del [EPIC #1](https://github.com/IsraelTiburcio-ai/optilab/issues/1). Estado: implementación y QA local/emulada disponibles; configuración real comprobada y prueba manual interactiva pendiente. **No fusionar ni desplegar hasta aprobarla.**
+Relacionado con [issue #2](https://github.com/IsraelTiburcio-ai/optilab/issues/2), dentro del [EPIC #1](https://github.com/IsraelTiburcio-ai/optilab/issues/1). Estado: implementación, QA automatizado y QA manual real reportado PASS por el propietario; revisión final y autorización de publicación pendientes. **No fusionar ni desplegar sin autorización.**
 
-Entrega: **[PR borrador #11](https://github.com/IsraelTiburcio-ai/optilab/pull/11)**, base `main`, rama `feat/firebase-auth`. Las capturas de revisión están incluidas en la PR.
+Entrega: **[PR #11](https://github.com/IsraelTiburcio-ai/optilab/pull/11)**, base `main`, rama `feat/firebase-auth`. Las capturas de revisión son del emulador. El reporte real del propietario, revisión de seguridad y plan de rollout/rollback están en [AUTH-RELEASE-REVIEW.md](AUTH-RELEASE-REVIEW.md).
 
 ## Implementado
 
@@ -32,7 +32,7 @@ Proyecto indicado por el propietario: `optilab-cd829`, app `OptiLab Web`.
 
 Inicialmente solo estaban los cinco valores proporcionados y el endpoint público de Hosting no suministró la key (404). Después el propietario configuró la API key en GitHub. Se comprobaron las seis variables y la consulta pública de Authentication respondió HTTP 200, con proyecto numérico `401863964479` y dominios autorizados `localhost` e `israeltiburcio-ai.github.io`, entre otros. `127.0.0.1` no está autorizado. No se inventó ni se expone una key en esta documentación.
 
-Se probó también la inicialización y recarga de una sesión invitada local con configuración real, sin emulador: `optilab-v1` intacto, cero solicitudes Firestore y ninguna creación de cuenta ni envío de correo. **Google y los flujos reales de correo todavía requieren intervención manual**: [checklist exacta](QA-AUTH-REAL.md).
+Se probó también la inicialización y recarga de una sesión invitada local con configuración real, sin emulador: `optilab-v1` intacto, cero solicitudes Firestore y ninguna creación de cuenta ni envío de correo por el agente. Después, **el propietario reportó PASS en Google y los flujos reales de correo**: [checklist y resultados](QA-AUTH-REAL.md). La verificación llegó a Spam y se completó correctamente; no se oculta esa observación.
 
 ### Configuración local y futuras actualizaciones de la key
 
@@ -74,7 +74,7 @@ Se usa `signInWithPopup` desde un botón explícito y con Firebase ya inicializa
 - No se enlazan cuentas de proveedores diferentes de manera silenciosa.
 - No se añadió `signInWithRedirect` como fallback automático: en GitHub Pages con un authDomain de otro origen sus helpers pueden depender de almacenamiento de terceros bloqueado por Safari. Una alternativa por redirección requeriría revisar dominio/proxy y validar retorno bajo HashRouter antes de prometerla.
 
-WebKit automatizado cubre restricciones básicas; Safari iOS físico y Google real requieren QA manual.
+WebKit automatizado cubre restricciones básicas. Google real tiene reporte manual PASS; Safari iOS físico y el dominio público continúan pendientes.
 
 ## Persistencia, privacidad y límites de esta fase
 
@@ -116,15 +116,19 @@ Solo se inicia Auth Emulator, sin Java/Firestore ni cambios al proyecto real. La
 
 Firebase 12.19.0 y sus componentes App 0.16.2/App Compat 0.5.18 se fijaron por compatibilidad con Node 22; Firebase 13.1.0 resolvía componentes que requieren Node 24.12. Se fijó además `@grpc/grpc-js` 1.14.6 para resolver el aviso transitivo del paquete SDK completo. Esta fase solo importa App/Auth, no Firestore/compat en el bundle. Firebase CLI se ejecuta como herramienta de pruebas versionada, no dependencia de producción.
 
-## Checklist manual pendiente antes de merge
+## Checklist de revisión y despliegue
 
 - [x] API key web real y cinco valores restantes comprobados; inicialización local de lectura validada.
 - [ ] Build/entorno de revisión autorizado para comprobar el dominio publicado, sin desplegar por inferencia.
-- [ ] Google real: popup, retorno, recarga, logout en el dominio autorizado.
-- [ ] Correo real: alta, entrega del enlace de verificación, verificación y actualización.
-- [ ] Recuperación real, enlace/cambio de contraseña y reingreso.
+- [x] Google real y persistencia/recarga/logout: PASS informado por el propietario en QA local.
+- [x] Correo real: registro y envío/verificación PASS informado por el propietario; llegó a Spam.
+- [x] Recuperación real: PASS informado por el propietario.
+- [x] `optilab-v1` intacto: comparación exacta `true` informada por el propietario.
+- [x] Network Keep log: 0 solicitudes Firestore durante recarga/navegación según el propietario.
 - [ ] Revisar restricciones del API key, dominio y plantillas de correo sin añadir privilegios administrativos.
 - [ ] Safari/iPhone/iPad físicos cuando estén disponibles.
 - [ ] Aprobar explícitamente la PR y el despliegue; no fusionar solo por CI verde.
 
-La configuración real y el arranque/recarga como invitado sí se comprobaron. No se ejecutaron accesos Google, altas ni correos reales: requieren la cuenta y acción del propietario. Tampoco se desplegaron cambios sin aprobar. Se necesita un entorno de revisión autorizado para validar el dominio publicado antes de declarar cumplido ese criterio.
+El agente comprobó configuración/arranque de lectura y automatización; el propietario ejecutó y reportó las pruebas interactivas reales. No se desplegó ni fusionó nada. La prueba en el dominio público y los dispositivos físicos no se declaran realizadas; requieren la ventana de publicación y el seguimiento descritos en el plan de despliegue.
+
+Las suites automatizadas no usan la key del `.env.local` del propietario: la general fuerza modo sin configurar y la Auth usa solo el proyecto demo del emulador. No se modifica ni borra el archivo local.

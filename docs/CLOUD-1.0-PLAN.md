@@ -28,8 +28,8 @@ Se inspeccionaron issues abiertos/cerrados, milestones y labels antes de crear. 
 
 Solo se implementa [#2](https://github.com/IsraelTiburcio-ai/optilab/issues/2) en `feat/firebase-auth`. Los tickets #3–#10 son planificación, no funcionalidades construidas en esta rama.
 
-Entrega de revisión: **[PR borrador #11](https://github.com/IsraelTiburcio-ai/optilab/pull/11)**, con capturas del emulador y checklist manual. El ticket #2 permanece abierto.
+Entrega de revisión: **[PR #11](https://github.com/IsraelTiburcio-ai/optilab/pull/11)**, con capturas del emulador y reporte manual real PASS del propietario. El ticket #2 permanece abierto hasta resolver su cierre después de la revisión/publicación autorizada.
 
 La PR se entrega sin fusionar ni desplegar. Authentication no significa sincronización: el progreso sigue en `optilab-v1`. No se crean documentos Firestore, grupos, roles, métricas competitivas ni nuevas reglas de producción. No se activa Blaze.
 
-La verificación manual de Firebase real es condición de revisión. La API key, inicialmente ausente, ya fue configurada por el propietario y validada junto con los cinco valores públicos restantes. No se creó una key ficticia ni se solicitó una cuenta de servicio. Se comprobó el arranque local real sin escrituras; el acceso Google/correo y la entrega de enlaces siguen pendientes de intervención del propietario. Detalles: [FIREBASE-AUTH.md](FIREBASE-AUTH.md) y [checklist manual](QA-AUTH-REAL.md).
+La API key fue configurada por el propietario y validada junto con los cinco valores públicos restantes. No se creó una key ficticia ni se solicitó una cuenta de servicio. Se comprobó el arranque local de lectura y el propietario reportó PASS para Google/correo reales, verificación, recuperación, persistencia, logout y conservación de progreso. Dominio público y dispositivos físicos permanecen pendientes. Detalles y plan de publicación/reversión: [AUTH-RELEASE-REVIEW.md](AUTH-RELEASE-REVIEW.md).
