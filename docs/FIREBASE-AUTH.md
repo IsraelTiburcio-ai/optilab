@@ -2,6 +2,8 @@
 
 Relacionado con [issue #2](https://github.com/IsraelTiburcio-ai/optilab/issues/2), dentro del [EPIC #1](https://github.com/IsraelTiburcio-ai/optilab/issues/1). Estado: implementación y QA local/emulada disponibles; prueba manual real pendiente. **No fusionar ni desplegar hasta aprobarla.**
 
+Entrega: **[PR borrador #11](https://github.com/IsraelTiburcio-ai/optilab/pull/11)**, base `main`, rama `feat/firebase-auth`. Las capturas de revisión están incluidas en la PR.
+
 ## Implementado
 
 - Firebase JavaScript SDK modular, inicialización única de App/Auth y carga del cliente en chunk separado.
@@ -95,6 +97,7 @@ Firebase Auth almacena los datos de cuenta necesarios para los proveedores; no s
 - Comparación literal de `optilab-v1` antes/después y comprobación de cero solicitudes a Firestore en el flujo probado.
 - Formularios login/registro/recuperación y Axe A/AA a 390×844, 820×1180, 1180×820 y 1440×900; menú móvil en una sola fila.
 - Capturas en `docs/screenshots/auth/`: **emulador con datos sintéticos, no acceso de producción**.
+- En CI WebKit se detectó una auditoría de contraste durante la opacidad transitoria de la entrada RPG. La prueba de invitado ahora solicita movimiento reducido antes de cargar, igual que las demás auditorías de cuenta, para medir la vista estable sin excluir reglas Axe.
 
 ### Reproducir Auth sin usar el proyecto real
 

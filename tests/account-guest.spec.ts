@@ -2,6 +2,8 @@ import {test, expect} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 for (const [width,height] of [[390,844],[820,1180],[1180,820],[1440,900]]) test(`cuenta sin configurar ${width}×${height}: invitado, responsive y accesibilidad`,async({page})=>{
   await page.setViewportSize({width,height});
+  // Audit the settled/reduced-motion view, not the transient opacity of the RPG entry animation.
+  await page.emulateMedia({reducedMotion:'reduce'});
   await page.goto('#/cuenta');
   await expect(page.getByRole('heading',{name:'Tu cuenta OptiLab'})).toBeVisible();
   await expect(page.getByRole('button',{name:'Continuar con Google'})).toBeDisabled();

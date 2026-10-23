@@ -28,6 +28,8 @@ Se inspeccionaron issues abiertos/cerrados, milestones y labels antes de crear. 
 
 Solo se implementa [#2](https://github.com/IsraelTiburcio-ai/optilab/issues/2) en `feat/firebase-auth`. Los tickets #3–#10 son planificación, no funcionalidades construidas en esta rama.
 
+Entrega de revisión: **[PR borrador #11](https://github.com/IsraelTiburcio-ai/optilab/pull/11)**, con capturas del emulador y checklist manual. El ticket #2 permanece abierto.
+
 La PR se entrega sin fusionar ni desplegar. Authentication no significa sincronización: el progreso sigue en `optilab-v1`. No se crean documentos Firestore, grupos, roles, métricas competitivas ni nuevas reglas de producción. No se activa Blaze.
 
 La verificación manual de Firebase real es condición de revisión: falta la API key pública de `OptiLab Web`. Los cinco valores públicos recibidos se configuraron como variables del repositorio; no se creó una key ficticia ni se solicitó una cuenta de servicio. Detalles: [FIREBASE-AUTH.md](FIREBASE-AUTH.md).
