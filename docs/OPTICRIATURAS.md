@@ -1,5 +1,43 @@
 # OptiCriaturas · compañeros y evoluciones
 
+## Entrega verificada · 22 de octubre de 2026
+
+**Estado: COMPLETADO y publicado.**
+
+- App: https://israeltiburcio-ai.github.io/optilab/
+- Selector: https://israeltiburcio-ai.github.io/optilab/#/companero
+- Único repositorio modificado: `IsraelTiburcio-ai/optilab`.
+- Implementación: `67f2909`.
+- [GitHub Actions 39896866835](https://github.com/IsraelTiburcio-ai/optilab/actions/runs/39896866835): **success**.
+
+### QA real
+
+| Viewport | Equipo, selección y evolución públicos Chromium | Equipo, selección y evolución públicos WebKit |
+|---|---|---|
+| 390 × 844 | PASS | PASS |
+| 820 × 1180 | PASS | PASS |
+| 1180 × 820 | PASS | PASS |
+| 1440 × 900 | PASS | PASS |
+
+- **18 pruebas públicas PASS:** nueve Chromium y nueve WebKit. Se probaron bienvenida completa, elecciones persistidas, guardianes distintos, escena protagonista con apodo y forma activa, celebración accesible, no repetición, cambio de entrenador/familia, migración de etapa 3, consulta de formas anteriores, reinicio, datos inválidos y fallbacks.
+- **Regresión local completa: 61 PASS, cuatro pruebas públicas opt-in omitidas.** Incluye mapa, insignias, OptiDex, rutas, diagnóstico, Memorama independiente/integrado, GameArena y personalización anterior. Tras añadir el versionado de reglas, los cuatro casos de reglas y los nueve casos de compañeros se ejecutaron de nuevo: **13 PASS**.
+- **WebKit local: nueve casos de compañeros PASS.**
+- **Memorama público 390×844 en Chromium: PASS**, con ampliar/restaurar varias veces, partida intacta, ocho parejas y un solo resultado guardado.
+- **Build de producción + TypeScript: PASS.**
+- **Quince ilustraciones originales: PASS**, carga real e inspección visual de las tres formas de cada familia, todas de 1254×1254.
+- **Accesibilidad básica:** Axe A/AA en las experiencias existentes, selector y celebración; controles nativos de selección, foco modal, Escape, omisión y movimiento reducido.
+
+Las verificaciones públicas usan la aplicación y los assets publicados; solo la prueba explícita de fallo bloquea Cloudinary. Los tamaños y motores son emulados; queda pendiente la comprobación en dispositivos físicos.
+
+### Archivos modificados y creados
+
+- Datos/reglas: `src/data/companions.ts`, `src/lib/evolutionRules.ts`.
+- Componentes nuevos: `CompanionPortrait.tsx`, `CompanionProgress.tsx`, `EvolutionCelebration.tsx`, `EvolutionLine.tsx`, `ExpeditionPanel.tsx` bajo `src/components/`.
+- Pantalla/estilos nuevos: `src/pages/CompanionSelector.tsx`, `src/styles/companions.css`.
+- Integración: `src/store.tsx`, `src/App.tsx`, `src/pages/TrainerSelect.tsx`, `src/pages/Profile.tsx`, `src/pages/GymMap.tsx`.
+- QA: `tests/companion-assets.spec.ts`, `tests/evolution-rules.spec.ts`, `tests/companions.spec.ts`; adaptación del flujo inicial en `tests/adventure.spec.ts` y `tests/personalization.spec.ts`.
+- Documentación: `README.md`, `docs/PERSONAJES-INSIGNIAS.md`, este documento.
+
 ## Flujo y representación
 
 `Inicio → Entrenador → Compañero → Mapa`. La ruta nueva es `#/companero`.
