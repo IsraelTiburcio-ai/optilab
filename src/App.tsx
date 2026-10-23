@@ -1,6 +1,6 @@
-import {useEffect,useRef,useState,type CSSProperties} from 'react';
+import {lazy,Suspense,useEffect,useRef,useState,type CSSProperties} from 'react';
 import {Link,NavLink,Route,Routes,useLocation,useParams} from 'react-router-dom';
-import {ArrowRight,BookOpen,Compass,Home as HomeIcon,Map as MapIcon,Search,Shield,Signpost,Sparkles,Trophy,UserRound,X} from 'lucide-react';
+import {ArrowRight,BookOpen,Compass,Home as HomeIcon,KeyRound,Map as MapIcon,Search,Shield,Signpost,Sparkles,Trophy,UserRound,X} from 'lucide-react';
 import {games,gyms,gymGames,normalize,questions,type Game} from './data';
 import {useProgress} from './store';
 import {Landscape,Mascot} from './Art';
@@ -20,7 +20,9 @@ import {AvatarPortrait} from './components/AvatarPortrait';
 import {EvolutionNotice} from './components/EvolutionCelebration';
 import './styles/personalization.css';
 import './styles/companions.css';
-const links=[['/','Inicio',HomeIcon],['/mapa','Mapa',MapIcon],['/optidex','OptiDex',BookOpen],['/entrenar','Entrenar',Signpost],['/aventura','Mi aventura',UserRound]] as const;
+import './styles/auth.css';
+const Account=lazy(()=>import('./pages/Account'));
+const links=[['/','Inicio',HomeIcon],['/mapa','Mapa',MapIcon],['/optidex','OptiDex',BookOpen],['/entrenar','Entrenar',Signpost],['/aventura','Mi aventura',UserRound],['/cuenta','Cuenta',KeyRound]] as const;
 function PageTitle({kicker,title,description}:{kicker:string;title:string;description:string}){return <header className="page-title"><span className="eyebrow">{kicker}</span><h1>{title}</h1><p>{description}</p></header>}
 function Home() {
   const {state,evolution} = useProgress();
@@ -83,6 +85,7 @@ export default function App(){
         <Route path="/mapa" element={<GymMap/>}/><Route path="/gimnasio/:id" element={<GymDetail/>}/><Route path="/jugar/:id" element={<GamePlayer/>}/>
         <Route path="/optidex" element={<OptiDex/>}/><Route path="/entrenar" element={<Training/>}/><Route path="/reto" element={<Exam/>}/>
         <Route path="/aventura" element={<><Profile/><GameHistory/></>}/>
+        <Route path="/cuenta" element={<Suspense fallback={<p className="account-loading" role="status">Abriendo el portal de cuentas…</p>}><Account/></Suspense>}/>
         <Route path="*" element={<><h1>Te saliste del sendero</h1><Link className="button" to="/mapa">Volver al mapa</Link></>}/>
       </Routes>
     </main>
