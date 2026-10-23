@@ -1,6 +1,6 @@
 # Progreso Cloud #4 · implementación exclusiva en emuladores
 
-Base `main` `adc8b17`. [ADR-002 y matriz de conflictos](architecture/ADR-002-progress-sync.md). No merge, publicación pública, Firebase Console, documentos reales, reglas/índices productivos, Blaze o Functions autorizados/ejecutados.
+Implementación desde `adc8b17`, fusionada por PR #14 en `7ab4e83` con autorización posterior del propietario; Pages estático publicado correctamente. **Sync sigue exclusivamente en emuladores**, no se publicaron reglas/índices ni se tocó Firebase Console, documentos reales, configuración Auth, Blaze o Functions. [Reporte de consolidación/QA](QA-CLOUD-PROGRESS-RELEASE.md) · [ADR-002 y matriz](architecture/ADR-002-progress-sync.md). #4 permanece abierto para su puerta productiva.
 
 ## Ejecutar y revisar
 
