@@ -1,6 +1,6 @@
 # OptiLab Cloud 1.0 · seguimiento verificado
 
-Repositorio: `IsraelTiburcio-ai/optilab`. Base de implementación: `main` en `df90101`, con OptiCriaturas integrada y build de producción aprobado antes de cambios.
+Repositorio: `IsraelTiburcio-ai/optilab`. Base actual de #3: `main` en `5df2258`, con Authentication publicada mediante PR #11. QA público Safari/iPhone y logout entre pestañas reportados PASS por el propietario; #2 cerrado. Pendientes físicos restantes en el reporte Auth.
 
 ## GitHub
 
@@ -17,19 +17,20 @@ Repositorio: `IsraelTiburcio-ai/optilab`. Base de implementación: `main` en `df
 | 05 | [#6 · Actividades de la profesora](https://github.com/IsraelTiburcio-ai/optilab/issues/6) | #5 |
 | 06 | [#7 · Resultados, intentos y métricas](https://github.com/IsraelTiburcio-ai/optilab/issues/7) | #4, #6 |
 | 07 | [#8 · Liga por grupo](https://github.com/IsraelTiburcio-ai/optilab/issues/8) | #5, #7 |
-| 08 | [#9 · Panel privado docente](https://github.com/IsraelTiburcio-ai/optilab/issues/9) | #5, #7, #8 |
-| 09 | [#10 · QA, privacidad y lanzamiento](https://github.com/IsraelTiburcio-ai/optilab/issues/10) | #2–#9 |
+| P1 adicional | [#12 · Editor académico de gimnasios y actividades](https://github.com/IsraelTiburcio-ai/optilab/issues/12) | #3, #5, #6; relacionado con #9 |
+| 08 | [#9 · Panel privado docente](https://github.com/IsraelTiburcio-ai/optilab/issues/9) | #3, #5, #7; #8 solo para clasificaciones |
+| 09 | [#10 · QA, privacidad y lanzamiento](https://github.com/IsraelTiburcio-ai/optilab/issues/10) | #2–#9 y #12; transversal |
 
-Cada ticket incluye contexto, problema, objetivo, alcance, exclusiones, dependencias, propuesta técnica, archivos candidatos, criterios verificables, pruebas, riesgos y condiciones de cierre. Los diez issues están asociados al milestone. GitHub aceptó las nueve relaciones nativas de subissue; el EPIC mantiene además la checklist enlazada y el grafo de dependencias en Markdown.
+Cada ticket incluye contexto, alcance, dependencias, criterios, pruebas, seguridad y condiciones de cierre. El EPIC tiene diez subissues nativos, incluido el nuevo editor #12, todos en el milestone. #5 amplía administración de alumnos/invitaciones/transferencias, #6 proveedores externos seguros y #9 analíticas por ámbito/confianza. No hay un editor duplicado: #6 aporta integración, #12 edición/orden/publicación y #9 seguimiento.
 
 Se inspeccionaron issues abiertos/cerrados, milestones y labels antes de crear. No existían tickets o milestones equivalentes. La creación buscó títulos/identificadores existentes y reutilizó labels para no duplicar entidades en una repetición. La asociación de milestone, etiquetas y referencias se verificó mediante la API después de crear.
 
 ## Corte de esta PR
 
-Solo se implementa [#2](https://github.com/IsraelTiburcio-ai/optilab/issues/2) en `feat/firebase-auth`. Los tickets #3–#10 son planificación, no funcionalidades construidas en esta rama.
+Solo se implementa [#3](https://github.com/IsraelTiburcio-ai/optilab/issues/3) en `feat/firestore-security`: contratos, reglas, índices y tests de emulador. [ADR](architecture/ADR-001-firestore-security.md), [permisos/pruebas](FIRESTORE-SECURITY.md), [presupuesto](FIRESTORE-BUDGET.md). Los módulos #4–#10/#12 no están implementados.
 
-Entrega de revisión: **[PR #11](https://github.com/IsraelTiburcio-ai/optilab/pull/11)**, con capturas del emulador y reporte manual real PASS del propietario. El ticket #2 permanece abierto hasta resolver su cierre después de la revisión/publicación autorizada.
+La PR #11 de Auth ya está fusionada/publicada. El reporte [AUTH-RELEASE-REVIEW.md](AUTH-RELEASE-REVIEW.md) distingue evidencia automática, QA local y el smoke publicado informado por el propietario.
 
-La PR se entrega sin fusionar ni desplegar. Authentication no significa sincronización: el progreso sigue en `optilab-v1`. No se crean documentos Firestore, grupos, roles, métricas competitivas ni nuevas reglas de producción. No se activa Blaze.
+Esta entrega de #3 se prepara sin fusionar ni desplegar reglas. El progreso sigue en `optilab-v1`; la app no genera solicitudes Firestore. No se crean documentos, grupos, roles ni datos reales en producción y no se activa Blaze.
 
-La API key fue configurada por el propietario y validada junto con los cinco valores públicos restantes. No se creó una key ficticia ni se solicitó una cuenta de servicio. Se comprobó el arranque local de lectura y el propietario reportó PASS para Google/correo reales, verificación, recuperación, persistencia, logout y conservación de progreso. Dominio público y dispositivos físicos permanecen pendientes. Detalles y plan de publicación/reversión: [AUTH-RELEASE-REVIEW.md](AUTH-RELEASE-REVIEW.md).
+Orden recomendado: #3 → #4 → #5 → #6 → #12; #7 tras #4/#6; #9 base tras #5/#7 y Liga #8 cuando exista verificación confiable. El mecanismo privilegiado y sus costos se deberán aprobar antes de habilitar administración autónoma, publicación docente o estadísticas competitivas.

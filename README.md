@@ -80,9 +80,11 @@ Los juegos usan `repo` como identidad estable y un único `GameCard` reutilizabl
 
 ### Cloud 1.0 — primera fase en revisión
 
-La planificación está en [EPIC #1](https://github.com/IsraelTiburcio-ai/optilab/issues/1), con nueve entregas separadas y [milestone 1](https://github.com/IsraelTiburcio-ai/optilab/milestone/1). Solo se implementa Authentication [#2](https://github.com/IsraelTiburcio-ai/optilab/issues/2) en `feat/firebase-auth`: `#/cuenta`, Google, correo/contraseña, verificación, recuperación y cierre de sesión. Se conserva el invitado y no se escribe en Firestore.
+La planificación está en [EPIC #1](https://github.com/IsraelTiburcio-ai/optilab/issues/1), con diez entregas separadas y [milestone 1](https://github.com/IsraelTiburcio-ai/optilab/milestone/1). Authentication [#2](https://github.com/IsraelTiburcio-ai/optilab/issues/2) incluye `#/cuenta`, Google, correo/contraseña, verificación, recuperación y cierre de sesión. Se conserva el invitado y el frontend todavía no usa Firestore.
 
-**Estado de revisión:** el propietario reportó PASS en el QA manual de Firebase real, incluido Google, correo, verificación/recuperación, persistencia, logout y progreso intacto. La verificación llegó a Spam. La configuración pública está comprobada. No se fusionó ni desplegó: faltan autorización, smoke en dominio público y pruebas físicas identificadas. No confundir el emulador con esos resultados reales. [Revisión y plan de despliegue/rollback](docs/AUTH-RELEASE-REVIEW.md), [pasos reproducibles](docs/QA-AUTH-REAL.md), [configuración](docs/FIREBASE-AUTH.md).
+**Authentication publicada:** PR #11 fusionada en `5df2258`, Pages exitoso y Google Safari/iPhone + logout entre pestañas reportados PASS por el propietario; #2 cerrado. El QA real local de correo/verificación/recuperación continúa registrado, incluida llegada a Spam. [Reporte atribuido y pendientes](docs/AUTH-RELEASE-REVIEW.md).
+
+**Firestore #3:** reglas y pruebas locales de Emulator Suite, sin integrar sincronización ni generar solicitudes Firestore desde la app. `npm run test:firestore` requiere Node 22 y Java 21. [Arquitectura](docs/architecture/ADR-001-firestore-security.md), [permisos/instrucciones](docs/FIRESTORE-SECURITY.md), [estimación Spark](docs/FIRESTORE-BUDGET.md) y [roadmap docente/editor #12](docs/CLOUD-1.0-PLAN.md). No se desplegaron reglas de producción.
 
 Clave: `optilab-v1` de `localStorage`. Guarda práctica por repositorio y fecha ISO, gimnasios visitados, insignias derivadas, últimos 30 resultados, apodo y ruta activa. Las insignias se recalculan coherentemente al marcar/desmarcar; no constituyen una evaluación académica.
 

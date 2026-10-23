@@ -1,0 +1,34 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "groupActivities",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "status", "order": "ASCENDING"},
+        {"fieldPath": "gymId", "order": "ASCENDING"},
+        {"fieldPath": "displayOrder", "order": "ASCENDING"}
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {"collectionGroup": "users", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "progress", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "evolutionMilestones", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "gameRuns", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "gameRuns", "fieldPath": "date", "indexes": [{"order": "DESCENDING", "queryScope": "COLLECTION"}]},
+    {"collectionGroup": "diagnostics", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "diagnostics", "fieldPath": "date", "indexes": [{"order": "DESCENDING", "queryScope": "COLLECTION"}]},
+    {"collectionGroup": "enrollments", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "courses", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "terms", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "groups", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "members", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "staff", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "leaderboard", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "studentSummaries", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "activities", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "groupActivities", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "activityPlacements", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "activityAttempts", "fieldPath": "*", "indexes": []}
+  ]
+}

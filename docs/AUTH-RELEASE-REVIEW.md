@@ -1,5 +1,16 @@
 # Authentication · revisión final y despliegue controlado · PR #11
 
+## Actualización posterior a publicación · 23 octubre 2026
+
+- Verificado por GitHub: PR #11 fusionada en `5df2258f62b38f3201798c34543c5dd6fa1c80f0`; [Pages 39921270706](https://github.com/IsraelTiburcio-ai/optilab/actions/runs/39921270706) terminó correctamente.
+- El propietario informa Google Sign-In real desde **Safari en iPhone**, en la aplicación publicada: PASS. No proporcionó modelo, versión de iOS ni versión de Safari.
+- El propietario informa logout persistente entre pestañas del mismo navegador, incluida recarga y navegación: PASS; `optilab-v1` continúa intacto.
+- El reporte anterior de correo/verificación/recuperación sigue siendo QA real local atribuido al propietario. No se extrapola a correo público, otros dispositivos, arranque frío, VoiceOver/TalkBack ni toda la matriz de smoke.
+- Se considera satisfecho el alcance de Authentication del issue #2 y se registra su cierre. Continúan pendientes entregabilidad/Spam, matriz física restante y smoke ampliado de correo/juegos; el progreso sigue local, común al navegador, sin sincronización por UID.
+- Se autoriza trabajar en #3 mediante la nueva instrucción del propietario. No se autoriza otro merge, despliegue o cambio de producción.
+
+Las secciones siguientes conservan el registro **previo** a la publicación y su plan; sus referencias a PR sin fusionar o dominio pendiente describen ese momento, no el estado actual.
+
 ## Alcance y decisión
 
 Solo fase 01 / [issue #2](https://github.com/IsraelTiburcio-ai/optilab/issues/2). El issue #3 y las fases siguientes no se iniciaron. No hay fusión ni despliegue autorizado en esta ejecución.
