@@ -11,3 +11,4 @@ firebase-debug.log*
 ui-debug.log*
 .firebase/
 auth-qa-results/
+firestore-debug.log*

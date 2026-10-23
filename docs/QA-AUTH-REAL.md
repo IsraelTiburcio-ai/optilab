@@ -1,5 +1,7 @@
 # Checklist manual · Firebase Authentication real · PR #11
 
+**Actualización publicada:** PR #11 fusionada en `5df2258`, Pages exitoso. El propietario reporta Google real en Safari/iPhone y logout persistente entre pestañas, con recarga/navegación y progreso intacto. No se informaron versiones ni otros dispositivos. Véase la actualización posterior a publicación en [AUTH-RELEASE-REVIEW.md](AUTH-RELEASE-REVIEW.md); el texto siguiente conserva la checklist y evidencia de la revisión anterior.
+
 La [PR #11](https://github.com/IsraelTiburcio-ai/optilab/pull/11) permanece abierta y sin fusionar ni desplegar. El propietario ya reportó PASS en Google real, correo/contraseña, envío/verificación (llegó a Spam), recuperación, recarga persistente, logout y conservación exacta de `optilab-v1`; observó cero solicitudes Firestore durante recarga/navegación. Se conservan abajo los pasos reproducibles.
 
 Resultados atribuidos, revisión final, pendientes físicos y plan de publicación/reversión: [AUTH-RELEASE-REVIEW.md](AUTH-RELEASE-REVIEW.md). No se inició el issue #3. El estado “listo para revisión” no constituye permiso de merge/despliegue.

@@ -1,6 +1,6 @@
 # Firebase Authentication · fase 01 · PR de revisión
 
-Relacionado con [issue #2](https://github.com/IsraelTiburcio-ai/optilab/issues/2), dentro del [EPIC #1](https://github.com/IsraelTiburcio-ai/optilab/issues/1). Estado: implementación, QA automatizado y QA manual real reportado PASS por el propietario; revisión final y autorización de publicación pendientes. **No fusionar ni desplegar sin autorización.**
+Relacionado con [issue #2](https://github.com/IsraelTiburcio-ai/optilab/issues/2), dentro del [EPIC #1](https://github.com/IsraelTiburcio-ai/optilab/issues/1). **Actualización:** Authentication fusionada/publicada en `5df2258`, Pages exitoso; Google Safari/iPhone y logout entre pestañas reportados PASS por el propietario. #2 cerrado. [Reporte actualizado y pendientes](AUTH-RELEASE-REVIEW.md). La checklist previa de revisión conservada abajo es histórica. La nueva fase Firestore #3 sigue sin autorización de merge/despliegue.
 
 Entrega: **[PR #11](https://github.com/IsraelTiburcio-ai/optilab/pull/11)**, base `main`, rama `feat/firebase-auth`. Las capturas de revisión son del emulador. El reporte real del propietario, revisión de seguridad y plan de rollout/rollback están en [AUTH-RELEASE-REVIEW.md](AUTH-RELEASE-REVIEW.md).
 

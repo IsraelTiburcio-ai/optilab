@@ -1,0 +1,234 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    function owner(uid) { return signedIn() && request.auth.uid == uid; }
+    function id(value) { return value is string && value.matches('^[A-Za-z0-9_-]{1,80}$'); }
+    function exact(d, fields) { return d is map && d.keys().hasAll(fields) && d.keys().hasOnly(fields); }
+    function validDate(value) {
+      return value is timestamp && value >= timestamp.date(1970, 1, 1) && value <= request.time;
+    }
+    function page(maximum) { return request.query.limit != null && request.query.limit <= maximum; }
+    // Catalog v1, deliberately explicit: Rules has no loops over arbitrary map values.
+    function games() {
+      return ['OptiQuest1','system-lab','SystemScope','complexity-lab','or-mission',
+        'model-match','lp-factory','constraint-dash','feasible-drop','solution-detective',
+        'planificador-produccion','mapa-produccion','claves-planeacion-produccion',
+        'memorama-simplex','rompecabezas-simplex','ahorcado-simplex','ordena-simplex','caza-el-pivote',
+        'espejo-dual','balanza-dual','domino-holguras','mercado-recursos-dual','semaforo-sensibilidad',
+        'desviacion-express','torre-prioridades','rompecabezas-metas','ruta-de-metas','candado-simplex'];
+    }
+    function practiceDate(p, key) {
+      let value = p.get(key, request.time);
+      return value is timestamp && value <= request.time;
+    }
+    function practice(p) {
+      return p is map && p.keys().hasOnly(games())
+        && practiceDate(p,'OptiQuest1') && practiceDate(p,'system-lab')
+        && practiceDate(p,'SystemScope') && practiceDate(p,'complexity-lab') && practiceDate(p,'or-mission')
+        && practiceDate(p,'model-match') && practiceDate(p,'lp-factory') && practiceDate(p,'constraint-dash')
+        && practiceDate(p,'feasible-drop') && practiceDate(p,'solution-detective')
+        && practiceDate(p,'planificador-produccion') && practiceDate(p,'mapa-produccion')
+        && practiceDate(p,'claves-planeacion-produccion') && practiceDate(p,'memorama-simplex')
+        && practiceDate(p,'rompecabezas-simplex') && practiceDate(p,'ahorcado-simplex')
+        && practiceDate(p,'ordena-simplex') && practiceDate(p,'caza-el-pivote')
+        && practiceDate(p,'espejo-dual') && practiceDate(p,'balanza-dual') && practiceDate(p,'domino-holguras')
+        && practiceDate(p,'mercado-recursos-dual') && practiceDate(p,'semaforo-sensibilidad')
+        && practiceDate(p,'desviacion-express') && practiceDate(p,'torre-prioridades')
+        && practiceDate(p,'rompecabezas-metas') && practiceDate(p,'ruta-de-metas') && practiceDate(p,'candado-simplex');
+    }
+    function selection(values, allowed, maximum) {
+      return values is list && values.size() <= maximum && values.toSet().size() == values.size()
+        && values.toSet().hasOnly(allowed);
+    }
+    function progress(d, uid) {
+      return exact(d, ['schemaVersion','uid','createdAt','updatedAt','revision','practiced',
+        'visited','nickname','route','avatarId','companionId','evolutionCelebratedStage'])
+        && d.schemaVersion == 1 && d.uid == uid
+        && validDate(d.createdAt) && d.updatedAt == request.time && d.revision is int && d.revision >= 1 && d.revision <= 2147483647
+        && d.nickname is string && d.nickname.size() <= 30
+        && practice(d.practiced) && selection(d.visited,[1,2,3,4,5],5) && selection(d.route,games(),28)
+        && (d.avatarId == null || d.avatarId in ['avatar-01','avatar-02','avatar-03','avatar-04','avatar-05','avatar-06'])
+        && (d.companionId == null || d.companionId in ['nexo','poli','piv','dua','brio'])
+        && d.evolutionCelebratedStage is int && d.evolutionCelebratedStage in [1,2,3];
+    }
+    function envelope(d, uid, fields) {
+      return exact(d,fields) && d.schemaVersion == 1 && d.uid == uid
+        && d.trust == 'self-reported' && d.createdAt == request.time && validDate(d.date);
+    }
+    function answer(a) { return a is int && a >= 0 && a <= 2; }
+    function diagnostic(d, uid) {
+      return envelope(d,uid,['schemaVersion','uid','trust','createdAt','date','answers','score'])
+        && d.answers is list && d.answers.size() == 5
+        && answer(d.answers[0]) && answer(d.answers[1]) && answer(d.answers[2])
+        && answer(d.answers[3]) && answer(d.answers[4]) && d.score is int
+        && d.score == (d.answers[0] == 1 ? 1 : 0) + (d.answers[1] == 0 ? 1 : 0)
+          + (d.answers[2] == 1 ? 1 : 0) + (d.answers[3] == 1 ? 1 : 0) + (d.answers[4] == 0 ? 1 : 0);
+    }
+    function run(d, uid, runId) {
+      return runId.matches('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$')
+        && envelope(d,uid,['schemaVersion','uid','trust','createdAt','date','runId','gameId','result'])
+        && d.runId == runId && d.gameId == 'memorama-simplex'
+        && exact(d.result,['completed','matchedPairs','totalPairs','attempts','errors','elapsedMs','accuracy'])
+        && d.result.completed == true && d.result.matchedPairs is int && d.result.totalPairs is int
+        && d.result.matchedPairs == 8 && d.result.totalPairs == 8
+        && d.result.attempts is int && d.result.attempts >= 8 && d.result.attempts <= 100000
+        && d.result.errors is int && d.result.errors == d.result.attempts - 8
+        && d.result.elapsedMs is int && d.result.elapsedMs >= 0 && d.result.elapsedMs <= 604800000
+        && d.result.accuracy is int && d.result.accuracy == math.round(800.0 / d.result.attempts);
+    }
+    function gymCount(e) {
+      let keys = e.keys().toSet();
+      return (keys.hasAny(['OptiQuest1','system-lab','SystemScope','complexity-lab','or-mission']) ? 1 : 0)
+        + (keys.hasAny(['model-match','lp-factory','constraint-dash','feasible-drop','solution-detective','planificador-produccion','mapa-produccion','claves-planeacion-produccion']) ? 1 : 0)
+        + (keys.hasAny(['memorama-simplex','rompecabezas-simplex','ahorcado-simplex','ordena-simplex','caza-el-pivote']) ? 1 : 0)
+        + (keys.hasAny(['espejo-dual','balanza-dual','domino-holguras','mercado-recursos-dual','semaforo-sensibilidad']) ? 1 : 0)
+        + (keys.hasAny(['desviacion-express','torre-prioridades','rompecabezas-metas','ruta-de-metas','candado-simplex']) ? 1 : 0);
+    }
+    function milestone(d, uid, stage) {
+      return exact(d,['schemaVersion','uid','trust','createdAt','stage','ruleVersion','unlockedAt','practice'])
+        && d.schemaVersion == 1 && d.uid == uid && d.trust == 'self-reported'
+        && d.createdAt == request.time && validDate(d.unlockedAt) && d.ruleVersion is int && d.ruleVersion == 1
+        && d.stage is int
+        && ((stage == '2' && d.stage == 2) || (stage == '3' && d.stage == 3))
+        && practice(d.practice)
+        && d.practice.size() >= (stage == '2' ? 6 : 18)
+        && gymCount(d.practice) >= (stage == '2' ? 2 : 4);
+    }
+    match /users/{uid} {
+      allow get: if owner(uid);
+      allow create: if owner(uid) && exact(request.resource.data,['schemaVersion','uid','createdAt'])
+        && request.resource.data.schemaVersion == 1 && request.resource.data.uid == uid
+        && request.resource.data.createdAt == request.time;
+      allow list, update, delete: if false;
+      match /progress/{document} {
+        allow get: if owner(uid) && document == 'current';
+        allow create: if owner(uid) && document == 'current' && progress(request.resource.data,uid)
+          && request.resource.data.createdAt == request.time && request.resource.data.revision == 1;
+        allow update: if owner(uid) && document == 'current' && progress(request.resource.data,uid)
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.revision == resource.data.revision + 1;
+        allow list, delete: if false;
+      }
+      match /diagnostics/{attemptId} {
+        allow get: if owner(uid);
+        allow list: if owner(uid) && page(50);
+        allow create: if owner(uid) && id(attemptId) && diagnostic(request.resource.data,uid);
+        allow update, delete: if false;
+      }
+      match /gameRuns/{runId} {
+        allow get: if owner(uid);
+        allow list: if owner(uid) && page(50);
+        allow create: if owner(uid) && run(request.resource.data,uid,runId);
+        allow update, delete: if false;
+      }
+      match /evolutionMilestones/{stage} {
+        allow get: if owner(uid) && stage in ['2','3'];
+        allow list: if owner(uid) && page(2);
+        allow create: if owner(uid) && milestone(request.resource.data,uid,stage);
+        allow update, delete: if false;
+      }
+      // Discovery pointers, not authority. A trusted operator maintains these.
+      match /enrollments/{enrollmentId} {
+        allow get: if owner(uid);
+        allow list: if owner(uid) && page(20);
+        allow write: if false;
+      }
+    }
+    function course(c) {
+      let d = get(/databases/$(database)/documents/courses/$(c)).data;
+      return id(c) && exact(d,['schemaVersion','courseId','title','status'])
+        && d.schemaVersion == 1 && d.courseId == c && d.status == 'active'
+        && d.title is string && d.title.size() <= 120;
+    }
+    function courseGrant(c, collection) {
+      let d = get(/databases/$(database)/documents/courses/$(c)/$(collection)/$(request.auth.uid)).data;
+      return exact(d,['schemaVersion','uid','courseId','status'])
+        && d.schemaVersion == 1 && d.uid == request.auth.uid && d.courseId == c && d.status == 'active';
+    }
+    function scope(c,t,g) {
+      let term = get(/databases/$(database)/documents/courses/$(c)/terms/$(t)).data;
+      let group = get(/databases/$(database)/documents/courses/$(c)/terms/$(t)/groups/$(g)).data;
+      return course(c) && id(t) && id(g)
+        && exact(term,['schemaVersion','courseId','termId','title','status'])
+        && term.schemaVersion == 1 && term.courseId == c && term.termId == t && term.status == 'active'
+        && term.title is string && term.title.size() <= 120
+        && exact(group,['schemaVersion','courseId','termId','groupId','title','status'])
+        && group.schemaVersion == 1 && group.courseId == c && group.termId == t && group.groupId == g
+        && group.status == 'active' && group.title is string && group.title.size() <= 120;
+    }
+    function groupGrant(c,t,g,collection) {
+      let d = get(/databases/$(database)/documents/courses/$(c)/terms/$(t)/groups/$(g)/$(collection)/$(request.auth.uid)).data;
+      return validGroupGrant(d,c,t,g,request.auth.uid);
+    }
+    function validGroupGrant(d,c,t,g,uid) {
+      return exact(d,['schemaVersion','uid','courseId','termId','groupId','status'])
+        && d.schemaVersion == 1 && d.uid == uid && d.courseId == c
+        && d.termId == t && d.groupId == g && d.status == 'active';
+    }
+    function studentGrants(c,t,g) {
+      return courseGrant(c,'members') && groupGrant(c,t,g,'members');
+    }
+    function teacherGrants(c,t,g) {
+      return courseGrant(c,'staff') && groupGrant(c,t,g,'staff');
+    }
+    function academicAccess(c,t,g) {
+      return signedIn() && scope(c,t,g) && (studentGrants(c,t,g) || teacherGrants(c,t,g));
+    }
+    function ranking(d,c,t,g,uid) {
+      return exact(d,['schemaVersion','uid','courseId','termId','groupId','alias','points','verifiedRuns','updatedAt'])
+        && d.schemaVersion == 1 && d.uid == uid && d.courseId == c && d.termId == t && d.groupId == g
+        && d.alias is string && d.alias.size() <= 30 && d.points is int && d.points >= 0
+        && d.verifiedRuns is int && d.verifiedRuns >= 0 && validDate(d.updatedAt);
+    }
+    function summary(d,c,t,g,uid) {
+      return exact(d,['schemaVersion','uid','courseId','termId','groupId','trust','practicedCount','updatedAt'])
+        && d.schemaVersion == 1 && d.uid == uid && d.courseId == c && d.termId == t && d.groupId == g
+        && d.trust == 'self-reported' && d.practicedCount is int && d.practicedCount >= 0
+        && d.practicedCount <= 28 && validDate(d.updatedAt);
+    }
+    match /courses/{c} {
+      allow get: if signedIn() && course(c) && (courseGrant(c,'members') || courseGrant(c,'staff'));
+      allow list, write: if false;
+      match /members/{uid} {
+        allow get: if owner(uid) && course(c);
+        allow list, write: if false;
+      }
+      match /staff/{uid} {
+        allow get: if owner(uid) && course(c);
+        allow list, write: if false;
+      }
+      match /terms/{t}/groups/{g} {
+        allow get: if academicAccess(c,t,g);
+        allow list, write: if false;
+        match /members/{uid} {
+          allow get: if signedIn() && scope(c,t,g) && ((owner(uid) && studentGrants(c,t,g)) || teacherGrants(c,t,g))
+            && validGroupGrant(resource.data,c,t,g,uid);
+          allow list, write: if false;
+        }
+        match /staff/{uid} {
+          allow get: if owner(uid) && scope(c,t,g) && teacherGrants(c,t,g);
+          allow list, write: if false;
+        }
+        // Only sanitized trusted fixtures/projections can be read, never client-written.
+        // Full leaderboard queries and analytics are deliberately NOT enabled in #3.
+        match /leaderboard/{uid} {
+          allow get: if academicAccess(c,t,g) && ranking(resource.data,c,t,g,uid);
+          allow list, write: if false;
+        }
+        match /studentSummaries/{uid} {
+          allow get: if signedIn() && scope(c,t,g)
+            && ((owner(uid) && studentGrants(c,t,g)) || teacherGrants(c,t,g)) && summary(resource.data,c,t,g,uid);
+          allow list, write: if false;
+        }
+      }
+    }
+    // Activities, drafts, assignments, placements, invitations, attempts, aggregate
+    // queries and any future route stay closed until their own reviewed issue.
+    match /{document=**} { allow read, write: if false; }
+  }
+}
