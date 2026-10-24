@@ -27,6 +27,7 @@ import './styles/sync.css';
 const SyncPanel=lazy(()=>import('./progress/SyncPanel'));
 const Account=lazy(()=>import('./pages/Account'));
 const TeacherPanel=academicEnabled?lazy(()=>import('./academic/TeacherPanel')):null;
+const EnrollmentPage=academicEnabled?lazy(()=>import('./academic/EnrollmentPage')):null;
 const links=[['/','Inicio',HomeIcon],['/mapa','Mapa',MapIcon],['/optidex','OptiDex',BookOpen],['/entrenar','Entrenar',Signpost],['/aventura','Mi aventura',UserRound],['/cuenta','Cuenta',KeyRound]] as const;
 function PageTitle({kicker,title,description}:{kicker:string;title:string;description:string}){return <header className="page-title"><span className="eyebrow">{kicker}</span><h1>{title}</h1><p>{description}</p></header>}
 function Home() {
@@ -83,7 +84,7 @@ export default function App(){
       <Link className="header-progress" to="/aventura"><Shield size={18}/><span>{Object.keys(state.practiced).length} / 28</span></Link>
     </header>
     <main id="contenido" tabIndex={-1} ref={main}>
-      {syncEnabled&&!(academicEnabled&&location.pathname==='/docente')&&<Suspense fallback={null}><SyncPanel/></Suspense>}
+      {syncEnabled&&!(academicEnabled&&['/docente','/unirse'].includes(location.pathname))&&<Suspense fallback={null}><SyncPanel/></Suspense>}
       {!storageOK&&<p className="notice" role="status">El almacenamiento no está disponible. Puedes seguir explorando; esta sesión no se conservará al recargar.</p>}
       <EvolutionNotice/>
       <Routes>
@@ -93,6 +94,7 @@ export default function App(){
         <Route path="/aventura" element={<><Profile/><GameHistory/></>}/>
         <Route path="/cuenta" element={<Suspense fallback={<p className="account-loading" role="status">Abriendo el portal de cuentas…</p>}><Account/></Suspense>}/>
         {TeacherPanel&&<Route path="/docente" element={<Suspense fallback={<p role="status">Abriendo el cuaderno docente…</p>}><TeacherPanel/></Suspense>}/>}
+        {EnrollmentPage&&<Route path="/unirse" element={<Suspense fallback={<p role="status">Abriendo inscripción académica…</p>}><EnrollmentPage/></Suspense>}/>}
         <Route path="*" element={<><h1>Te saliste del sendero</h1><Link className="button" to="/mapa">Volver al mapa</Link></>}/>
       </Routes>
     </main>

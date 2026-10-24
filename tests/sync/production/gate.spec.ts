@@ -4,7 +4,7 @@ test('production build stays guest/local with zero Firebase requests even when a
   await context.route('**/*',async route=>{
     const url=route.request().url();
     if(/firestore|identitytoolkit|securetoken|:8085|:9099|:5200/.test(url)){firebase.push(new URL(url).hostname);await route.abort();}
-    else {if(/(?:CloudProgress|SyncPanel|TeacherPanel)-.*\.js/.test(url))chunks.push(url);await route.continue();}
+    else {if(/(?:CloudProgress|SyncPanel|TeacherPanel|EnrollmentPage|teacher)-.*\.js/.test(url))chunks.push(url);await route.continue();}
   });
   await page.goto('#/cuenta',{waitUntil:'domcontentloaded'});
   await expect(page.getByRole('heading',{name:'Tu cuenta OptiLab',exact:true})).toBeVisible();
@@ -19,5 +19,8 @@ test('production build stays guest/local with zero Firebase requests even when a
   await page.goto('#/docente',{waitUntil:'domcontentloaded'});
   await expect(page.getByRole('heading',{name:'Te saliste del sendero'})).toBeVisible();
   await expect(page.getByRole('navigation',{name:'Navegación principal'}).getByRole('link',{name:'Docente',exact:true})).toHaveCount(0);
+  await page.goto('#/unirse?courseId=demo&termId=demo&groupId=demo&inviteId=demo&token='+('A'.repeat(43)),{waitUntil:'domcontentloaded'});
+  await expect(page.getByRole('heading',{name:'Te saliste del sendero'})).toBeVisible();
+  expect(page.url().includes('token=')).toBe(false);
   expect(firebase).toEqual([]);expect(chunks).toEqual([]);
 });

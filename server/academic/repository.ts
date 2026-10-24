@@ -16,7 +16,7 @@ export function academicPath(path:string):string {
   const allowed=[`courses/${c}`,`courses/${c}/(?:staff|members|administration|academicMemberships)/${id}`,`courses/${c}/academicSettings/current`,
     `courses/${c}/terms/${c}`,`courses/${c}/terms/${c}/groups/${c}`,
     `courses/${c}/terms/${c}/groups/${c}/(?:staff|members|administration|membershipDetails|invitations|membershipRequests|roster|membershipEvents)/${id}`,
-    `courses/${c}/terms/${c}/groups/${c}/settings/current`,`users/${id}/(?:enrollments|teachingScopes)/${id}`,`academicOperations/${id}`,`academicAudit/${id}`];
+    `courses/${c}/terms/${c}/groups/${c}/settings/current`,`users/${id}/(?:enrollments|teachingScopes)/${id}`,`academicOperations/${id}`,`academicAudit/${id}`,`academicProfiles/${id}`];
   if(!allowed.some(pattern=>new RegExp(`^${pattern}$`).test(path)))throw new Error('INVALID_REPOSITORY_PATH');return path;
 }
 export class AcademicTransaction {

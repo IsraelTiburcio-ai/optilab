@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState, type FormEvent} from 'react';
+import {useEffect, useRef, useState,useSyncExternalStore, type FormEvent} from 'react';
 import {Link} from 'react-router-dom';
 import {ArrowRight, Check, KeyRound, LogOut, Mail, Shield} from 'lucide-react';
 import {useAuth} from '../auth/AuthProvider';
@@ -7,10 +7,12 @@ import {useProgress} from '../store';
 import {AvatarPortrait} from '../components/AvatarPortrait';
 import {CompanionPortrait} from '../components/CompanionPortrait';
 import {academicEnabled} from '../academic/config';
+import {invitationSnapshot,subscribeInvitation} from '../academic/invitationMemory';
 
 type Mode = 'login' | 'register' | 'reset';
 export default function Account() {
   const auth = useAuth();
+  const invitation=useSyncExternalStore(subscribeInvitation,invitationSnapshot);
   const {state, evolution, sync} = useProgress();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
@@ -45,6 +47,7 @@ export default function Account() {
   return <section className="account-page">
     <header className="page-title"><span className="eyebrow">TU PASE A LA AVENTURA</span><h1>Tu cuenta OptiLab</h1>
       <p>Una identidad para tu aventura. Elige cómo entrar o sigue explorando como invitado.</p></header>
+    {academicEnabled&&invitation.context&&<p role="status">Tienes una invitación académica en memoria. Después de entrar o registrarte, vuelve a <Link to="/unirse">continuar la inscripción</Link>. Si recargas, reabre el enlace original.</p>}
     <div className="account-layout"><aside className="account-story">
       <span className="eyebrow">EL EQUIPO SIGUE SIENDO TUYO</span><h2>Una cuenta.<br/>{' '}Tu mismo camino.</h2>
       <div className="account-team" aria-hidden="true"><AvatarPortrait id={state.avatarId} decorative eager/><CompanionPortrait id={state.companionId} stage={state.companionId ? evolution.stage : 1} decorative eager/></div>
@@ -74,6 +77,7 @@ export default function Account() {
         <p className="account-session-note">{sync?'Auth Emulator mantiene la sesión. El panel indica si el progreso fue confirmado en Firestore Emulator.':'Firebase mantiene tu sesión. No se ha creado un perfil ni se ha guardado progreso en Firestore.'}</p>
         <Link className="button primary" to="/aventura">Volver a mi aventura <ArrowRight size={17}/></Link>
         {academicEnabled&&<Link className="button" to="/docente">Abrir panel de la profesora <ArrowRight size={17}/></Link>}
+        {academicEnabled&&<Link className="button" to="/unirse">Mi perfil académico e inscripción <ArrowRight size={17}/></Link>}
         <button className="button account-logout" disabled={busy} onClick={() => void run(auth.logout, 'Sesión cerrada. Puedes continuar como invitado; tu progreso local sigue aquí.')}><LogOut size={16}/> Cerrar sesión</button>
       </div> : <>
         <button className="button google-sign-in" disabled={busy || !enabled} onClick={() => void run(auth.google, 'Acceso con Google completado. Tu progreso sigue en este navegador.')}><span aria-hidden="true">G</span> Continuar con Google <ArrowRight size={17}/></button>
