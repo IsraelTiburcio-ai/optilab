@@ -9,6 +9,7 @@ const Context = createContext<{
   login: AuthClient['login']; register: AuthClient['register']; google: AuthClient['google'];
   logout: AuthClient['logout']; resetPassword: AuthClient['resetPassword'];
   sendVerification: AuthClient['sendVerification']; refreshUser: () => Promise<void>;
+  getIdToken: AuthClient['getIdToken']; isCurrentSession:(uid:string)=>boolean;
 } | null>(null);
 
 /** Identity only. Never imports, resets, keys or remounts the ProgressProvider. */
@@ -61,6 +62,13 @@ export function AuthProvider({children,coordinateSessions=false}: {children: Rea
     } else {setUser(null);currentUid.current=null;setStatus('guest');throw Object.assign(new Error('Session changed during login'),{code:'auth/session-changed'});}
   };
   return <Context.Provider value={{status, user, temporary, settings: authSettings,
+    isCurrentSession:uid=>currentUid.current===uid&&client.current?.currentAccount()?.uid===uid&&!(coordinateSessions&&logoutBlocked(uid)),
+    getIdToken:async uid=>{
+      if(currentUid.current!==uid||(coordinateSessions&&logoutBlocked(uid)))throw new Error('Session changed');
+      const token=await service().getIdToken(uid);
+      if(currentUid.current!==uid||(coordinateSessions&&logoutBlocked(uid)))throw new Error('Session changed');
+      return token;
+    },
     login: (email,password) => interactive(sdk=>sdk.login(email,password)), register: (email,password) => interactive(sdk=>sdk.register(email,password)),
     google: () => interactive(sdk=>sdk.google()), logout: async () => {
       const sdk=service(),uid=sdk.currentAccount()?.uid;

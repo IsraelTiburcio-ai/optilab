@@ -22,9 +22,11 @@ import './styles/personalization.css';
 import './styles/companions.css';
 import './styles/auth.css';
 import {syncEnabled} from './progress/config';
+import {academicEnabled} from './academic/config';
 import './styles/sync.css';
 const SyncPanel=lazy(()=>import('./progress/SyncPanel'));
 const Account=lazy(()=>import('./pages/Account'));
+const TeacherPanel=academicEnabled?lazy(()=>import('./academic/TeacherPanel')):null;
 const links=[['/','Inicio',HomeIcon],['/mapa','Mapa',MapIcon],['/optidex','OptiDex',BookOpen],['/entrenar','Entrenar',Signpost],['/aventura','Mi aventura',UserRound],['/cuenta','Cuenta',KeyRound]] as const;
 function PageTitle({kicker,title,description}:{kicker:string;title:string;description:string}){return <header className="page-title"><span className="eyebrow">{kicker}</span><h1>{title}</h1><p>{description}</p></header>}
 function Home() {
@@ -77,11 +79,11 @@ export default function App(){
   useEffect(()=>{window.scrollTo(0,0);main.current?.focus();document.title=`OptiLab · ${location.pathname==='/'?'Tu aventura comienza aquí':links.find(l=>l[0]===location.pathname)?.[1]||'Aventura'}`},[location.pathname]);
   return <><a className="skip-link" href="#contenido">Saltar al contenido</a>
     <header className="site-header"><Link to="/" className="brand" aria-label="OptiLab inicio"><span className="brand-symbol"><Compass size={25}/></span>OPTI<span>LAB</span><small>APRENDE · JUEGA · EXPLORA</small></Link>
-      <nav aria-label="Navegación principal">{links.map(([path,label,Icon])=><NavLink key={path} to={path} end={path==='/'}><Icon size={19}/><span>{label}</span></NavLink>)}</nav>
+      <nav aria-label="Navegación principal" className={academicEnabled?'teacher-navigation':undefined}>{links.map(([path,label,Icon])=><NavLink key={path} to={path} end={path==='/'}><Icon size={19}/><span>{label}</span></NavLink>)}{academicEnabled&&<NavLink to="/docente"><Shield size={19}/><span>Docente</span></NavLink>}</nav>
       <Link className="header-progress" to="/aventura"><Shield size={18}/><span>{Object.keys(state.practiced).length} / 28</span></Link>
     </header>
     <main id="contenido" tabIndex={-1} ref={main}>
-      {syncEnabled&&<Suspense fallback={null}><SyncPanel/></Suspense>}
+      {syncEnabled&&!(academicEnabled&&location.pathname==='/docente')&&<Suspense fallback={null}><SyncPanel/></Suspense>}
       {!storageOK&&<p className="notice" role="status">El almacenamiento no está disponible. Puedes seguir explorando; esta sesión no se conservará al recargar.</p>}
       <EvolutionNotice/>
       <Routes>
@@ -90,6 +92,7 @@ export default function App(){
         <Route path="/optidex" element={<OptiDex/>}/><Route path="/entrenar" element={<Training/>}/><Route path="/reto" element={<Exam/>}/>
         <Route path="/aventura" element={<><Profile/><GameHistory/></>}/>
         <Route path="/cuenta" element={<Suspense fallback={<p className="account-loading" role="status">Abriendo el portal de cuentas…</p>}><Account/></Suspense>}/>
+        {TeacherPanel&&<Route path="/docente" element={<Suspense fallback={<p role="status">Abriendo el cuaderno docente…</p>}><TeacherPanel/></Suspense>}/>}
         <Route path="*" element={<><h1>Te saliste del sendero</h1><Link className="button" to="/mapa">Volver al mapa</Link></>}/>
       </Routes>
     </main>

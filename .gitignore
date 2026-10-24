@@ -14,3 +14,4 @@ auth-qa-results/
 firestore-debug.log*
 sync-qa-results/
 .qa-memorama/
+teacher-qa-results/

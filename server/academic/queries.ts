@@ -1,11 +1,20 @@
 import type {Actor,Input,Operation,Scope,Data} from './contracts';
 import {scopeOf,identifier,exact,integer} from './validation';
-import {activeContext,authorizeGroup,grant,type Policy} from './authorization';
+import {activeContext,contextData,grant,type Policy} from './authorization';
 import {type AcademicReadView,coursePath,groupPath,scopeKey} from './repository';
-import {invitation,request,publicInvite,publicRequest,scoped,roster,millis} from './models';
+import {invitation,request,publicInvite,publicRequest,scoped,roster,millis,details} from './models';
 import {ApiError,denied,conflict} from './errors';
 export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Actor,operation:Operation,input:Input):Promise<Data> {
   if(operation==='myScopes') {
+    // Course creation capabilities authorize bounded discovery of periods, not groups.
+    if(input.courseId) {
+      const capabilities=await courseCapabilities(repo,policy,actor.uid,input.courseId);
+      if(!capabilities.createTerms&&!capabilities.createGroups)throw denied();
+      const rows=await repo.page(`${coursePath(input.courseId)}/terms`,input.limit!,input.cursor);
+      const periods=rows.map(({id,data})=>{if(!identifier(id)||!contextData(data,{courseId:input.courseId!,termId:id,groupId:'unused'},'term'))throw conflict();
+        return {courseId:input.courseId,termId:id,title:data.title};});
+      return {items:[],periods,nextCursor:rows.length===input.limit?rows.at(-1)!.id:null};
+    }
     const kind=input.kind!,rows=await repo.page(`users/${actor.uid}/${kind==='teacher'?'teachingScopes':'enrollments'}`,input.limit!,input.cursor);
     const result:Data[]=[];
     for(const row of rows) {
@@ -22,7 +31,13 @@ export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Ac
           if(!grant(cg,actor.uid,s,false)||(!grant(gg,actor.uid,s,true)&&!grant(gg,actor.uid,s,true,'revoked')))throw denied();
           p.status=gg!.status;
         }
-        const metadata=await repo.get(groupPath(s));result.push({...s,status:p.status,title:metadata!.title});
+        const metadata=await repo.get(groupPath(s));
+        if(kind==='teacher') {
+          const caps=await repo.get(`${groupPath(s)}/administration/${actor.uid}`);
+          const course=await repo.get(coursePath(s.courseId)),term=await repo.get(`${coursePath(s.courseId)}/terms/${s.termId}`);
+          result.push({...s,status:p.status,title:metadata!.title,courseTitle:course!.title,termTitle:term!.title,
+            capabilities:{manageMembers:caps!.manageMembers,manageInvitations:caps!.manageInvitations,readHistory:caps!.readHistory,...await courseCapabilities(repo,policy,actor.uid,s.courseId)}});
+        } else result.push({...s,status:p.status,title:metadata!.title});
       }catch(e){if(!(e instanceof ApiError&&e.status===403))throw e;}
     }
     return {items:result,nextCursor:rows.length===input.limit?rows.at(-1)!.id:null};
@@ -52,7 +67,10 @@ export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Ac
       roster(data,s,id);
       const member=await repo.get(`${root}/members/${id}`);
       if(!grant(member,id,s,true,data.status)||!['active','revoked'].includes(data.status))throw conflict();
-      items.push({uid:id,label:data.label,labelSource:data.labelSource,status:data.status});
+      const rawDetail=await repo.get(`${root}/membershipDetails/${id}`);
+      if(!rawDetail)throw conflict();
+      const detail=details(rawDetail,s,id);
+      items.push({uid:id,label:data.label,labelSource:data.labelSource,status:data.status,revision:detail.revision});
     } else {
       if(!exact(data,['schemaVersion','courseId','termId','groupId','eventId','commandId','actorUid','action','subjectUid','version','createdAt'])||!scoped(data,s)||data.eventId!==id||
         !identifier(data.actorUid,128)||typeof data.action!=='string'||!identifier(data.commandId)||
@@ -61,4 +79,10 @@ export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Ac
     }
   }
   return {items,nextCursor:rows.length===input.limit?rows.at(-1)!.id:null};
+}
+async function courseCapabilities(repo:AcademicReadView,policy:Policy,uid:string,courseId:string) {
+  const result={createTerms:false,createGroups:false};
+  for(const cap of ['createTerms','createGroups'] as const)try{await policy.course(repo,uid,courseId,cap);result[cap]=true;}
+  catch(e){if(!(e instanceof ApiError&&e.status===403))throw e;}
+  return result;
 }

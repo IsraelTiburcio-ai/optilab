@@ -41,6 +41,13 @@ export function initializeAuthClient(settings: Extract<FirebaseSettings, {status
     return {
       persistence,
       currentAccount: () => accountUser(auth.currentUser),
+      getIdToken: async expectedUid => {
+        const user=requireUser();
+        if(user.uid!==expectedUid)throw new Error('Session changed');
+        const token=await user.getIdToken();
+        if(auth.currentUser!==user||user.uid!==expectedUid)throw new Error('Session changed');
+        return token;
+      },
       subscribe: (next, error) => onAuthStateChanged(auth, user => next(accountUser(user)), error),
       login: async (email, password) => { await signInWithEmailAndPassword(auth, email, password); },
       register: async (email, password) => {

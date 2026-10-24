@@ -1,5 +1,7 @@
 # Administración académica · prototipo local (#5)
 
+**Panel visual docente v1:** [arranque Mac, contrato ampliado, seguridad y QA](TEACHER-PANEL.md). La fase visual agrega `revision` al roster y capacidades/periodos paginados a `myScopes`; no habilita producción.
+
 Backend modular Node 22/TypeScript con Auth y Firestore Emulator. Rama basada en el merge documental de PR #15, `41c2ebe9fb79dbdb9ff358de5b07c65602c570da`. La entrega es una PR sin merge ni despliegue. Producción y UI administrativa requieren fases posteriores.
 
 ## Ejecución en Mac
@@ -144,11 +146,11 @@ Muestras sin retry de la suite (2026-10-23). Son intentos de documentos leídos 
 | Dar baja | 19 | 8 |
 | Transferir | 42 | 13 |
 | Crear periodo / grupo | 8 / 9 | 3 / 8 |
-| Roster con n integrantes | 6 + 2n | 0 |
+| Roster con n integrantes (panel v1, detalle CAS incluido) | 6 + 3n | 0 |
 | Lista de invitaciones/eventos con n filas | 6 + max(n,1) | 0 |
 | Estado de solicitud propia | 6 | 0 |
 
-70 admisiones iniciales ≈2170 reads +1120 writes (solicitud+aprobación), más invitaciones. 70 bajas ≈1330 reads/560 writes; 70 transferencias ≈2940 reads/910 writes. Revisar los 70 integrantes dos veces/día, con cuatro páginas totales, ≈304 reads/día. Reservar margen para retries/rechazos y sumar el presupuesto de progreso de #4 (~18500–22500 reads/día normal), compartiendo cuota del proyecto.
+70 admisiones iniciales ≈2170 reads +1120 writes (solicitud+aprobación), más invitaciones. 70 bajas ≈1330 reads/560 writes; 70 transferencias ≈2940 reads/910 writes. Con el panel v1 y detalle CAS, revisar 70 integrantes en dos grupos de35 dos veces/día (páginas de20, ocho páginas totales) ≈468 intentos read/día. Reservar margen para retries/rechazos y sumar el presupuesto de progreso de #4 (~18500–22500 reads/día normal), compartiendo cuota del proyecto.
 
 Referencia Spark Firestore: 50000 reads/día, 20000 writes/día, 20000 deletes/día, 1 GiB almacenado y 10 GiB salientes/mes. No son cuotas separadas por grupo ni garantías antiabuso. Estimación inicial de metadata 1–5 MiB/semestre requiere revisar crecimiento de recibos/eventos/índices y retención; no se activan TTL ni deletes automáticos. API no consulta status+fecha: usa ID y filtro status opcional. No necesita un índice compuesto nuevo para estas consultas; el emulador no valida requisitos de índices productivos. Revisar índices/exenciones y coste antes de una aprobación de producción.
 

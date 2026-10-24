@@ -6,6 +6,7 @@ import {authErrorMessage} from '../auth/messages';
 import {useProgress} from '../store';
 import {AvatarPortrait} from '../components/AvatarPortrait';
 import {CompanionPortrait} from '../components/CompanionPortrait';
+import {academicEnabled} from '../academic/config';
 
 type Mode = 'login' | 'register' | 'reset';
 export default function Account() {
@@ -48,7 +49,7 @@ export default function Account() {
       <span className="eyebrow">EL EQUIPO SIGUE SIENDO TUYO</span><h2>Una cuenta.<br/>{' '}Tu mismo camino.</h2>
       <div className="account-team" aria-hidden="true"><AvatarPortrait id={state.avatarId} decorative eager/><CompanionPortrait id={state.companionId} stage={state.companionId ? evolution.stage : 1} decorative eager/></div>
       <div className="account-local-info"><Shield size={20}/><div><strong>{sync?'Tu progreso está aislado por cuenta':'Tu progreso todavía es local'}</strong><p>{sync?'La importación requiere tu consentimiento. Al salir vuelve el perfil invitado, sin mostrar la aventura privada de esta cuenta.':'Al entrar o salir no se importa, borra ni sincroniza tu aventura. Las prácticas, personajes e insignias siguen en este navegador, también al cambiar de cuenta.'}</p></div></div>
-      <p className="account-future-note">{sync?'Prueba local con Auth + Firestore Emulator. No se activaron grupos ni Firestore productivo.':'La sincronización entre dispositivos y los grupos llegarán en una fase posterior. Esta cuenta todavía no los activa.'}</p>
+      <p className="account-future-note">{academicEnabled?'Panel docente disponible solo en esta prueba local con emuladores. La autorización de grupos la comprueba el API académico.':sync?'Prueba local con Auth + Firestore Emulator. No se activaron grupos ni Firestore productivo.':'La sincronización entre dispositivos y los grupos llegarán en una fase posterior. Esta cuenta todavía no los activa.'}</p>
     </aside>
     <section className="account-panel paper" aria-label="Acceso a la cuenta" aria-busy={busy || auth.status === 'loading'}>
       {auth.settings.status === 'ready' && auth.settings.emulatorUrl && <p className="auth-temporary" role="status">Entorno de pruebas local · Firebase Auth Emulator. No son cuentas reales.</p>}
@@ -72,6 +73,7 @@ export default function Account() {
         </div>}
         <p className="account-session-note">{sync?'Auth Emulator mantiene la sesión. El panel indica si el progreso fue confirmado en Firestore Emulator.':'Firebase mantiene tu sesión. No se ha creado un perfil ni se ha guardado progreso en Firestore.'}</p>
         <Link className="button primary" to="/aventura">Volver a mi aventura <ArrowRight size={17}/></Link>
+        {academicEnabled&&<Link className="button" to="/docente">Abrir panel de la profesora <ArrowRight size={17}/></Link>}
         <button className="button account-logout" disabled={busy} onClick={() => void run(auth.logout, 'Sesión cerrada. Puedes continuar como invitado; tu progreso local sigue aquí.')}><LogOut size={16}/> Cerrar sesión</button>
       </div> : <>
         <button className="button google-sign-in" disabled={busy || !enabled} onClick={() => void run(auth.google, 'Acceso con Google completado. Tu progreso sigue en este navegador.')}><span aria-hidden="true">G</span> Continuar con Google <ArrowRight size={17}/></button>

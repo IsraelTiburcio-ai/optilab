@@ -3,8 +3,8 @@ test('production build stays guest/local with zero Firebase requests even when a
   const firebase:string[]=[],chunks:string[]=[];
   await context.route('**/*',async route=>{
     const url=route.request().url();
-    if(/firestore|identitytoolkit|securetoken|:8085|:9099/.test(url)){firebase.push(new URL(url).hostname);await route.abort();}
-    else {if(/(?:CloudProgress|SyncPanel)-.*\.js/.test(url))chunks.push(url);await route.continue();}
+    if(/firestore|identitytoolkit|securetoken|:8085|:9099|:5200/.test(url)){firebase.push(new URL(url).hostname);await route.abort();}
+    else {if(/(?:CloudProgress|SyncPanel|TeacherPanel)-.*\.js/.test(url))chunks.push(url);await route.continue();}
   });
   await page.goto('#/cuenta',{waitUntil:'domcontentloaded'});
   await expect(page.getByRole('heading',{name:'Tu cuenta OptiLab',exact:true})).toBeVisible();
@@ -16,5 +16,8 @@ test('production build stays guest/local with zero Firebase requests even when a
   await page.goto('#/optidex',{waitUntil:'domcontentloaded'});await expect(page.locator('.cartridge')).toHaveCount(28);
   await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('.cartridge')).toHaveCount(28);
   expect(await page.evaluate(()=>localStorage.getItem('optilab-v1'))).toBe(before);
+  await page.goto('#/docente',{waitUntil:'domcontentloaded'});
+  await expect(page.getByRole('heading',{name:'Te saliste del sendero'})).toBeVisible();
+  await expect(page.getByRole('navigation',{name:'Navegación principal'}).getByRole('link',{name:'Docente',exact:true})).toHaveCount(0);
   expect(firebase).toEqual([]);expect(chunks).toEqual([]);
 });

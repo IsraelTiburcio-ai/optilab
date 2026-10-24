@@ -22,7 +22,11 @@
     "academic:client": "node scripts/academic-client.mjs",
     "test:academic": "node scripts/test-academic.mjs",
     "test:academic:api": "node --import tsx --test --test-reporter=spec --test-concurrency=1 tests/academic/*.test.ts",
-    "typecheck:academic": "tsc -p tsconfig.academic.json"
+    "typecheck:academic": "tsc -p tsconfig.academic.json",
+    "dev:academic-ui": "node scripts/dev-academic-ui.mjs",
+    "test:teacher": "node scripts/test-teacher.mjs",
+    "test:teacher:ui": "playwright test --config playwright.teacher.config.ts",
+    "academic:seed:panel": "node scripts/seed-academic-panel.mjs"
   },
   "dependencies": {
     "firebase": "12.19.0",
