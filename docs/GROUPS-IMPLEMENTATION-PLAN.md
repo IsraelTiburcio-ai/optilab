@@ -1,5 +1,7 @@
 # Issue #5 · Plan técnico de cursos, grupos y permisos
 
+**Avance del panel visual:** [TEACHER-PANEL.md](TEACHER-PANEL.md) documenta la implementación docente local, revisión CAS del roster, paginación y guía de aceptación. Pantallas de alumno e integración del editor siguen pendientes. PR visual sin merge/despliegue autorizados.
+
 **Prototipo local aprobado; backend entregado en PR separada sin merge ni despliegue.** [ADR-003](architecture/ADR-003-academic-administration.md) contiene la decisión y [ACADEMIC-ADMIN.md](ACADEMIC-ADMIN.md) el contrato implementado, manual Mac, pruebas y presupuesto medido. Baseline: main `41c2ebe` tras merge documental autorizado de PR #15. Las pantallas siguientes siguen siendo propuestas.
 
 ## Pantallas propuestas
@@ -68,7 +70,7 @@ Las estimaciones previas de writes por admisión/baja quedaron por debajo del pr
 | Aprobación/admisión inicial | 11 writes, 22 intentos read |
 | Baja | 8 writes, 19 intentos read; ningún delete de cuenta/progreso |
 | Transferencia | 13 writes, 42 intentos read; validación de dos scopes |
-| Revisar roster de los 70 dos veces/día | ~304 reads/día con cuatro páginas |
+| Revisar roster de los 70 dos veces/día | ~468 intentos read/día en panel v1, detalle CAS y páginas de20 (ocho páginas totales) |
 | Incorporación de 70 | ~2170 reads/1120 writes, más invitaciones/retries y operaciones Auth |
 | Almacenamiento metadata/roster/events/requests | Reserva de ~1–5 MiB por semestre bajo ~1.000–2.000 documentos compactos; crecimiento depende de auditoría/retención |
 | Transferencia de administración | Orden <0,1 GiB/mes con páginas pequeñas y sin históricos completos; no incluye assets/proveedores |

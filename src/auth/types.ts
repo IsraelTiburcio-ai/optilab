@@ -8,6 +8,7 @@ export interface AccountUser {
 export interface AuthClient {
   persistence: 'local' | 'memory';
   currentAccount: () => AccountUser | null;
+  getIdToken: (expectedUid:string) => Promise<string>;
   subscribe: (next: (user: AccountUser | null) => void, error: (reason: unknown) => void) => () => void;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;

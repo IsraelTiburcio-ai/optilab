@@ -254,6 +254,23 @@ test('pagination is bounded and metrics count local SDK attempts, not billed pro
   const sample=measurements.find(m=>m.operation==='createInvitation')!.metrics;
   assert.equal(sample.documentReadAttempts,13);assert.equal(sample.committedWrites,4);assert.equal(sample.transactionAttempts,1);
 });
+test('authorized roster exposes current administrative revision for CAS, including revoked memberships',async()=>{
+  const approved=await admit();const roster=(await ok('teacherA','roster',s())).items[0];
+  assert.equal(roster.revision,approved.version);assert.equal(roster.labelSource,'self-chosen');
+  const result=await ok('teacherA','revokeMembership',{...s(),uid:roster.uid,expectedVersion:roster.revision,idempotencyKey:key()});
+  assert.equal((await ok('teacherA','roster',s())).items[0].revision,result.version);
+  assert.equal((await call('teacherA','revokeMembership',{...s(),uid:roster.uid,expectedVersion:roster.revision,idempotencyKey:key()})).status,409);
+  assert.equal((await call('teacherB','roster',s())).status,403);
+});
+test('teacher discovery exposes verified capabilities and bounded course periods without granting access',async()=>{
+  const a=(await ok('teacherA','myScopes',{kind:'teacher'})).items[0],b=(await ok('teacherB','myScopes',{kind:'teacher'})).items[0];
+  assert.equal(a.capabilities.createTerms,true);assert.equal(b.capabilities.createGroups,false);
+  await ok('teacherA','createTerm',{courseId:f.courseId,title:'Synthetic empty term',idempotencyKey:key()});
+  const page=await ok('teacherA','myScopes',{kind:'teacher',courseId:f.courseId,limit:1});assert.equal(page.periods.length,1);assert.ok(page.nextCursor);
+  assert.equal((await ok('teacherA','myScopes',{kind:'teacher',courseId:f.courseId,limit:1,cursor:page.nextCursor})).periods.length,1);
+  assert.equal((await call('teacherB','myScopes',{kind:'teacher',courseId:f.courseId})).status,403);
+  assert.equal((await call('studentA','myScopes',{kind:'teacher',courseId:f.courseId})).status,403);
+});
 test('bounds, traversal, public Origin and non-administrative reads are denied',async()=>{
   assert.equal((await call('teacherA','roster',{...s(),limit:51})).status,400);
   assert.equal((await call('teacherA','roster',{...s(),courseId:'../../users'})).status,400);
@@ -284,6 +301,18 @@ test('CLI authenticates through the emulator and redacts invitation output',asyn
   assert.ok(!result.output.includes(password));
   envelope.email=f.actors.studentA.email;envelope.payload.idempotencyKey=key();
   const denied=await run();assert.equal(denied.code,1);assert.equal(JSON.parse(denied.output).status,403);
+});
+test('explicit panel seed prepares one active member and two requests without printing credentials or invitation secrets',async()=>{
+  const result=await new Promise<{code:number|null;output:string;error:string}>((resolve,reject)=>{
+    const child=spawn(process.execPath,['scripts/seed-academic-panel.mjs'],{env:{...process.env,ACADEMIC_FIXTURE_PASSWORD:password},stdio:['ignore','pipe','pipe']});
+    let output='',error='';child.stdout.on('data',b=>output+=b);child.stderr.on('data',b=>error+=b);child.on('error',reject);child.on('close',code=>resolve({code,output,error}));
+  });
+  assert.equal(result.code,0);assert.equal(result.error,'');assert.ok(!result.output.includes(password));
+  const seeded=JSON.parse(result.output);assert.equal(seeded.token,undefined);assert.equal(seeded.inviteId,undefined);
+  tokens.panelSeed=await signIn(seeded.actors.teacherA.email);
+  const scope={courseId:seeded.courseId,termId:seeded.termId,groupId:seeded.groups.a};
+  assert.equal((await ok('panelSeed','roster',scope)).items.length,1);
+  assert.equal((await ok('panelSeed','groupRequests',{...scope,status:'pending'})).items.length,2);
 });
 test('negative HTTP assertion detects a deliberately removed permission policy',async()=>{
   const service=new AcademicService(new AcademicRepository(sdk.db),sdk,3600,{policy:{group:async()=>{},course:async()=>{}}});

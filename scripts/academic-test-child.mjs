@@ -8,5 +8,6 @@ let generated;try{generated=JSON.parse(process.env.FIREBASE_CONFIG??'');}catch{t
 if(!generated||typeof generated!=='object'||Object.keys(generated).length!==3||Object.entries(expected).some(([k,v])=>generated[k]!==v)||
   process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8085'||process.env.FIREBASE_AUTH_EMULATOR_HOST!=='127.0.0.1:9099')throw new Error('ACADEMIC_ENV_REJECTED');
 const env={...process.env};delete env.FIREBASE_CONFIG;
-const result=spawnSync('npm',['run','test:academic:api'],{stdio:'inherit',env:academicEnvironment(env)});
+const suite=env.ACADEMIC_TEST_SUITE??'api';if(!['api','teacher'].includes(suite))throw new Error('ACADEMIC_ENV_REJECTED');
+const result=spawnSync('npm',['run',suite==='teacher'?'test:teacher:ui':'test:academic:api'],{stdio:'inherit',env:academicEnvironment(env)});
 process.exit(result.status??1);
