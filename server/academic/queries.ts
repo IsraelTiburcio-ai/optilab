@@ -1,10 +1,12 @@
 import type {Actor,Input,Operation,Scope,Data} from './contracts';
 import {scopeOf,identifier,exact,integer} from './validation';
 import {activeContext,contextData,grant,type Policy} from './authorization';
-import {type AcademicReadView,coursePath,groupPath,scopeKey} from './repository';
+import {type AcademicReadView,coursePath,groupPath,scopeKey,hash} from './repository';
+import {ownProfile,teacherProfile} from './profiles';
 import {invitation,request,publicInvite,publicRequest,scoped,roster,millis,details} from './models';
 import {ApiError,denied,conflict} from './errors';
 export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Actor,operation:Operation,input:Input):Promise<Data> {
+  if(operation==='getAcademicProfile')return ownProfile(repo,actor.uid);
   if(operation==='myScopes') {
     // Course creation capabilities authorize bounded discovery of periods, not groups.
     if(input.courseId) {
@@ -44,16 +46,22 @@ export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Ac
   }
   const s=scopeOf(input),root=groupPath(s);
   if(operation==='requestStatus') {
-    const raw=await repo.get(`${root}/membershipRequests/${input.requestId}`);
+    const requestId=input.inviteId?hash(`${input.inviteId}:${actor.uid}`):input.requestId!;
+    const raw=await repo.get(`${root}/membershipRequests/${requestId}`);
+    if(input.inviteId&&(!raw||raw.uid!==actor.uid))throw new ApiError(404,'NOT_FOUND','Solicitud no disponible.');
     if(!raw||raw.uid!==actor.uid) {
       try{await policy.group(repo,actor.uid,s,'manageMembers');}catch{throw new ApiError(404,'NOT_FOUND','Solicitud no disponible.');}
     }
-    const data=request(raw,s,input.requestId!);
+    const data=request(raw,s,requestId);
     const member=await repo.get(`${root}/members/${data.uid}`);
     const membershipStatus=grant(member,data.uid,s,true)?'active':grant(member,data.uid,s,true,'revoked')?'revoked':'none';
     const courseMember=await repo.get(`${coursePath(s.courseId)}/members/${data.uid}`);
     let accessAllowed=false;try{await activeContext(repo,s);accessAllowed=membershipStatus==='active'&&grant(courseMember,data.uid,s,false);}catch{/* archived/suspended scope is not active access */}
-    return {...publicRequest(data),membershipStatus,accessAllowed};
+    let invitationState='unavailable';
+    try{const inv=invitation(await repo.get(`${root}/invitations/${data.inviteId}`),s,data.inviteId);
+      invitationState=inv.status==='revoked'?'revoked':millis(inv.expiresAt)<=Date.now()?'expired':inv.acceptedCount>=inv.maxUses?'exhausted':'active';
+    }catch{/* No hash/secret or malformed invitation data leaves this endpoint. */}
+    return {...publicRequest(data),membershipStatus,accessAllowed,invitationState};
   }
   const cap=operation==='groupInvitations'?'manageInvitations':operation==='membershipEvents'?'readHistory':'manageMembers';
   await policy.group(repo,actor.uid,s,cap);
@@ -62,7 +70,7 @@ export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Ac
   const items:Data[]=[];
   for(const {id,data} of rows) {
     if(name==='invitations')items.push(publicInvite(invitation(data,s,id)));
-    else if(name==='membershipRequests')items.push(publicRequest(request(data,s,id)));
+    else if(name==='membershipRequests'){const req=request(data,s,id);items.push({...publicRequest(req),academicProfile:await teacherProfile(repo,s,req.uid,req.status==='pending'?req:undefined)});}
     else if(name==='roster') {
       roster(data,s,id);
       const member=await repo.get(`${root}/members/${id}`);
@@ -70,7 +78,7 @@ export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Ac
       const rawDetail=await repo.get(`${root}/membershipDetails/${id}`);
       if(!rawDetail)throw conflict();
       const detail=details(rawDetail,s,id);
-      items.push({uid:id,label:data.label,labelSource:data.labelSource,status:data.status,revision:detail.revision});
+      items.push({uid:id,label:data.label,labelSource:data.labelSource,status:data.status,revision:detail.revision,academicProfile:await teacherProfile(repo,s,id)});
     } else {
       if(!exact(data,['schemaVersion','courseId','termId','groupId','eventId','commandId','actorUid','action','subjectUid','version','createdAt'])||!scoped(data,s)||data.eventId!==id||
         !identifier(data.actorUid,128)||typeof data.action!=='string'||!identifier(data.commandId)||

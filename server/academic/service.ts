@@ -11,6 +11,7 @@ import {readOperation} from './queries';
 import {commitPlan} from './audit';
 import {request} from './models';
 import type {EmulatorAdmin} from './sdk';
+import {updateProfile,type AuthIdentity} from './profiles';
 export interface ServiceOptions {
   /** Test-only policy seam for mutation control. Never configured from HTTP/env. */
   policy?:Policy;
@@ -24,7 +25,7 @@ export class AcademicService {
     this.policy=options.policy??defaultPolicy;this.clock={now:()=>Date.now(),time:sdk.time,timestamp:sdk.timestamp};
   }
   private async authorize(r:Reader,actor:Actor,op:Operation,i:Input) {
-    if(op==='requestMembership')return; // Secret/context validation in the handler; receipt is private to this actor.
+    if(op==='requestMembership'||op==='updateAcademicProfile')return; // Own UID only; no scope or target supplied by client.
     if(op==='createTerm'||op==='createGroup')return this.policy.course(r,actor.uid,i.courseId!,op==='createTerm'?'createTerms':'createGroups');
     const s=scopeOf(i),cap=['createInvitation','reissueInvitation','revokeInvitation'].includes(op)?'manageInvitations':'manageMembers';
     await this.policy.group(r,actor.uid,s,cap);
@@ -38,6 +39,11 @@ export class AcademicService {
     // Authorization, metadata and page rows share one read-only snapshot.
     if(reads.has(op))return this.repo.readTransaction(view=>readOperation(view,this.policy,actor,op,i));
     await this.authorize(this.repo,actor,op,i);
+    let identity:AuthIdentity|null=null;
+    if(op==='updateAcademicProfile'){
+      try{const user=await this.sdk.auth.getUser(actor.uid);if(user.disabled)throw new Error('disabled');identity={email:user.email??null,emailVerified:user.emailVerified};}
+      catch{throw conflict();}
+    }
     let verifiedTarget:string|null=null;
     if(op==='approveMembership') {
       const s=scopeOf(i),req=request(await this.repo.get(`${groupPath(s)}/membershipRequests/${i.requestId}`),s,i.requestId!);
@@ -68,7 +74,8 @@ export class AcademicService {
         op==='approveMembership'||op==='rejectMembership'?await decideMembership(tx,s,actor,i,this.clock,op==='approveMembership',commandId):
         op==='revokeMembership'?await revokeMembership(tx,s,i,this.clock):
         op==='transferMembership'?await transferMembership(tx,s,i,this.clock,commandId):
-        op==='createTerm'?await createTerm(tx,actor,i,commandId):op==='createGroup'?await createGroup(tx,actor,i,commandId):null;
+        op==='createTerm'?await createTerm(tx,actor,i,commandId):op==='createGroup'?await createGroup(tx,actor,i,commandId):
+        op==='updateAcademicProfile'?await updateProfile(tx,actor,i,identity!,this.sdk.time):null;
       if(!p)throw new ApiError(404,'NOT_FOUND','Operación no disponible.');
       return commitPlan(tx,actor,op,i,commandId,fingerprint,p,this.sdk.time);
     });

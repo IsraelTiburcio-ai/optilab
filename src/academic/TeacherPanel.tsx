@@ -37,7 +37,8 @@ function TeacherSession({uid}:{uid:string}) {
     try {
       const result=await call('myScopes',{kind:'teacher',limit:20,...(append&&cursor?{cursor}:{})});
       if(!current()||request!==requests.current)return;
-      setScopes(previous=>Array.from(new Map([...append?previous:[],...result.items].map(s=>[scopeKey(s),s])).values()));
+      const authorized=result.items.filter((s):s is TeachingScope=>'capabilities' in s);
+      setScopes(previous=>Array.from(new Map([...append?previous:[],...authorized].map(s=>[scopeKey(s),s])).values()));
       setCursor(result.nextCursor);
     }catch(e){if(current()&&request===requests.current&&(e as Error).name!=='AbortError')setError((e as Error).message);}
     finally{if(current()&&request===requests.current)setLoading(false);}

@@ -1,4 +1,4 @@
-import {test as base,expect,type Page} from '@playwright/test';
+import {test as base,expect,type Page,type BrowserContext,type Route} from '@playwright/test';
 import {emulatorAdmin,type EmulatorAdmin} from '../../../server/academic/sdk';
 import {seedFixtures,type Fixtures} from '../../../server/academic/bootstrap';
 import {localConfig} from '../../../server/academic/config';
@@ -10,6 +10,7 @@ export const password='fixture-password-123';
 type Worker={sdk:EmulatorAdmin;server:Server;base:string};
 export interface Fixture {f:Fixtures;tokens:Record<string,string>;scope:(group?:'a'|'b')=>{courseId:string;termId:string;groupId:string};
   call:(actor:string,op:string,input:unknown)=>Promise<{status:number;body:any}>;sdk:EmulatorAdmin;
+  attach:(context:BrowserContext)=>Promise<void>;
   fault:{offline:boolean;legacy:boolean;lost:string;forbidden:string;rate:string;hold:string;waiting:Promise<void>;release:()=>void};commands:string[]}
 export const test=base.extend<{fixture:Fixture},{backend:Worker}>({
   backend:[async({},use)=>{
@@ -45,7 +46,7 @@ export const test=base.extend<{fixture:Fixture},{backend:Worker}>({
     const fault={offline:false,legacy:false,lost:'',forbidden:'',rate:'',hold:'',waiting,release};const commands:string[]=[];
     // Real HTTP/Auth/Firestore service, on an ephemeral loopback port. This avoids
     // taking over the owner's :5200 process. Only the test transport URL differs.
-    await context.route('http://127.0.0.1:5200/**',async route=>{
+    const routeAcademic=async(route:Route)=>{
       const request=route.request(),op=new URL(request.url()).pathname.split('/').at(-1)!;
       if(fault.offline){await route.abort();return;}
       if(fault.forbidden===op){fault.forbidden='';await route.fulfill({status:403,contentType:'application/json',body:'{"error":{"code":"FORBIDDEN"}}'});return;}
@@ -58,9 +59,10 @@ export const test=base.extend<{fixture:Fixture},{backend:Worker}>({
         if(fault.hold===op){fault.hold='';waitingResolve();await gate;}
         await route.fulfill({response});
       }catch{/* A session switch can cancel a held browser request. */}
-    });
-    await context.route(/https:\/\/[^/]*(firestore|identitytoolkit|securetoken)[^/]*googleapis\.com/,r=>r.abort());
-    try{await use({f,tokens,scope,call,sdk:backend.sdk,fault,commands});}finally{release();}
+    };
+    const attach=async(target:BrowserContext)=>{await target.route('http://127.0.0.1:5200/**',routeAcademic);await target.route(/https:\/\/[^/]*(firestore|identitytoolkit|securetoken)[^/]*googleapis\.com/,r=>r.abort());};
+    await attach(context);
+    try{await use({f,tokens,scope,call,sdk:backend.sdk,fault,commands,attach});}finally{release();}
   },
 });
 export {expect};
