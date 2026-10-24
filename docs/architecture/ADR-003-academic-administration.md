@@ -1,6 +1,6 @@
 # ADR-003 · Administración académica y raíz de confianza
 
-**Estado: PROPUESTO, pendiente de aprobación del propietario. Solo diseño, no implementación.**
+**Estado: APROBADO únicamente para prototipo local con Auth/Firestore Emulator (2026-10-23). Producción pendiente de decisión independiente.**
 Fecha de análisis: 2026-10-23. Baseline: PR #14 fusionada en `7ab4e83a89510df6a8fc592904abc80a26714264`. Relacionado: [#5](https://github.com/IsraelTiburcio-ai/optilab/issues/5), [ADR-001](ADR-001-firestore-security.md), [ADR-002](ADR-002-progress-sync.md), [plan de entrega](../GROUPS-IMPLEMENTATION-PLAN.md).
 
 ## 1. Problema y límites
@@ -23,7 +23,7 @@ No se modifican Rules, índices, Auth, IAM, billing, servicios, documentos reale
 
 **Recomendación condicionada:** A para bootstrap autorizado; C para autonomía real, reutilizando un dominio/servidor institucional solo si existe y se aprueba. B es alternativa transitoria segura, explícitamente limitada; no venderla como panel autónomo. Si no se aprueba un lugar confiable donde ejecutar C, esa autonomía permanece bloqueada: no se compensa con privilegios cliente.
 
-La siguiente aprobación puede limitarse al **prototipo local de C con emuladores**, dejando proveedor/hosting de producción sin decidir. Este ADR no constituye esa aprobación ni inicia el prototipo.
+El propietario aprobó el **prototipo local de C con emuladores** y el merge documental de PR #15 (`41c2ebe9fb79dbdb9ff358de5b07c65602c570da`). El prototipo se especifica en [ACADEMIC-ADMIN.md](../ACADEMIC-ADMIN.md); proveedor/hosting de producción siguen sin decidir. La PR del backend se entrega sin merge ni despliegue.
 
 ## 3. Frontera de autorización
 
@@ -67,8 +67,12 @@ courses/{c}                                  metadata v1
       membershipRequests/{requestId}         PROPUESTO: solicitud ligada al UID verificado
       roster/{uid}                           PROPUESTO: proyección docente privada y mínima
       membershipEvents/{eventId}             PROPUESTO: transiciones históricas/contexto original
-      academicOperations/{commandId}         PROPUESTO: idempotencia y resultado mínimo
+  academicSettings/current                    política v2 de multigrupo
+  academicMemberships/{uid}                    índice v2 de grupos activos/admisiones
+academicOperations/{commandId}                recibo v2 por actor + clave idempotente
+academicAudit/{commandId}                     auditoría v2 mínima global
 users/{uid}/enrollments/{pointerId}            descubrimiento privado, NO autoridad
+users/{uid}/teachingScopes/{pointerId}         descubrimiento privado, NO autoridad
 users/{uid}/sync/current + epochs/...         PROGRESO PERSONAL: no lo escribe el servicio académico
 ```
 
@@ -92,7 +96,7 @@ El roster no usa nickname como identidad oficial. Etiquetar nombre elegido frent
 | Escribir directamente grants/invitaciones | Denegado | Denegado | Denegado | Fuera del navegador, con IAM y validadores |
 | Borrar cuenta Auth/progreso/historial | Denegado en #5 | Denegado | Denegado | No es comando de #5 |
 
-Las filas de API son diseño, no rutas habilitadas. Las reglas actuales también rechazan listados de members/leaderboard y scopes archivados; no declarar cubiertas esas lecturas nuevas hasta extender reglas/contratos y pruebas con aprobación.
+Las filas de API se implementan solo en loopback para el prototipo; las filas de operador no son endpoints. Las reglas actuales también rechazan listados de members/leaderboard y scopes archivados. El prototipo mantiene denegado todo acceso a ámbitos archivados, incluida historia; preserva eventos sin habilitar acceso histórico nuevo. La política de consulta de archivo sigue pendiente.
 
 ## 6. Invitaciones y concurrencia
 
@@ -119,7 +123,7 @@ Conservar datos no concede lectura perpetua: grupos archivados siguen privados. 
 
 Eventos con actor verificado, operación, scope original, versión anterior/nueva, timestamp servidor, resultado y commandId; datos mínimos, sin tokens. Append-only por aplicación y sin escrituras cliente. No afirmar inmutabilidad frente a una identidad IAM privilegiada que puede omitir Rules; una garantía externa de auditoría requiere diseño/costo aprobado.
 
-Se necesita decidir: mecanismo y responsable, host/TLS/disponibilidad y presupuesto, identidad IAM/secretos, delegación docente exacta, inscripción/aprobación/readmisión, caducidad/uso de invitaciones, datos de roster, acceso histórico tras baja, retención y límite de abuso. No se han implementado ni probado estos componentes de #5.
+El mecanismo local y sus pruebas están implementados según [ACADEMIC-ADMIN.md](../ACADEMIC-ADMIN.md): aprobación obligatoria, scopes exactos, límites sintéticos, baja/readmisión, transferencias y recibos. Sigue pendiente decidir para producción: responsable, host/TLS/disponibilidad y presupuesto, identidad IAM/secretos, delegación real, límites de invitaciones, datos de roster, acceso histórico tras baja/archivo, retención y defensa distribuida de cuota/abuso.
 
 ## 9. Fuentes oficiales consultadas
 
