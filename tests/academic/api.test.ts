@@ -57,7 +57,8 @@ before(async()=>{
   server=httpServer(config,sdk,service);await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));
   base=`http://127.0.0.1:${(server.address() as {port:number}).port}`;
 });
-after(async()=>{await new Promise<void>(resolve=>server.close(()=>resolve()));await sdk.close();Socket.prototype.connect=originalConnect;assert.equal(nonLoopbackAttempts,0);
+after(async()=>{try{if(server)await new Promise<void>(resolve=>server.close(()=>resolve()));if(sdk)await sdk.close();}
+  finally{Socket.prototype.connect=originalConnect;assert.equal(nonLoopbackAttempts,0);}
   console.info('ACADEMIC_LOCAL_METRICS',JSON.stringify(Object.fromEntries(budgetSamples)));
 });
 beforeEach(async()=>{

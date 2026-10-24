@@ -40,3 +40,11 @@ test('unavailable emulators stop startup before loading privileged SDK or creden
   const child=spawnSync(process.execPath,['--import','tsx','--input-type=module','--eval',code],{env,encoding:'utf8',timeout:10000});
   assert.equal(child.status,0);assert.match(child.stdout,/EMULATOR_STARTUP_REFUSED/);
 });
+test('test-only CLI child refuses missing, real-project or augmented generated config without echoing it',()=>{
+  for(const value of [undefined,'SENSITIVE_DO_NOT_PRINT',JSON.stringify({projectId:'optilab-cd829'}),
+    JSON.stringify({projectId:'demo-optilab-sync',storageBucket:'demo-optilab-sync.appspot.com',databaseURL:'https://demo-optilab-sync.firebaseio.com',credential:'SENSITIVE_DO_NOT_PRINT'})]) {
+    const env={...process.env,...valid,FIREBASE_CONFIG:value};delete env.NODE_TEST_CONTEXT;
+    const child=spawnSync(process.execPath,['scripts/academic-test-child.mjs'],{env,encoding:'utf8',timeout:10000});
+    assert.notEqual(child.status,0);assert.match(child.stderr,/ACADEMIC_ENV_REJECTED/);assert.doesNotMatch(child.stdout+child.stderr,/SENSITIVE_DO_NOT_PRINT/);
+  }
+});
