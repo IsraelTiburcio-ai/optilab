@@ -40,11 +40,11 @@ function TeacherSession({uid}:{uid:string}) {
       let next=append?cursor:undefined,authorized:TeachingScope[]=[];
       do{const result=await call('myScopes',{kind:'teacher',limit:20,...next?{cursor:next}:{}});
         authorized.push(...result.items.filter((s):s is TeachingScope=>'capabilities' in s));next=result.nextCursor;
-      }while(seek&&!authorized.some(s=>scopeKey(s)===scopeKey(seek))&&next&&current());
+      }while(seek&&!authorized.some(s=>scopeKey(s)===scopeKey(seek))&&next&&current()&&request===requests.current);
       if(!current()||request!==requests.current)return;
       setScopes(previous=>Array.from(new Map([...append?previous:[],...authorized].map(s=>[scopeKey(s),s])).values()));
       setCursor(next??null);
-      if(seek&&!authorized.some(s=>scopeKey(s)===scopeKey(seek)))setError('El grupo se creó, pero todavía no pudimos recuperarlo. Actualiza Mis grupos; no hace falta volver a crearlo.');
+      if(seek&&!authorized.some(s=>scopeKey(s)===scopeKey(seek)))setError('No pudimos recuperar ese grupo. Actualiza Mis grupos para comprobar tu acceso. Si ya se confirmó su creación, no hace falta volver a crearlo.');
     }catch(e){if(current()&&request===requests.current&&(e as Error).name!=='AbortError')setError((e as Error).message);}
     finally{if(current()&&request===requests.current)setLoading(false);}
   }
