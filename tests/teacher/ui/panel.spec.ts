@@ -1,4 +1,4 @@
-import {test,expect,login,ready,tab,confirm} from './fixtures';
+import {test,expect,login,ready,tab,confirm,manage} from './fixtures';
 import AxeBuilder from '@axe-core/playwright';
 import {revokeFixtureTeacher} from '../../../server/academic/bootstrap';
 test('invitado: ruta directa pide la sesión existente sin pedir contraseña dentro del panel',async({page,fixture})=>{
@@ -11,11 +11,10 @@ test('alumno: sin scopes docentes ni datos privados',async({page,fixture})=>{
   await expect(page.getByLabel('Grupo',{exact:true})).toHaveCount(0);await expect(page.getByText('Synthetic studentB',{exact:true})).toHaveCount(0);
 });
 for(const actor of ['teacherA','teacherB','teacherBoth'] as const)test(`${actor}: solo descubre grupos autorizados y capacidades verificadas`,async({page,fixture})=>{
-  await login(page,fixture,actor);await ready(page);
-  const options=await page.getByLabel('Grupo',{exact:true}).locator('option').evaluateAll(nodes=>nodes.map(n=>(n as HTMLOptionElement).value).sort());
+  await login(page,fixture,actor);await expect(page.locator('.teacher-group-card').first()).toBeVisible();
+  const options=await page.locator('.teacher-group-card').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('data-group-id')).sort());
   expect(options).toEqual(actor==='teacherBoth'?[fixture.f.groups.a,fixture.f.groups.b].sort():[fixture.f.groups[actor==='teacherA'?'a':'b']]);
-  await tab(page,'Periodos y grupos');
-  if(actor==='teacherB'){await expect(page.getByText('No tienes capacidad para crear periodos en este curso.')).toBeVisible();await expect(page.getByRole('button',{name:'Crear periodo',exact:true})).toHaveCount(0);}
+  if(actor==='teacherB'){await expect(page.getByRole('button',{name:'Crear grupo',exact:true})).toBeDisabled();await expect(page.getByText('Tu acceso actual permite administrar tus grupos, pero no crear grupos o periodos en estos cursos.')).toBeVisible();}
 });
 test('roster y solicitudes: nombres elegidos y resúmenes limitados a la página',async({page,fixture})=>{
   await login(page,fixture);await ready(page);
@@ -66,10 +65,10 @@ test('dar de baja usa la revisión del roster y conserva Auth',async({page,fixtu
   expect((await fixture.sdk.auth.getUser(fixture.f.actors.studentA.uid)).disabled).toBe(false);
 });
 test('transferir solo entre ámbitos autorizados y actualizar ambas listas',async({page,fixture})=>{
-  await login(page,fixture,'teacherBoth');await ready(page);await page.getByLabel('Grupo',{exact:true}).selectOption(fixture.f.groups.a);
-  await expect(page.getByText('Synthetic studentA',{exact:true})).toBeVisible();await page.getByLabel('Destino de transferencia').selectOption(fixture.f.groups.b);
-  await page.getByRole('button',{name:'Transferir',exact:true}).click();await confirm(page);await expect(page.getByText('Inactivo',{exact:true})).toBeVisible();
-  await page.getByLabel('Grupo',{exact:true}).selectOption(fixture.f.groups.b);await expect(page.getByText('Synthetic studentA',{exact:true})).toBeVisible();await expect(page.getByText('Activo',{exact:true})).toBeVisible();
+  await login(page,fixture,'teacherBoth');await manage(page,fixture.f.groups.a);
+  await expect(page.getByText('Synthetic studentA',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Mover de grupo',exact:true}).click();
+  await page.getByRole('dialog').getByRole('radio').check();await page.getByRole('button',{name:'Confirmar traslado',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByText('Inactivo',{exact:true})).toBeVisible();
+  await manage(page,fixture.f.groups.b);await expect(page.getByText('Synthetic studentA',{exact:true})).toBeVisible();await expect(page.getByText('Activo',{exact:true})).toBeVisible();
 });
 test('staff revocado: el backend real rechaza sin éxito optimista ni fuga de datos al actualizar',async({page,fixture})=>{
   await login(page,fixture);await ready(page);await revokeFixtureTeacher(fixture.sdk,fixture.f,fixture.f.actors.teacherA.uid);
@@ -113,17 +112,17 @@ test('logout y A→B descartan respuesta tardía, errores y secretos de A',async
   fixture.fault.hold='roster';await login(page,fixture);await ready(page);await fixture.fault.waiting;
   await page.getByRole('button',{name:'Cerrar sesión docente'}).click();await expect(page.getByRole('heading',{name:'Sin acceso docente autorizado'})).toBeVisible();
   await login(page,fixture,'teacherB');await ready(page);fixture.fault.release();
-  await expect(page.getByLabel('Grupo',{exact:true})).toHaveValue(fixture.f.groups.b);
+  await expect(page.locator('.teacher-workspace')).toHaveAttribute('data-group-id',fixture.f.groups.b);
   await expect(page.getByText('Synthetic studentA',{exact:true})).toHaveCount(0);await expect(page.getByLabel('Token de invitación',{exact:true})).toHaveCount(0);
 });
 test('crear periodo y grupo autorizado con descubrimiento del periodo vacío tras recarga',async({page,fixture})=>{
-  await login(page,fixture);await ready(page);await tab(page,'Periodos y grupos');await page.getByLabel('Nombre del periodo',{exact:true}).fill('Periodo de prueba visual');
-  await page.getByRole('button',{name:'Crear periodo',exact:true}).click();await confirm(page);await page.reload();await ready(page);await tab(page,'Periodos y grupos');
-  await expect(page.getByLabel('Periodo del nuevo grupo').locator('option').filter({hasText:'Periodo de prueba visual'})).toHaveCount(1);
-  await page.getByLabel('Periodo del nuevo grupo').selectOption({label:(await page.getByLabel('Periodo del nuevo grupo').locator('option').filter({hasText:'Periodo de prueba visual'}).textContent())!});
-  await page.getByLabel('Nombre del grupo',{exact:true}).fill('Grupo de prueba visual');await page.getByRole('button',{name:'Crear grupo',exact:true}).click();await confirm(page);
+  await login(page,fixture);await ready(page);await tab(page,'Periodos y grupos');await page.getByRole('button',{name:'Crear un periodo nuevo'}).click();await page.getByLabel('Nombre del periodo',{exact:true}).fill('Periodo de prueba visual');
+  await page.getByRole('button',{name:'Confirmar nuevo periodo',exact:true}).click();await confirm(page);await page.reload();await ready(page);await tab(page,'Periodos y grupos');
+  await expect(page.getByLabel('Periodo existente').locator('option').filter({hasText:'Periodo de prueba visual'})).toHaveCount(1);
+  await page.getByLabel('Periodo existente').selectOption({label:'Periodo de prueba visual'});
+  await page.getByLabel('Nombre del grupo',{exact:true}).fill('Grupo de prueba visual');await page.getByRole('button',{name:'Revisar nuevo grupo',exact:true}).click();await confirm(page);
   const discovery=(await fixture.call('teacherA','myScopes',{kind:'teacher'})).body.items;expect(discovery.some((s:any)=>s.title==='Grupo de prueba visual')).toBe(true);
-  await page.getByLabel('Periodo',{exact:true}).selectOption(discovery.find((s:any)=>s.title==='Grupo de prueba visual').termId);await expect(page.getByLabel('Grupo',{exact:true}).locator('option').filter({hasText:'Grupo de prueba visual'})).toHaveCount(1);
+  await expect(page.locator('.teacher-group-card').filter({hasText:'Grupo de prueba visual'})).toBeVisible();await page.reload();await expect(page.locator('.teacher-group-card').filter({hasText:'Grupo de prueba visual'})).toBeVisible();
 });
 test('paginación real de roster sin totales globales inventados',async({page,fixture})=>{
   // Additional synthetic members are prepared only at the fixture/operator boundary.
@@ -142,17 +141,17 @@ test('logout desde otra pestaña descarta código privado y sesión anterior',as
   await page.getByRole('button',{name:'Crear enlace de invitación',exact:true}).click();await confirm(page);await expect(page.getByRole('button',{name:'Copiar enlace',exact:true})).toBeVisible();
   const peer=await context.newPage();await peer.goto('#/cuenta');await peer.getByRole('button',{name:'Cerrar sesión',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Sin acceso docente autorizado'})).toBeVisible();await expect(page.getByRole('button',{name:'Copiar enlace',exact:true})).toHaveCount(0);
-  await login(page,fixture,'teacherB');await ready(page);await expect(page.getByLabel('Grupo',{exact:true})).toHaveValue(fixture.f.groups.b);await expect(page.getByText('Synthetic studentA',{exact:true})).toHaveCount(0);
+  await login(page,fixture,'teacherB');await ready(page);await expect(page.locator('.teacher-workspace')).toHaveAttribute('data-group-id',fixture.f.groups.b);await expect(page.getByText('Synthetic studentA',{exact:true})).toHaveCount(0);
 });
 for(const width of [390,820,1180,1440])test(`responsive ${width}, teclado y accesibilidad`,async({page,fixture,browserName})=>{
   await page.setViewportSize({width,height:900});await login(page,fixture);await ready(page);await expect(page.getByText('Synthetic studentA',{exact:true})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-  await page.getByLabel('Grupo',{exact:true}).focus();await expect(page.getByLabel('Grupo',{exact:true})).toBeFocused();
+  await page.getByRole('button',{name:'← Mis grupos',exact:true}).focus();await expect(page.getByRole('button',{name:'← Mis grupos',exact:true})).toBeFocused();
   const result=await new AxeBuilder({page}).include('.teacher-panel').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(result.violations.map(v=>v.id)).toEqual([]);
   if(width===1440&&browserName==='chromium'&&process.env.TEACHER_CAPTURE==='1'){
     for(const [name,file] of [['Alumnos','alumnos'],['Solicitudes','solicitudes'],['Invitaciones','invitaciones'],['Periodos y grupos','periodos']] as const){
       await tab(page,name);await expect(page.getByText('Consultando el archivo del grupo…')).toHaveCount(0);
-      if(name==='Periodos y grupos')await expect(page.locator('.teacher-section li').first()).toBeVisible();
+      if(name==='Periodos y grupos')await expect(page.getByLabel('Periodo existente')).toBeVisible();
       await page.evaluate(()=>{document.querySelectorAll('.teacher-identifier').forEach(n=>n.textContent='[identificador sintético oculto]');
         document.querySelectorAll('.teacher-panel option').forEach(n=>{n.textContent=n.textContent!.split(' · ')[0];});});
       await page.locator('.teacher-panel').screenshot({path:`docs/qa/teacher-panel/${file}.png`});

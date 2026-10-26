@@ -16,19 +16,16 @@ function StudentIdentity({member}:{member:Member}){
     </div></details>
   </div>;
 }
-export function Students({scope,scopes,page,prepare,busy}:{scope:TeachingScope;scopes:TeachingScope[];page:PagedState<Member>;prepare:Prepare;busy:boolean}) {
-  const [filter,setFilter]=useState('all'),[destination,setDestination]=useState('');
-  const destinations=scopes.filter(s=>s.courseId===scope.courseId&&s.termId===scope.termId&&s.groupId!==scope.groupId&&s.capabilities.manageMembers);
+export function Students({scope,page,prepare,busy,move}:{scope:TeachingScope;page:PagedState<Member>;prepare:Prepare;busy:boolean;move:(member:Member)=>void}) {
+  const [filter,setFilter]=useState('all');
   const rows=page.data?.items.filter(r=>filter==='all'||r.status===filter)??[];
   if(!scope.capabilities.manageMembers)return <p>No tienes capacidad para consultar ni administrar integrantes de este grupo.</p>;
   return <section aria-labelledby="teacher-students"><h2 id="teacher-students">Alumnos</h2><p>Activos e inactivos del grupo seleccionado. Los filtros se aplican a la página consultada, no a un total global.</p>
-    <div className="teacher-controls"><label>Estado en esta página<select aria-label="Estado en esta página" value={filter} onChange={e=>setFilter(e.target.value)} disabled={busy}><option value="all">Todos</option><option value="active">Activos</option><option value="revoked">Inactivos</option></select></label>
-    <label>Destino de transferencia<select aria-label="Destino de transferencia" value={destination} onChange={e=>setDestination(e.target.value)} disabled={busy}><option value="">Selecciona otro grupo</option>{destinations.map(s=><option key={s.groupId} value={s.groupId}>{s.title} · {s.groupId}</option>)}</select></label></div>
-    <p className="muted">Solo se ofrecen destinos autorizados del mismo curso y periodo entre los grupos cargados. Carga más grupos si falta un destino.</p>
+    <div className="teacher-controls"><label>Estado en esta página<select aria-label="Estado en esta página" value={filter} onChange={e=>setFilter(e.target.value)} disabled={busy}><option value="all">Todos</option><option value="active">Activos</option><option value="revoked">Inactivos</option></select></label></div>
     <SectionState loading={page.loading} error={page.error} empty={!rows.length}><ul className="teacher-records teacher-student-list">{rows.map(member=><li className="teacher-record teacher-student-row" key={member.uid}>
       <StudentIdentity member={member}/>
       {member.status==='active'&&<div className="teacher-actions teacher-row-actions"><button className="button" disabled={busy} onClick={()=>prepare({operation:'revokeMembership',input:{...scopeInput(scope),uid:member.uid,expectedVersion:member.revision,idempotencyKey:key()},label:'Dar de baja',description:`Retirar a ${member.academicProfile?.fullName||member.label} de ${scope.title}. Conserva cuenta, progreso personal e historial.`})}>Dar de baja</button>
-      <button className="button" disabled={busy||!destination} onClick={()=>prepare({operation:'transferMembership',input:{...scopeInput(scope),uid:member.uid,destinationGroupId:destination,expectedVersion:member.revision,idempotencyKey:key()},label:'Transferir estudiante',description:`Transferir a ${member.label} de ${scope.title} a ${destinations.find(s=>s.groupId===destination)?.title}. Se retira el acceso al origen sin mover el historial.`})}>Transferir</button></div>}
+      <button className="button" disabled={busy} onClick={e=>{e.currentTarget.focus();move(member);}}>Mover de grupo</button></div>}
     </li>)}</ul></SectionState>
     <Pagination {...page} nextCursor={page.data?.nextCursor} disabled={busy||page.loading}/>
   </section>;
