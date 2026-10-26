@@ -1,4 +1,4 @@
-import {test as base,expect,type Page} from '@playwright/test';
+import {test as base,expect,type Page,type BrowserContext,type Route} from '@playwright/test';
 import {emulatorAdmin,type EmulatorAdmin} from '../../../server/academic/sdk';
 import {seedFixtures,type Fixtures} from '../../../server/academic/bootstrap';
 import {localConfig} from '../../../server/academic/config';
@@ -10,6 +10,7 @@ export const password='fixture-password-123';
 type Worker={sdk:EmulatorAdmin;server:Server;base:string};
 export interface Fixture {f:Fixtures;tokens:Record<string,string>;scope:(group?:'a'|'b')=>{courseId:string;termId:string;groupId:string};
   call:(actor:string,op:string,input:unknown)=>Promise<{status:number;body:any}>;sdk:EmulatorAdmin;
+  attach:(context:BrowserContext)=>Promise<void>;
   fault:{offline:boolean;legacy:boolean;lost:string;forbidden:string;rate:string;hold:string;waiting:Promise<void>;release:()=>void};commands:string[]}
 export const test=base.extend<{fixture:Fixture},{backend:Worker}>({
   backend:[async({},use)=>{
@@ -45,7 +46,7 @@ export const test=base.extend<{fixture:Fixture},{backend:Worker}>({
     const fault={offline:false,legacy:false,lost:'',forbidden:'',rate:'',hold:'',waiting,release};const commands:string[]=[];
     // Real HTTP/Auth/Firestore service, on an ephemeral loopback port. This avoids
     // taking over the owner's :5200 process. Only the test transport URL differs.
-    await context.route('http://127.0.0.1:5200/**',async route=>{
+    const routeAcademic=async(route:Route)=>{
       const request=route.request(),op=new URL(request.url()).pathname.split('/').at(-1)!;
       if(fault.offline){await route.abort();return;}
       if(fault.forbidden===op){fault.forbidden='';await route.fulfill({status:403,contentType:'application/json',body:'{"error":{"code":"FORBIDDEN"}}'});return;}
@@ -58,18 +59,23 @@ export const test=base.extend<{fixture:Fixture},{backend:Worker}>({
         if(fault.hold===op){fault.hold='';waitingResolve();await gate;}
         await route.fulfill({response});
       }catch{/* A session switch can cancel a held browser request. */}
-    });
-    await context.route(/https:\/\/[^/]*(firestore|identitytoolkit|securetoken)[^/]*googleapis\.com/,r=>r.abort());
-    try{await use({f,tokens,scope,call,sdk:backend.sdk,fault,commands});}finally{release();}
+    };
+    const attach=async(target:BrowserContext)=>{await target.route('http://127.0.0.1:5200/**',routeAcademic);await target.route(/https:\/\/[^/]*(firestore|identitytoolkit|securetoken)[^/]*googleapis\.com/,r=>r.abort());};
+    await attach(context);
+    try{await use({f,tokens,scope,call,sdk:backend.sdk,fault,commands,attach});}finally{release();}
   },
 });
 export {expect};
 export async function login(page:Page,fixture:Fixture,actor:keyof Fixtures['actors']='teacherA') {
   await page.goto('#/cuenta');await page.getByLabel('Correo electrónico',{exact:true}).fill(fixture.f.actors[actor].email);
   await page.locator('#account-password').fill(password);await page.getByRole('button',{name:'Entrar a mi cuenta',exact:true}).click();
-  await expect(page.getByText('SESIÓN INICIADA',{exact:true})).toBeVisible();
-  await page.goto('#/docente');await expect(page.getByRole('heading',{name:'Panel de la profesora'})).toBeVisible();
+  if(actor.startsWith('teacher'))await expect(page.getByText('SESIÓN INICIADA',{exact:true})).toBeVisible();
+  else await expect(page.getByRole('heading',{name:'¿Cómo te llamas?'})).toBeVisible();
+  await page.goto('#/docente');if(!fixture.fault.legacy)await expect(page.getByRole('heading',{name:actor.startsWith('teacher')?'Panel de la profesora':'Sin acceso docente autorizado'})).toBeVisible();
 }
 export async function ready(page:Page) {await expect(page.getByLabel('Grupo',{exact:true})).toBeVisible();await expect(page.getByText('Comprobando tus grupos autorizados…')).toHaveCount(0);}
-export async function tab(page:Page,name:string){await page.getByRole('navigation',{name:'Secciones del panel'}).getByRole('button',{name,exact:true}).click();}
+export async function tab(page:Page,name:string){
+  if(name==='Solicitudes'){const history=page.locator('details.teacher-history');if(!await history.evaluate((n:HTMLDetailsElement)=>n.open))await history.locator('summary').click();return;}
+  await page.getByRole('navigation',{name:'Secciones del panel'}).getByRole('button',{name,exact:true}).click();
+}
 export async function confirm(page:Page){await page.getByRole('dialog').getByRole('button',{name:'Confirmar',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);}

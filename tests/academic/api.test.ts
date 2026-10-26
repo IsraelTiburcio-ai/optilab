@@ -302,7 +302,7 @@ test('CLI authenticates through the emulator and redacts invitation output',asyn
   envelope.email=f.actors.studentA.email;envelope.payload.idempotencyKey=key();
   const denied=await run();assert.equal(denied.code,1);assert.equal(JSON.parse(denied.output).status,403);
 });
-test('explicit panel seed prepares one active member and two requests without printing credentials or invitation secrets',async()=>{
+test('explicit panel seed prepares direct enrollment without manual requests or printed credentials/secrets',async()=>{
   const result=await new Promise<{code:number|null;output:string;error:string}>((resolve,reject)=>{
     const child=spawn(process.execPath,['scripts/seed-academic-panel.mjs'],{env:{...process.env,ACADEMIC_FIXTURE_PASSWORD:password},stdio:['ignore','pipe','pipe']});
     let output='',error='';child.stdout.on('data',b=>output+=b);child.stderr.on('data',b=>error+=b);child.on('error',reject);child.on('close',code=>resolve({code,output,error}));
@@ -312,7 +312,7 @@ test('explicit panel seed prepares one active member and two requests without pr
   tokens.panelSeed=await signIn(seeded.actors.teacherA.email);
   const scope={courseId:seeded.courseId,termId:seeded.termId,groupId:seeded.groups.a};
   assert.equal((await ok('panelSeed','roster',scope)).items.length,1);
-  assert.equal((await ok('panelSeed','groupRequests',{...scope,status:'pending'})).items.length,2);
+  assert.equal((await ok('panelSeed','groupRequests',{...scope,status:'pending'})).items.length,0);
 });
 test('negative HTTP assertion detects a deliberately removed permission policy',async()=>{
   const service=new AcademicService(new AcademicRepository(sdk.db),sdk,3600,{policy:{group:async()=>{},course:async()=>{}}});
@@ -322,4 +322,159 @@ test('negative HTTP assertion detects a deliberately removed permission policy',
     const deny=async(endpoint:string)=>assert.equal((await call('studentA','createInvitation',{...s(),idempotencyKey:key(),expiresInSeconds:100,maxUses:1,maxPending:1},endpoint)).status,403);
     await deny(base);await assert.rejects(()=>deny(url),assert.AssertionError);
   }finally{await new Promise<void>(r=>mutant.close(()=>r()));}
+});
+const profileInput=(extra:Record<string,unknown>={})=>({idempotencyKey:key(),expectedVersion:0,fullName:'Alumna Sintética',shareGameIdentity:true,nickname:'Pivote Azul',avatarId:'avatar-02',companionId:'piv',...extra});
+test('academic profile is own-only, email comes from Auth, and direct Firestore remains denied',async()=>{
+  assert.equal((await ok('studentA','getAcademicProfile',{})).revision,0);
+  assert.equal((await call('studentA','updateAcademicProfile',profileInput({uid:f.actors.studentB.uid}))).status,400);
+  assert.equal((await call('studentA','updateAcademicProfile',profileInput({email:'forged@example.test'}))).status,400);
+  await ok('studentA','updateAcademicProfile',profileInput());
+  const own=await ok('studentA','getAcademicProfile',{});assert.ok(own.profile.email===f.actors.studentA.email);assert.equal(own.profile.nameSource,'self-declared');assert.equal(own.profile.revision,1);
+  assert.equal((await call('studentB','getAcademicProfile',{uid:f.actors.studentA.uid})).status,400);
+  assert.equal((await ok('studentB','getAcademicProfile',{})).profile,null);
+  const response=await fetch(`http://127.0.0.1:8085/v1/projects/demo-optilab-sync/databases/(default)/documents/academicProfiles/${f.actors.studentA.uid}`,{
+    headers:{Authorization:`Bearer ${tokens.studentA}`}});assert.equal(response.status,403);
+});
+test('academic profile CAS, idempotent replay and receipt never restore or disclose withdrawn identity',async()=>{
+  const payload=profileInput(),first=await ok('studentA','updateAcademicProfile',payload);
+  const replay=await ok('studentA','updateAcademicProfile',payload);assert.equal(replay.replayed,true);
+  const receipt=(await sdk.db.doc(`academicOperations/${first.commandId}`).get()).data();
+  assert.ok(!JSON.stringify(receipt).includes(payload.fullName));assert.ok(!JSON.stringify(receipt).includes(payload.nickname));
+  assert.equal((await call('studentA','updateAcademicProfile',{...payload,fullName:'Otro nombre declarado'})).status,409);
+  const candidates=await Promise.all([1,2].map(()=>call('studentA','updateAcademicProfile',profileInput({expectedVersion:1,shareGameIdentity:false,nickname:null,avatarId:null,companionId:null}))));
+  assert.deepEqual(candidates.map(r=>r.status).sort(),[200,409]);
+  await ok('studentA','updateAcademicProfile',payload);assert.equal((await ok('studentA','getAcademicProfile',{})).profile.gameIdentity,null);
+});
+test('profile validation rejects malformed identities and inconsistent consent',async()=>{
+  for(const extra of [{fullName:''},{fullName:'A'.repeat(121)},{nickname:'A'.repeat(31)},{avatarId:['avatar-01']},{avatarId:'avatar-99'},{companionId:'unknown'},{shareGameIdentity:false},{fullName:'Nombre\ninyectado'}]){
+    assert.equal((await call('studentA','updateAcademicProfile',profileInput(extra))).status,400);
+  }
+  assert.equal((await ok('studentA','getAcademicProfile',{})).profile,null);
+});
+test('malformed stored profile fails closed instead of joining another UID into a roster',async()=>{
+  await admit();await ok('studentA','updateAcademicProfile',profileInput());
+  await sdk.db.doc(`academicProfiles/${f.actors.studentA.uid}`).update({uid:f.actors.studentB.uid});
+  assert.equal((await call('studentA','getAcademicProfile',{})).status,409);
+  const response=await call('teacherA','roster',s());assert.equal(response.status,409);assert.ok(!JSON.stringify(response.body).includes('Alumna Sintética'));
+});
+test('teacher projections follow exact group permissions and current consent for pending and active students',async()=>{
+  await ok('studentA','updateAcademicProfile',profileInput());await ok('studentB','updateAcademicProfile',profileInput({fullName:'Solicitante Sintético'}));
+  await admit();const inv=await invite(),req=await request(inv,'studentB');
+  const roster=(await ok('teacherA','roster',s())).items[0];assert.equal(roster.academicProfile.gameIdentity.nickname,'Pivote Azul');
+  assert.ok((await ok('teacherA','groupRequests',{...s(),status:'pending'})).items.some((r:any)=>r.requestId===req.requestId&&r.academicProfile?.fullName==='Solicitante Sintético'));
+  assert.equal((await call('teacherB','roster',s())).status,403);assert.equal((await call('teacherB','groupRequests',s())).status,403);
+  await ok('studentA','updateAcademicProfile',profileInput({expectedVersion:1,shareGameIdentity:false,nickname:null,avatarId:null,companionId:null}));
+  assert.equal((await ok('teacherA','roster',s())).items[0].academicProfile.gameIdentity,null);
+  await ok('teacherA','rejectMembership',{...s(),requestId:req.requestId,expectedVersion:1,idempotencyKey:key()});
+  assert.equal((await ok('teacherA','groupRequests',{...s(),status:'rejected'})).items[0].academicProfile,null);
+  await revokeFixtureTeacher(sdk,f,f.actors.teacherA.uid);assert.equal((await call('teacherA','roster',s())).status,403);
+});
+test('transfer removes fresh profile visibility from the former group without reading or modifying personal progress',async()=>{
+  await ok('studentA','updateAcademicProfile',profileInput());await request(await invite());const approved=await admit();
+  const progressPath=`users/${f.actors.studentA.uid}/sync/current`,before=JSON.stringify((await sdk.db.doc(progressPath).get()).data());
+  await ok('teacherBoth','transferMembership',{...s(),destinationGroupId:f.groups.b,uid:f.actors.studentA.uid,expectedVersion:approved.version,idempotencyKey:key()});
+  assert.equal((await ok('teacherA','roster',s())).items[0].academicProfile,null);
+  assert.equal((await ok('teacherA','groupRequests',{...s(),status:'pending'})).items[0].academicProfile,null);
+  assert.ok((await ok('teacherB','roster',s('b'))).items[0].academicProfile.email===f.actors.studentA.email);
+  assert.ok(JSON.stringify((await sdk.db.doc(progressPath).get()).data())===before);
+});
+test('own request recovery by invitation locator is private and reports expiration, revocation and exhaustion without a secret',async()=>{
+  const expired=await invite('a',{expiresInSeconds:1}),req=await request(expired,'studentB');
+  assert.equal((await call('studentC','requestStatus',{...s(),inviteId:expired.inviteId})).status,404);
+  await new Promise(r=>setTimeout(r,1100));const state=await ok('studentB','requestStatus',{...s(),inviteId:expired.inviteId});
+  assert.ok(state.requestId===req.requestId);assert.equal(state.invitationState,'expired');assert.equal(state.accessAllowed,false);
+  const inv=await invite(),pending=await request(inv,'studentB');
+  const meta=(await ok('teacherA','groupInvitations',s())).items.find((i:any)=>i.inviteId===inv.inviteId);
+  await ok('teacherA','revokeInvitation',{...s(),inviteId:inv.inviteId,expectedVersion:meta.revision,idempotencyKey:key()});
+  assert.equal((await ok('studentB','requestStatus',{...s(),requestId:pending.requestId})).invitationState,'revoked');
+  const full=await invite('a',{maxUses:1}),a=await request(full,'studentA'),b=await request(full,'studentC');
+  await ok('teacherA','approveMembership',{...s(),requestId:a.requestId,expectedVersion:1,idempotencyKey:key()});
+  assert.equal((await ok('studentC','requestStatus',{...s(),requestId:b.requestId})).invitationState,'exhausted');
+  assert.equal((await ok('studentA','requestStatus',{...s(),requestId:a.requestId})).accessAllowed,true);
+});
+async function onboard(actor='studentA',gamertag='Pivote_A'){
+  const own=await ok(actor,'getPlayerIdentity',{}),p=await ok(actor,'getAcademicProfile',{});
+  return ok(actor,'savePlayerIdentity',{idempotencyKey:key(),expectedVersion:own.identity?.revision??0,expectedProfileVersion:p.revision,
+    fullName:'Jugador Sintético',gamertag:gamertag+'_'+f.courseId.slice(-10),avatarId:'avatar-02',companionId:'piv',shareGameIdentity:true});
+}
+async function directLink(extra:Record<string,unknown>={}){
+  const current=await ok('teacherA','groupEnrollmentLink',s());
+  return ok('teacherA','rotateEnrollmentLink',{...s(),idempotencyKey:key(),expectedVersion:current.link?.revision??0,expiresInSeconds:3600,...extra});
+}
+test('direct redemption grants active membership immediately, no request or teacher approval, and is idempotent',async()=>{
+  await onboard();const inv=await directLink(),payload={...s(),inviteId:inv.inviteId,token:inv.token,idempotencyKey:key()};
+  const first=await ok('studentA','redeemInvitation',payload);assert.equal(first.outcome,'membership-active');
+  assert.equal((await ok('studentA','redeemInvitation',payload)).replayed,true);
+  assert.equal((await ok('studentA','myScopes',{kind:'student'})).items[0].status,'active');
+  assert.equal((await ok('teacherA','groupRequests',s())).items.length,0);
+  assert.equal((await call('studentA','rotateEnrollmentLink',{...s(),idempotencyKey:key(),expectedVersion:1,expiresInSeconds:3600})).status,403);
+});
+test('single enrollment link rotation/revocation invalidates prior secrets without removing existing members',async()=>{
+  await onboard();await onboard('studentB','Pivote_B');
+  const old=await directLink(),next=await directLink();
+  const stored=(await sdk.db.doc(`${groupPath(s())}/enrollmentLink/current`).get()).data();assert.ok(!JSON.stringify(stored).includes(next.token));
+  assert.equal((await call('studentA','redeemInvitation',{...s(),inviteId:old.inviteId,token:old.token,idempotencyKey:key()})).status,404);
+  await ok('studentA','redeemInvitation',{...s(),inviteId:next.inviteId,token:next.token,idempotencyKey:key()});
+  const meta=await ok('teacherA','groupEnrollmentLink',s());
+  assert.equal(meta.link.inviteId,undefined);assert.equal(meta.link.token,undefined);assert.equal(meta.link.tokenHash,undefined);
+  await ok('teacherA','revokeEnrollmentLink',{...s(),expectedVersion:meta.link.revision,idempotencyKey:key()});
+  assert.equal((await call('studentB','redeemInvitation',{...s(),inviteId:next.inviteId,token:next.token,idempotencyKey:key()})).status,404);
+  assert.equal((await ok('teacherA','roster',s())).items[0].status,'active');
+});
+test('direct links require current verified Auth, completed onboarding and reject expiry',async()=>{
+  const inv=await directLink();
+  assert.equal((await call('studentA','redeemInvitation',{...s(),inviteId:inv.inviteId,token:inv.token,idempotencyKey:key()})).body.error.code,'ONBOARDING_REQUIRED');
+  await onboard();await sdk.auth.updateUser(f.actors.studentA.uid,{emailVerified:false});tokens.studentA=await signIn(f.actors.studentA.email);
+  assert.equal((await call('studentA','redeemInvitation',{...s(),inviteId:inv.inviteId,token:inv.token,idempotencyKey:key()})).body.error.code,'VERIFIED_EMAIL_REQUIRED');
+  await sdk.auth.updateUser(f.actors.studentA.uid,{emailVerified:true});tokens.studentA=await signIn(f.actors.studentA.email);
+  const expired=await directLink({expiresInSeconds:1});await new Promise(r=>setTimeout(r,1100));
+  assert.equal((await call('studentA','redeemInvitation',{...s(),inviteId:expired.inviteId,token:expired.token,idempotencyKey:key()})).status,404);
+});
+test('same student simultaneous direct redemption counts once; multiple students can reuse the link beyond 70',async()=>{
+  await onboard();await onboard('studentB','Pivote_B');const inv=await directLink();
+  const root=`${groupPath(s())}/enrollmentLink/current`;
+  await sdk.db.doc(root).update({acceptedCount:70}); // Technical count is not a class capacity.
+  const pair=await Promise.all([1,2].map(()=>call('studentA','redeemInvitation',{...s(),inviteId:inv.inviteId,token:inv.token,idempotencyKey:key()})));
+  assert.ok(pair.every(r=>r.status===200));await ok('studentB','redeemInvitation',{...s(),inviteId:inv.inviteId,token:inv.token,idempotencyKey:key()});
+  assert.equal((await sdk.db.doc(root).get()).data()!.acceptedCount,72);
+});
+test('revoked students cannot reuse the old direct link or receipt; a fresh rotated link is required',async()=>{
+  await onboard();const inv=await directLink(),payload={...s(),inviteId:inv.inviteId,token:inv.token,idempotencyKey:key()};
+  const admitted=await ok('studentA','redeemInvitation',payload);
+  await ok('teacherA','revokeMembership',{...s(),uid:f.actors.studentA.uid,expectedVersion:admitted.version,idempotencyKey:key()});
+  assert.equal((await call('studentA','redeemInvitation',payload)).status,404);
+  assert.equal((await call('studentA','redeemInvitation',{...payload,idempotencyKey:key()})).status,404);
+  const fresh=await directLink();await ok('studentA','redeemInvitation',{...s(),inviteId:fresh.inviteId,token:fresh.token,idempotencyKey:key()});
+});
+test('direct redemption has a replenishing fairness window, independent from student count',async()=>{
+  await onboard();const inv=await directLink(),root=`${groupPath(s())}/enrollmentLink/current`;
+  await sdk.db.doc(root).update({windowStartedAt:Date.now(),windowCount:30});
+  const payload={...s(),inviteId:inv.inviteId,token:inv.token,idempotencyKey:key()};assert.equal((await call('studentA','redeemInvitation',payload)).status,429);
+  await sdk.db.doc(root).update({windowStartedAt:Date.now()-10001});await ok('studentA','redeemInvitation',payload);
+});
+test('global gamertag reservation is atomic, case-insensitive and NFKC-normalized',async()=>{
+  const input=(gamertag:string)=>({idempotencyKey:key(),expectedVersion:0,expectedProfileVersion:0,fullName:'Nombre Repetido',gamertag:gamertag+'_'+f.courseId.slice(-10),avatarId:'avatar-01',companionId:'nexo',shareGameIdentity:false});
+  const pair=await Promise.all([call('studentA','savePlayerIdentity',input('Ｐｉｖｏｔｅ')),call('studentB','savePlayerIdentity',input('pIVOTE'))]);
+  assert.deepEqual(pair.map(r=>r.status).sort(),[200,409]);
+  const loser=pair[0].status===409?'studentA':'studentB';assert.equal((await call(loser,'savePlayerIdentity',input('PIVOTE'))).body.error.code,'GAMERTAG_TAKEN');
+  assert.equal((await ok(loser,'gamertagAvailability',{gamertag:'pivote_'+f.courseId.slice(-10)})).available,false);
+});
+test('changing a gamertag releases the previous index, preserves progress and cannot reserve for another UID',async()=>{
+  const before=JSON.stringify((await sdk.db.doc(`users/${f.actors.studentA.uid}/sync/current`).get()).data());
+  await onboard();assert.equal((await call('studentB','savePlayerIdentity',{idempotencyKey:key(),expectedVersion:0,expectedProfileVersion:0,fullName:'Nombre Repetido',gamertag:'Otro',avatarId:'avatar-01',companionId:'nexo',shareGameIdentity:false,uid:f.actors.studentA.uid})).status,400);
+  await onboard('studentA','Nuevo_Tag');assert.equal((await ok('studentB','gamertagAvailability',{gamertag:'PIVOTE_A_'+f.courseId.slice(-10)})).available,true);await onboard('studentB','PIVOTE_A');
+  assert.ok(JSON.stringify((await sdk.db.doc(`users/${f.actors.studentA.uid}/sync/current`).get()).data())===before);
+  assert.ok((await ok('studentA','getPlayerIdentity',{})).identity.gamertag.startsWith('Nuevo_Tag'));
+});
+test('student scope discovery returns real course/period names and current states without relying on invitations',async()=>{
+  await admit();const page=await ok('studentA','myScopes',{kind:'student',limit:1});assert.equal(page.items.length,1);assert.equal(page.items[0].courseTitle,'Synthetic course');assert.equal(page.items[0].termTitle,'Synthetic period');
+  assert.equal((await ok('studentB','myScopes',{kind:'student'})).items.length,0);
+  const m=(await ok('teacherA','roster',s())).items[0];await ok('teacherA','revokeMembership',{...s(),uid:m.uid,expectedVersion:m.revision,idempotencyKey:key()});
+  assert.equal((await ok('studentA','myScopes',{kind:'student'})).items[0].status,'revoked');
+});
+test('historical pending request stays unchanged while projection reports an automatically enrolled member',async()=>{
+  const old=await request(await invite(),'studentB');await onboard('studentB','Historia');const inv=await directLink();
+  await ok('studentB','redeemInvitation',{...s(),inviteId:inv.inviteId,token:inv.token,idempotencyKey:key()});
+  const row=(await ok('teacherA','groupRequests',{...s(),status:'pending'})).items.find((r:any)=>r.requestId===old.requestId);
+  assert.equal(row.status,'pending');assert.equal(row.membershipStatus,'active');
 });

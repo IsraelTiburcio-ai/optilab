@@ -3,6 +3,18 @@
 **Estado: APROBADO únicamente para prototipo local con Auth/Firestore Emulator (2026-10-23). Producción pendiente de decisión independiente.**
 Fecha de análisis: 2026-10-23. Baseline: PR #14 fusionada en `7ab4e83a89510df6a8fc592904abc80a26714264`. Relacionado: [#5](https://github.com/IsraelTiburcio-ai/optilab/issues/5), [ADR-001](ADR-001-firestore-security.md), [ADR-002](ADR-002-progress-sync.md), [plan de entrega](../GROUPS-IMPLEMENTATION-PLAN.md).
 
+## Enmienda A · Alta automática mediante enlace (PR #18 revisada)
+
+**Cambio de política autorizado explícitamente por el propietario para este prototipo emulado.** Esta enmienda sustituye el modo normal de solicitud/aprobación individual de la sección6; no autoriza producción ni merge. Quien posee un enlace de grupo vigente y cumple autenticación, correo verificado actual y onboarding puede inscribirse directamente. **El backend**, no la URL ni el navegador, crea la matrícula en una transacción confiable.
+
+- Una profesora con staff de curso/grupo y capacidad de invitaciones crea/rota un único enlace activo por grupo. CSPRNG256/SHA256, expiración obligatoria, secreto solo primera respuesta. Rotar reemplaza el locator/hash autoritativo; revocar bloquea canjes nuevos. Sin cupo de70 ni máximo total de admisiones. Un límite breve de uso justo y los límites IP/UID son antiabuso temporal, no cupos académicos.
+- `redeemInvitation` comprueba Auth actual (cuenta habilitada, email no nulo y verificado), contexto activo, secreto/locator, expiración/revocación, onboarding/índice de gamertag y política de pertenencia. Usa los mismos grants v1, detalles CAS, índice, pointers y eventos del backend. Una baja no se revierte con el enlace o recibo anterior; hace falta una rotación posterior a esa baja. Una suspensión de curso no la repara un enlace.
+- **Riesgo aceptado para pruebas:** el enlace es una capacidad transferible. Si un alumno lo reenvía, un tercero con correo verificado puede entrar mientras siga vigente. No hay comprobación institucional ni aprobación individual. Compartir únicamente con el grupo, usar vencimiento, revocar/rotar ante filtración y revisar roster. No códigos cortos, no staff desde el enlace, no confiar en correo conocido, rol cliente o UID libre.
+- Siguen vigentes la raíz de confianza del operador para asignación docente, scopes exactos, auditoría/idempotencia y separación del progreso. No se implementa delegación a adjuntos. Invitaciones/solicitudes heredadas quedan consultables/resolubles para compatibilidad, en una sección explícitamente histórica; no son el onboarding ni el flujo normal nuevo.
+- Identidad de jugador privada y gamertag único se guardan aparte del progreso. La reserva normalizada se adquiere/cambia/libera en la misma transacción que la identidad; la consulta de disponibilidad nunca concede propiedad. El consentimiento de compartir juego sigue siendo optativo y revocable; nombre académico no equivale a gamertag ni a identidad verificada.
+
+Mecanismo, controles técnicos, normalización, retención de reservas al borrar cuenta y QA: [STUDENT-ENROLLMENT.md](../STUDENT-ENROLLMENT.md). TLS/IAM, defensas distribuidas, criterios reales de admisión y retención requieren autorización productiva independiente (#3/#4/#5/#10).
+
 ## 1. Problema y límites
 
 Una profesora necesita gestionar dos grupos y aproximadamente 60–70 alumnos por semestre, sin depender de editar código ni del desarrollador para cada clase. Se requiere continuidad entre periodos, varias membresías por alumno y autorización real por curso/grupo.

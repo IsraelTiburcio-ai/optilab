@@ -2,6 +2,10 @@
 
 **Panel visual docente v1:** [arranque Mac, contrato ampliado, seguridad y QA](TEACHER-PANEL.md). La fase visual agrega `revision` al roster y capacidades/periodos paginados a `myScopes`; no habilita producción.
 
+**Inscripción estudiantil y perfil mínimo:** [STUDENT-ENROLLMENT.md](STUDENT-ENROLLMENT.md) agrega el enlace HashRouter seguro, consultas/escritura autenticadas de perfil propio y proyección docente condicionada. No concede lectura de progreso ni modifica Rules.
+
+**PR #18 rediseñada:** la enmienda A de ADR-003 cambia el flujo normal a canje directo con correo verificado, un enlace rotatorio por grupo y onboarding/gamertag atómico. La solicitud/aprobación de las secciones históricas siguientes queda solo como compatibilidad; usar el contrato vigente de STUDENT-ENROLLMENT.md. No hay cupo70 ni maxUses en los nuevos enlaces.
+
 Backend modular Node 22/TypeScript con Auth y Firestore Emulator. Rama basada en el merge documental de PR #15, `41c2ebe9fb79dbdb9ff358de5b07c65602c570da`. La entrega es una PR sin merge ni despliegue. Producción y UI administrativa requieren fases posteriores.
 
 ## Ejecución en Mac
@@ -81,8 +85,8 @@ Invitaciones: CSPRNG 32 bytes/256 bits, base64url 43 caracteres, locator UUID in
 | Lectura | Entrada | Respuesta mínima |
 |---|---|---|
 | `myScopes` | `kind:student/teacher`, paginación | scopes propios comprobados y título; pointers no conceden autoridad |
-| `roster` | scope, paginación | UID, etiqueta elegida explícitamente no verificada, estado; sin correo |
-| `requestStatus` | scope, requestId | solicitante propio o docente manageMembers; estado, membershipStatus y accessAllowed |
+| `roster` | scope, paginación | UID interno, etiqueta, estado/revisión y perfil mínimo nullable; correo Auth solo en proyección autorizada |
+| `requestStatus` | scope, requestId o inviteId propio | estado de solicitud/invitación, membershipStatus y accessAllowed; nunca secreto |
 | `groupRequests` | scope, paginación, status opcional pending/approved/rejected | solicitudes sanitizadas; manageMembers |
 | `groupInvitations` | scope, paginación | metadata/counters, nunca token/hash; manageInvitations |
 | `membershipEvents` | scope, paginación | eventos del grupo; readHistory |
@@ -146,11 +150,11 @@ Muestras sin retry de la suite (2026-10-23). Son intentos de documentos leídos 
 | Dar baja | 19 | 8 |
 | Transferir | 42 | 13 |
 | Crear periodo / grupo | 8 / 9 | 3 / 8 |
-| Roster con n integrantes (panel v1, detalle CAS incluido) | 6 + 3n | 0 |
+| Roster con n integrantes activos (detalle CAS y perfil académico) | 6 + 6n | 0 |
 | Lista de invitaciones/eventos con n filas | 6 + max(n,1) | 0 |
-| Estado de solicitud propia | 6 | 0 |
+| Estado de solicitud propia (incluye estado de invitación) | 7 | 0 |
 
-70 admisiones iniciales ≈2170 reads +1120 writes (solicitud+aprobación), más invitaciones. 70 bajas ≈1330 reads/560 writes; 70 transferencias ≈2940 reads/910 writes. Con el panel v1 y detalle CAS, revisar 70 integrantes en dos grupos de35 dos veces/día (páginas de20, ocho páginas totales) ≈468 intentos read/día. Reservar margen para retries/rechazos y sumar el presupuesto de progreso de #4 (~18500–22500 reads/día normal), compartiendo cuota del proyecto.
+70 admisiones iniciales ≈2170 reads +1120 writes (solicitud+aprobación), más invitaciones y perfil. 70 bajas ≈1330 reads/560 writes; 70 transferencias ≈2940 reads/910 writes. Con detalle CAS y perfil mínimo, revisar70 activos en dos grupos de35 dos veces/día (páginas20, ocho páginas totales) ≈888 intentos read/día. Reservar margen para retries/rechazos y sumar presupuesto de progreso #4 (~18500–22500 reads/día normal), compartiendo cuota.
 
 Referencia Spark Firestore: 50000 reads/día, 20000 writes/día, 20000 deletes/día, 1 GiB almacenado y 10 GiB salientes/mes. No son cuotas separadas por grupo ni garantías antiabuso. Estimación inicial de metadata 1–5 MiB/semestre requiere revisar crecimiento de recibos/eventos/índices y retención; no se activan TTL ni deletes automáticos. API no consulta status+fecha: usa ID y filtro status opcional. No necesita un índice compuesto nuevo para estas consultas; el emulador no valida requisitos de índices productivos. Revisar índices/exenciones y coste antes de una aprobación de producción.
 

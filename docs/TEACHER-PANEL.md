@@ -2,6 +2,10 @@
 
 Base: `f5b30f0773f7efd91508ff4e4274944dd8476829`, PR #16 fusionada. Esta fase agrega interfaz docente, sin merge ni despliegue autorizados. Reutiliza [ADR-003](architecture/ADR-003-academic-administration.md) y [API académica](ACADEMIC-ADMIN.md).
 
+La siguiente fase [STUDENT-ENROLLMENT.md](STUDENT-ENROLLMENT.md) incorpora inscripción visual, enlace local y perfil consentido; sustituye la limitación inicial de código sin pantalla de alumno y amplía la proyección/presupuesto del roster. Los resultados/capturas de este documento corresponden a la fase v1 original.
+
+La revisión actual de PR #18 incorpora «Invita a tus alumnos» y alta automática con correo verificado. Las solicitudes manuales descritas abajo son históricas, no pasos normales del nuevo producto. Accesos docentes solo se muestran tras myScopes autorizado; el alcance de simplificación general siguiente está registrado en #5, sin otra PR implementada.
+
 ## Arranque en Mac (Node 22, Java 21, zsh)
 
 En la rama `feat/teacher-panel-emulator`, instalar dependencias una vez:
