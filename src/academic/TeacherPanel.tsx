@@ -89,10 +89,9 @@ function GroupWorkspace({scope,scopes,call,refresh,prepare,busy}:{scope:Teaching
   return <><p className="teacher-current">Grupo seleccionado: <strong>{scope.title}</strong> · {scope.termTitle} · <span className="teacher-identifier">{scope.groupId}</span></p>
     <div className="teacher-summary" aria-label="Resumen de páginas consultadas">{[
       ['Integrantes activos en esta página',roster.data?.items.filter(m=>m.status==='active').length],
-      ['Solicitudes pendientes en esta página',requests.data?.items.filter(r=>r.status==='pending').length],
-      ['Invitaciones vigentes en esta página',invitations.data?.items.filter(i=>i.status==='active'&&Date.parse(i.expiresAt)>Date.now()&&i.acceptedCount<i.maxUses).length],
+      ['Solicitudes anteriores en esta página',requests.data?.items.length],
     ].map(([label,count])=><div className="paper" key={label}><strong>{count??'—'}</strong><span>{label}</span></div>)}</div><p className="muted">Cifras de las páginas consultadas, no totales globales. Cada sección tiene su propia paginación.</p>
-    <nav className="teacher-tabs" aria-label="Secciones del panel">{['Alumnos','Solicitudes','Invitaciones','Periodos y grupos'].map(t=><button className="button" key={t} aria-pressed={tab===t} disabled={busy} onClick={()=>setTab(t)}>{t}</button>)}</nav>
-    <div className="paper teacher-section" aria-busy={busy}>{tab==='Alumnos'?<Students scope={scope} scopes={scopes} page={roster} prepare={prepare} busy={busy}/>:tab==='Solicitudes'?<Requests scope={scope} page={requests} prepare={prepare} busy={busy} status={status} setStatus={setStatus}/>:tab==='Invitaciones'?<Invitations scope={scope} page={invitations} prepare={prepare} busy={busy}/>:<Creation scope={scope} call={call} refresh={refresh} prepare={prepare} busy={busy}/>}</div>
+    <nav className="teacher-tabs" aria-label="Secciones del panel">{['Alumnos','Solicitudes','Invitaciones','Periodos y grupos'].map(t=><button className="button" key={t} aria-pressed={tab===t} disabled={busy} onClick={()=>setTab(t)}>{t==='Solicitudes'?'Solicitudes anteriores':t}</button>)}</nav>
+    <div className="paper teacher-section" aria-busy={busy}>{tab==='Alumnos'?<Students scope={scope} scopes={scopes} page={roster} prepare={prepare} busy={busy}/>:tab==='Solicitudes'?<Requests scope={scope} page={requests} prepare={prepare} busy={busy} status={status} setStatus={setStatus}/>:tab==='Invitaciones'?<Invitations scope={scope} call={call} refresh={refresh} prepare={prepare} busy={busy}/>:<Creation scope={scope} call={call} refresh={refresh} prepare={prepare} busy={busy}/>}</div>
   </>;
 }

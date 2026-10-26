@@ -1,32 +1,33 @@
-# Inscripción y perfil académico mínimo · solo emuladores (#5)
+# Bienvenida de jugadores e inscripción automática · PR #18 revisada
 
-Base: `f5b660f61ae5805d2445ad61a4c2faae7245ab5b` (PR #17). Esta entrega agrega inscripción visual y una proyección académica mínima; no autoriza merge ni producción. Reutiliza [ADR-003](architecture/ADR-003-academic-administration.md), [API](ACADEMIC-ADMIN.md) y [panel docente](TEACHER-PANEL.md).
+Solo `demo-optilab-sync`, Auth/Firestore Emulator y API local. Se actualiza **la misma PR #18**, sin merge/despliegue. La [enmienda A de ADR-003](architecture/ADR-003-academic-administration.md) sustituye la aprobación individual como política normal del prototipo. Las pruebas manuales de la versión anterior no aprueban esta revisión; QA nuevo pendiente del propietario.
 
-## Probar en Mac con los procesos existentes
+## Arranque en la Mac existente
 
-Node22 y Java21. En la rama `feat/student-enrollment-emulator`:
+Desde `feat/student-enrollment-emulator`, Node22 y Java21:
 
 ```sh
+git fetch origin
+git switch feat/student-enrollment-emulator
+git pull --ff-only
 npm ci
 ```
 
-Conservar Auth9099 y Firestore8085 ya activos para `demo-optilab-sync`, sin reiniciarlos ni vaciarlos. Si todavía no existen, usar `npm run emulators:sync` con Java21. No usar el proyecto real `optilab-cd829`.
-
-El API5200 necesita **esta rama**: el propietario debe cerrar únicamente su API anterior con Ctrl+C en su terminal y ejecutar:
+Conservar Auth9099 y Firestore8085 activos para demo-optilab-sync. No reiniciarlos, no `clearFirestore`, no borrar fixtures. El propietario reinicia **solo su API anterior** (Ctrl+C en su terminal) desde esta rama:
 
 ```sh
 npm run academic:dev
 ```
 
-En otra terminal, frontend5195:
+Si Vite docente5195 ya está activo con `dev:academic-ui`, puede recargar los archivos de esta rama. Si no:
 
 ```sh
 npm run dev:academic-ui
 ```
 
-Si ya hay Vite docente activo en5195, puede servir los archivos de esta rama mediante su recarga local; no se detiene automáticamente. Si no está en modo académico emulado, el launcher informa la colisión y el propietario decide qué proceso local cerrar. Nunca matar/vaciar emuladores automáticamente. El cliente muestra error recuperable si el API anterior no conoce el nuevo contrato.
+Puertos ocupados se informan, nunca se matan procesos. El gate exige DEV, loopback, proyecto demo exacto, Auth9099, Firestore8085 y flag académico emulator. No editar ni mezclar `.env.local` o variables productivas.
 
-Se pueden reutilizar los correos/contraseña sintéticos del propietario. Para otro conjunto nuevo, preparación explícita opcional, sin borrar fixtures anteriores:
+Si hacen falta otras cuentas ficticias, seed explícito opcional (crea otro conjunto, no borra nada):
 
 ```sh
 read -s "ACADEMIC_FIXTURE_PASSWORD?Contraseña sintética (12–100 caracteres): "
@@ -35,67 +36,65 @@ ACADEMIC_BOOTSTRAP=synthetic-v1 npm run academic:seed:panel
 unset ACADEMIC_FIXTURE_PASSWORD
 ```
 
-### Recorrido visual completo
+El seed nuevo prepara un activo en A por canje directo y **cero solicitudes pendientes**. Fixtures anteriores del propietario pueden conservar solicitudes históricas: no se borran. Usar B para distinguir claramente las nuevas altas.
 
-1. En una ventana, abrir `http://127.0.0.1:5195/optilab/#/cuenta` y entrar con el correo sintético de **teacherBoth**. Abrir Docente y seleccionar **B** (el seed anterior tiene solicitudes de demostración en A).
-2. Invitaciones → elegir duración en horas/días y límites → Generar → Confirmar → **Copiar enlace de invitación**. El enlace solo se puede copiar de la primera respuesta o de una reemisión; no se recupera el secreto desde Firestore/listas/recibos.
-3. Abrirlo en **otra sesión de navegador** en la misma Mac (ventana privada u otro perfil), para no reemplazar la sesión docente. El enlace es local: en otro dispositivo127.0.0.1 apuntaría a ese otro dispositivo. GitHub Pages sigue bloqueando la funcionalidad.
-4. Entrar como alumno sintético (por ejemplo studentB), o registrarse con un correo sintético. La invitación sobrevive a la navegación a Cuenta, sin quedar en la URL. La verificación de correo usa el flujo Auth existente; no concede por sí misma matrícula ni permisos.
-5. Volver a **Mi perfil académico e inscripción**, declarar nombre completo y revisar el aviso de nombre/correo. La identidad de juego es optativa: compartir muestra una vista previa de los campos disponibles de la aventura de esa cuenta. Guardar y confirmar.
-6. **Solicitar inscripción → Confirmar**. Se muestra pendiente, sin presentarlo como grupo activo.
-7. Como teacherBoth, actualizar B → Solicitudes. Revisar nombre declarado, correo de Auth y, si se compartieron, gamertag/entrenador/OptiCriatura. Aprobar desde la interfaz.
-8. Como alumno, **Actualizar perfil y estado**: comprobar aprobación, acceso activo y grupo devuelto por `myScopes`.
-9. Probar rechazo con otra solicitud, retirar identidad de juego y refrescar el panel docente; comprobar que desaparece la proyección de juego. Cambiar nombre es otra actualización CAS del perfil; no cambia el apodo de la aventura.
-10. Recargar la inscripción: informar pérdida de invitación en memoria. Reabrir el enlace original recupera el estado de la solicitud propia, incluso si ya no se puede canjear. Nunca pegar enlaces/códigos/correos/UID/identificadores de fixtures ni capturas con secretos en GitHub.
+## Prueba manual recomendada
 
-No se afirma QA manual de esta entrega hasta que el propietario lo confirme.
+1. Profesora: `http://127.0.0.1:5195/optilab/#/cuenta`, entrar como **teacherBoth**, Docente → grupo B → Invitaciones. Ver «Invita a tus alumnos», duración y **Crear enlace de invitación**. Confirmar y **Copiar enlace**. No aparecen tokens, UUID, JSON, límites de pendientes ni cupos de admisión.
+2. Alumno: abrir el enlace en otra sesión de navegador de la misma Mac. Entrar como studentB o crear cuenta (correo o Google emulado). El enlace no activa nada por sí mismo; sus parámetros se retiran del fragmento y se conservan solo en memoria durante Auth.
+3. Bienvenida: nombre académico → gamertag/disponibilidad → uno de los seis entrenadores reales → una de las cinco familias de OptiCriaturas → confirmar. Los personajes usan los assets actuales y las evoluciones existentes.
+4. Cuenta con correo verificado: matrícula activa automáticamente; **sin solicitud pendiente y sin aprobación individual**. Actualizar roster docente y comprobar al alumno. Cuenta sin correo verificado: puede guardar su identidad/personalizar, pero el servidor rechaza el alta hasta verificar. Usar Cuenta y «Ya verifiqué mi correo · reintentar inscripción».
+5. Reutilizar enlace con studentC: ambos pueden entrar. Revocarlo e intentar con otro usuario: falla. **Generar nuevo enlace** explica que el anterior deja de funcionar. La rotación no expulsa a inscritos existentes.
+6. Dar baja a un alumno e intentar el enlace anterior: no readmite ni por replay. Solo una rotación posterior a la baja habilita nueva inscripción, si las demás políticas lo permiten.
+7. Probar un gamertag ocupado con otras mayúsculas; editar desde Mi aventura → «Cambiar gamertag y equipo». El anterior se libera atómicamente, sin borrar prácticas ni evoluciones. Nombre completo repetido sí está permitido.
+8. Comprobar que un alumno no ve Docente ni «Abrir panel de la profesora» en Cuenta; teacherA ve A, teacherB B y teacherBoth ambos. Acceso directo indebido también se rechaza. Logout/A→B limpia permisos e identidad cacheados y cancela respuestas anteriores.
+9. Compartir u ocultar juego: opt-in al confirmar; después «Ocultar mi identidad de juego a la profesora» no borra el gamertag reservado ni la matrícula. Refrescar roster para comprobar la proyección.
 
-## Enlace y sesión
+URLs locales: alumno `http://127.0.0.1:5195/optilab/#/bienvenida` (también `#/unirse` al recibir enlace); profesora `http://127.0.0.1:5195/optilab/#/docente`. El enlace no es público ni funciona en otros dispositivos apuntando a127.0.0.1. GitHub Pages bloquea estas rutas, chunks y peticiones; no se desplegó el backend.
 
-Formato: `<origen local>/optilab/#/unirse?courseId=…&termId=…&groupId=…&inviteId=…&token=…`. Los parámetros están **dentro del fragmento**, no en el query HTTP. Se usa `BASE_URL` de Vite para conservar `/optilab/` sin romper HashRouter. No QR ni códigos cortos.
+## Contrato y datos nuevos
 
-El consumidor se instala antes de renderizar HashRouter/Auth. Valida claves únicas, tamaños y formatos, y hace `history.replaceState` para retirar los parámetros antes de que el router los lea; también en `popstate/hashchange`, enlaces malformados y producción deshabilitada. No se registra el fragmento. El secreto queda solo en memoria del módulo, fuera del subtree por UID, para sobrevivir a login/registro. Se vincula al primer UID autenticado; logout/A→B lo descartan. Cada reapertura tiene una generación independiente para cancelar callbacks anteriores, aunque el enlace sea idéntico.
+| Operación enumerada | Autoridad / propósito |
+|---|---|
+| `groupEnrollmentLink` | staff curso/grupo + manageInvitations; devuelve estado/revisión/vencimiento, nunca secreto/locator/hash |
+| `rotateEnrollmentLink` | mismos permisos + expectedVersion/idempotencyKey/TTL; reemplaza atómicamente el único enlace; devuelve secreto una vez |
+| `revokeEnrollmentLink` | mismos permisos + CAS; bloquea canjes nuevos, no borra miembros |
+| `redeemInvitation` | UID de token, Auth actual habilitado/email verificado, enlace válido, contexto activo, identidad completa y pertenencia coherente; alta directa transaccional |
+| `getPlayerIdentity` | propia; identidad privada con gamertag/equipo/revisión, comprobando integridad de su reserva |
+| `gamertagAvailability` | autenticada, solo booleano; orientativa, no revela dueño ni reserva |
+| `savePlayerIdentity` | propio UID, expectedVersion/expectedProfileVersion, gamertag/nombre/equipo/consentimiento; reserva y perfil atómicos |
 
-Tras confirmar o recuperar una solicitud se elimina el token de memoria y se conserva solo su contexto no secreto, ligado a la sesión. Recarga/cierre de pestaña lo pierde; reabrir original permite la consulta privada por locator. No localStorage/sessionStorage, progreso, Firestore, logs, analytics, recibos ni historial académico con el token. La copia al portapapeles es una acción explícita de la profesora; no se imprime el enlace en el panel estudiantil. No se envía en enlaces de verificación de Auth.
+Paths nuevos v2: `groups/{g}/enrollmentLink/current` bajo el curso/periodo; `playerIdentities/{uid}` y `gamertagReservations/{sha256(normalized)}`. Sin campos añadidos a documentos v1. Se reutiliza `admissionWrites` para grants/detalle/index/pointer/roster y el sistema de auditoría/recibos. Sin escrituras administrativas de Firestore desde React. El repositorio sigue excluyendo progreso/epochs.
 
-Cliente con ID token del SDK existente, comprobaciones de UID/generación antes y después de cada respuesta, AbortControllers y timeout. Intenciones idempotentes mantienen clave/payload ante ACK perdido; no hay éxito optimista. Es posible salir de la cuenta desde la confirmación pendiente: no garantiza cancelar una solicitud ya recibida por el servidor. Se recupera su estado al volver, sin aplicarlo a otra cuenta.
+El enlace usa token CSPRNG32 bytes/256bits + SHA256; un pointer único sustituye cualquier enlace directo anterior del grupo. No se guarda texto recuperable. El enlace perdido se regenera/rota, nunca se muestra desde un hash/recibo. Caducado/revocado/rotado/incorrecto produce indisponibilidad genérica. Los enlaces de la versión previa, que generaban solicitudes, no sirven para el canje directo; generar uno nuevo desde la interfaz. APIs heredadas y registros previos se conservan para compatibilidad, no como flujo normal.
 
-El gate académico completo no cambia: DEV, hostname loopback, proyecto demo exacto, Auth9099/Firestore8085 exactos y `VITE_ACADEMIC_ADMIN=emulator`. Fuera del gate no existen rutas docentes/estudiantiles ni se solicitan sus chunks o API. Authentication productivo no se modifica.
+El canje verifica de nuevo dentro de la transacción, incluidos replays. Un estudiante ya activo no duplica grants ni consumo. Una baja impide usar un enlace creado antes de su última revocación. La política multigrupo de curso y una suspensión de afiliación siguen prevaleciendo. Una rotación concurrente/revocación compite sobre el mismo documento; no hay check-then-write no transaccional.
 
-## Perfil y autorización
+### Capacidad transferible y uso justo
 
-Documento separado **`academicProfiles/{uid}`, schemaVersion2**: UID, revisión CAS, nombre completo declarado (3–120), correo y `emailVerified` obtenidos por Admin Auth `getUser(uid)`, consentimiento de juego, nickname (≤30)/avatarId/companionId opcionales y timestamp. Sin cambios a documentos v1. El API no lee progreso para construirlo: el alumno ofrece explícitamente solo los tres campos de identidad de su aventura aislada por cuenta, nunca prácticas/resultados/hitos/evoluciones/backups.
+**Cambio de riesgo:** ya no hay filtro humano por alumno. Quien reciba por reenvío un enlace vigente y tenga cuenta/correo verificado/onboarding podrá inscribirse. No se implementa allowlist institucional ni acceso por correo conocido. Compartir solo con el grupo, caducar y revocar/rotar ante filtraciones. El enlace nunca concede staff o permisos docentes.
 
-El nombre y la identidad de juego son declarados, no verificados. El correo es una **instantánea de Auth al guardar**, no un campo libre ni una garantía perpetua de verificación. Se muestra su fecha y se puede guardar otra vez después de verificar/cambiar correo. Auth y Firestore no forman una transacción distribuida. Los IDs de entrenador/criatura se validan contra el catálogo actual; ausencia no usa personajes predeterminados como datos compartidos.
+No maxUses/cupo70 ni límite total de estudiantes en el enlace nuevo. `acceptedCount` es telemetría interna, no un límite. Existe una ventana transaccional de **30 nuevas altas/10 segundos**, que se repone; y el limiter HTTP IP/UID configurable ya existente (default60/minuto, memoria acotada). Reintentos del mismo miembro no consumen otra alta. Son controles temporales técnicos, no cupos académicos; pueden devolver429 y deben reintentarse después. Verificado/onboarding, límites de entrada, tokens de alta entropía y transacciones complementan esos controles. No se afirma defensa distribuida/productiva completa ni costo garantizado.
 
-Consentimiento de juego desmarcado inicialmente; con él, el formulario muestra la copia mínima que se compartirá. Cambiar la aventura no publica actualizaciones automáticamente: hay que actualizar la copia y confirmar. Desmarcar/retirar consentimiento reemplaza todos los campos de juego por null en la misma actualización CAS. Nombre/correo básicos permanecen para identificación académica; eliminación/retención completa sigue pendiente de política. No se guardan snapshots de PII en recibos/eventos, ni se publican nombres/correos en rankings.
+### Gamertag global e identidad
 
-Las proyecciones docentes se unen al perfil **actual dentro del mismo snapshot de lectura** después de autorizar staff/capacidad de curso/grupo exactos. Solo integrantes activos con afiliación de curso vigente o solicitudes pendientes canjeables del propio ámbito. Solicitudes rechazadas, vencidas/revocadas/agotadas o anteriores a la última baja no abren acceso fresco al perfil. Tras transferencia, el antiguo grupo no conserva lectura del perfil actualizado por la matrícula revocada. La retirada se refleja en las próximas consultas; no puede retirar lo ya descargado.
+- Normalización definida: **Unicode NFKC → trim → minúsculas ECMAScript independientes de locale**. Se permite el resultado ASCII A–Z/a–z/0–9/underscore,3–20 caracteres (entrada cruda≤80). Compatibilidad fullwidth/NFKC y mayúsculas colisionan; acentos/otros alfabetos no se admiten en gamertag por esta política de namespace. El nombre académico conserva Unicode y puede repetirse.
+- Una reserva normalizada pertenece a un único UID; se leen identidad, reserva nueva/previa y perfil antes de todos los writes. Cambiar gamertag libera el anterior como tombstone `released` y asigna el nuevo en la **misma transacción**. No borrar índices desde el navegador, no reserva por consulta de disponibilidad, no UID libre. Una carrera devuelve409 sin sobrescribir la identidad previa.
+- Disponibilidad es orientativa. Los reintentos conservan idempotencyKey/payload; doble clic no duplica. Reserva válida y coherente se comprueba también antes de canjear.
+- **Borrado de cuenta:** no se agrega endpoint de borrar Auth ni liberación por UID suministrado. La política conservadora es retener la reserva al borrar/deshabilitar una cuenta, evitando suplantación y reutilización accidental. Antes de habilitar liberación por eliminación se requiere operación confiable que compruebe ausencia definitiva en Auth, revisión/propiedad del índice, plazo de retención aprobado y auditoría; nunca liberar solo porque una consulta falló. Cambio voluntario de gamertag sí libera el anterior ya implementado. No hay limpieza automática de fixtures/cuentas en esta entrega.
+- Usuarios anteriores sin identidad reservada hacen una única migración guiada, prellenando nombre y opciones propias disponibles; deben confirmar la reserva. Usuarios completados no repiten el wizard al abrir otra invitación. La identidad de cuenta se restaura en cosméticos faltantes de la aventura UID-bound; nunca resetea resultados, rutas, epoch ni evidencia evolutiva. Al confirmar un cambio explícito, solo actualiza nickname/avatar/compañero por el motor existente. La persistencia global no usa localStorage ni el progreso como índice.
+- Correo/estado de verificación provienen de Auth actual del servidor, no del payload. Se puede completar onboarding sin correo verificado, pero no recibir una nueva matrícula directa. Nombre/juego son declarados. El consentimiento sigue optativo/revocable; perfiles antiguos tolerados. La API heredada de perfil no puede falsificar un gamertag reservado: proyecta la identidad canónica si ya existe. No hay rankings públicos ni acceso docente a progreso privado.
 
-Sin perfil en fixtures anteriores, se conserva la etiqueta heredada claramente no verificada y se muestra ausencia del perfil; no se deducen correos ni personajes. UID oculto de la lista principal, disponible en detalles técnicos. La autorización docente existente permanece intacta y nunca abre `users/{uid}/sync/current` ni epochs.
+## Seguridad de navegador y pruebas
 
-## Contratos ampliados, enumerados y autenticados
+Se conserva HashRouter `/optilab/#/unirse?...` con token en fragmento, limpieza antes del router/Auth, validación y memoria fuera del subtree UID durante login; sesiones/reaperturas se aíslan por generación. No tokens en logs/storage/FireStore/progreso/historial ni URLs HTTP. Tras confirmar, se descarta el secreto; para recuperar un enlace perdido, la profesora lo rota. La disponibilidad/identidad/acceso docente consultan el backend con el ID token existente y AbortControllers. `myScopes` real confirma accesos; no emails/roles cliente/nombres hardcodeados. Ocultos hasta comprobar y limpios en logout/A→B, con revalidación al volver al foco.
 
-| Operación | Entrada | Salida / regla |
-|---|---|---|
-| `getAcademicProfile` (nueva lectura) | `{}` | `{profile,revision}`, propio UID del token; ausente = null/revisión0 |
-| `updateAcademicProfile` (nuevo comando) | idempotencyKey, expectedVersion, fullName, shareGameIdentity, nickname/avatarId/companionId nullable | UID/correo/rol nunca aceptados del payload; CAS e idempotencia; correo desde Auth; recibo solo metadata |
-| `requestMembership` | contrato existente | Sin cambios de grants ni alta directa; la UI requiere perfil guardado; clientes/fixtures anteriores pueden seguir solicitando sin él |
-| `requestStatus` | scope + **uno** de requestId o inviteId | Consulta privada; con inviteId el servidor resuelve exclusivamente la solicitud del UID autenticado, sin necesitar secreto para recuperar su estado |
-| `requestStatus` salida | campos existentes + invitationState | active/expired/revoked/exhausted/unavailable; separar estado de solicitud, membresía y accessAllowed |
-| `roster` / `groupRequests` | contratos existentes | Agregan academicProfile nullable con datos mínimos/consentimiento actual; schema/grants v1 sin modificaciones |
-| `myScopes` | `kind:student` existente | Paginación de matrículas reales, sin convertir pendientes en activas |
+Wrappers y entorno: los de [ACADEMIC-ADMIN.md](ACADEMIC-ADMIN.md). Con procesos propios libres: `npm run test:academic`, `npm run test:teacher`, `TEACHER_BROWSER=webkit npm run test:teacher`, gates de producción. Con procesos del propietario ya activos, usar entorno explícito + `TEACHER_REUSE_VITE=1 npm run test:teacher:ui`; solo opt-in local, nunca CI. El transporte de tests usa HTTP real a backend loopback efímero, conservando Auth/Firestore/autoridad; no toma5200 ni borra fixtures.
 
-Errores de un canje inicial inválido/vencido/revocado/agotado siguen siendo **el mismo404**, por anti-enumeración de ADR-003. La UI informa indisponibilidad y pide otro enlace, sin fingir conocer la causa. Para una solicitud propia existente sí se devuelve el estado de invitación concreto. Una invitación agotada/revocada después de la aprobación no revoca por sí misma una matrícula activa; una baja o suspensión sí cambia el acceso efectivo.
+Cobertura backend:68 casos, incluyendo60 anteriores conservados y8 nuevos de alta directa/reservas/race/liberación/verificación/rotación/ventana técnica. UI:44 por navegador (18 de jugadores y26 del panel/históricos adaptados al nuevo producto), Google/correo, estudiantes/docentes, matrícula sin aprobación, baja, caducidad/revocación, reaperturas, cambios, reserva orientativa/real, privacidad y390/820/1180/1440/teclado/Axe. CI revalida Auth/Rules/sync y35 regresiones existentes de aventura/entrenadores/evoluciones. QA manual nuevo no aprobado; resultados finales del HEAD se registran en PR #18.
 
-Perfil propio:1 intento read; actualizar sin retry:2 intentos read/3 writes confirmados + lookup Auth, sin facturación medida. Roster activo con perfil: `6+6n` intentos read/página (incluye consultas de pertenencia/proyección);70 alumnos, dos grupos de35, dos recorridos/día con páginas20 ≈888 intentos read. Requests añaden validación de invitación/readmisión. Se mantienen límites/paginación y cuotas compartidas con #4; sin listeners académicos ni scans de perfiles/Auth.
+## Siguiente PR (solo alcance, no implementada)
 
-## Pruebas y límites de entrega
+Continuar en #5, sin duplicar #9/#12: «Mis grupos» en vez de «Periodos y grupos»; IDs técnicos fuera de vistas principales; explicar semestre/oferta y mostrar tarjetas amigables; acción por alumno «Mover de grupo» con modal «¿A qué grupo quieres mover a este alumno?», destinos como tarjetas/botones y confirmación dentro; preservar origen+destino autorizados, transacción y CAS; nombres/correos/gamertags claros; retirar solicitudes históricas de la experiencia normal y conservar reutilización de periodos entre generaciones. No se inicia otra PR ahora.
 
-Se reutilizan los wrappers `test:academic`, `test:teacher` y la matriz Chromium/WebKit de PR, sin nuevos servicios. Con emuladores propios libres, comandos del manual docente. Con emuladores/Vite del propietario ya activos, entorno explícito de `ACADEMIC-ADMIN.md`, más `TEACHER_REUSE_VITE=1` (solo opt-in local; CI no reutiliza servidores) y `npm run test:teacher:ui`. No se modifican ni vacían procesos/fixtures del propietario; el backend de tests continúa en loopback efímero con transporte real.
-
-Cobertura de esta entrega:60 pruebas académicas;20 escenarios nuevos de inscripción por navegador más26 del panel previo =46 UI por navegador. Incluye Auth/registro/verificación, estados, carreras, CAS, consentimiento, acceso A/B, personal no autorizado/revocado, ACK perdido, cambio de cuenta, token fuera de red/almacenamiento/DOM, recarga/reapertura, móvil/teclado/Axe. Gate productivo en ambos navegadores. CI reutiliza Auth/Rules/sync y agrega regresión existente de aventura, entrenadores y evoluciones. Resultados finales y cualquier fallo se registran en la PR.
-
-En desarrollo se corrigieron dos fallos reales detectados: la reapertura idéntica necesitaba generación propia para refrescar el estado, y la confirmación pendiente necesitaba una salida de sesión accesible. No se presentan las primeras ejecuciones parciales como verdes.
-
-#5 sigue abierto por QA manual nuevo, políticas definitivas, privacidad/retención, alojamiento y seguridad productiva. Puertas #3/#4 pendientes. No despliegue backend/Pages/Rules/índices, cambios Auth o datos reales, billing/Blaze/Functions/Vercel, juegos externos, adjuntos, editor, analíticas ni Liga.
+#5 sigue abierto por QA/políticas reales/retención/hosting/seguridad. Puertas #3/#4 pendientes. No merge, backend/Pages/Rules/índices desplegados, IAM/Auth/datos reales, billing/Blaze/Functions/Vercel, adjuntos, editor, estadísticas o Liga.

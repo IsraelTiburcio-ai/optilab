@@ -69,9 +69,10 @@ export {expect};
 export async function login(page:Page,fixture:Fixture,actor:keyof Fixtures['actors']='teacherA') {
   await page.goto('#/cuenta');await page.getByLabel('Correo electrónico',{exact:true}).fill(fixture.f.actors[actor].email);
   await page.locator('#account-password').fill(password);await page.getByRole('button',{name:'Entrar a mi cuenta',exact:true}).click();
-  await expect(page.getByText('SESIÓN INICIADA',{exact:true})).toBeVisible();
-  await page.goto('#/docente');await expect(page.getByRole('heading',{name:'Panel de la profesora'})).toBeVisible();
+  if(actor.startsWith('teacher'))await expect(page.getByText('SESIÓN INICIADA',{exact:true})).toBeVisible();
+  else await expect(page.getByRole('heading',{name:'¿Cómo te llamas?'})).toBeVisible();
+  await page.goto('#/docente');if(!fixture.fault.legacy)await expect(page.getByRole('heading',{name:actor.startsWith('teacher')?'Panel de la profesora':'Sin acceso docente autorizado'})).toBeVisible();
 }
 export async function ready(page:Page) {await expect(page.getByLabel('Grupo',{exact:true})).toBeVisible();await expect(page.getByText('Comprobando tus grupos autorizados…')).toHaveCount(0);}
-export async function tab(page:Page,name:string){await page.getByRole('navigation',{name:'Secciones del panel'}).getByRole('button',{name,exact:true}).click();}
+export async function tab(page:Page,name:string){await page.getByRole('navigation',{name:'Secciones del panel'}).getByRole('button',{name:name==='Solicitudes'?'Solicitudes anteriores':name,exact:true}).click();}
 export async function confirm(page:Page){await page.getByRole('dialog').getByRole('button',{name:'Confirmar',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);}

@@ -22,5 +22,6 @@ test('production build stays guest/local with zero Firebase requests even when a
   await page.goto('#/unirse?courseId=demo&termId=demo&groupId=demo&inviteId=demo&token='+('A'.repeat(43)),{waitUntil:'domcontentloaded'});
   await expect(page.getByRole('heading',{name:'Te saliste del sendero'})).toBeVisible();
   expect(page.url().includes('token=')).toBe(false);
+  await page.goto('#/bienvenida',{waitUntil:'domcontentloaded'});await expect(page.getByRole('heading',{name:'Te saliste del sendero'})).toBeVisible();
   expect(firebase).toEqual([]);expect(chunks).toEqual([]);
 });

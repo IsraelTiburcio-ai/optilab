@@ -1,9 +1,12 @@
 import {academicEnabled} from './config';
 import type {Api} from './types';
 export class AcademicError extends Error {
-  constructor(readonly status:number,readonly uncertain=false){super(message(status,uncertain));}
+  constructor(readonly status:number,readonly uncertain=false,readonly code=''){super(message(status,uncertain,code));}
 }
-function message(status:number,uncertain:boolean) {
+function message(status:number,uncertain:boolean,code:string) {
+  if(code==='GAMERTAG_TAKEN')return 'Ese gamertag ya está ocupado. Elige otro; tus datos anteriores no se cambiaron.';
+  if(code==='VERIFIED_EMAIL_REQUIRED')return 'Verifica tu correo desde Cuenta y actualiza la sesión para completar la inscripción.';
+  if(code==='ONBOARDING_REQUIRED')return 'Completa tu bienvenida antes de inscribirte.';
   if(uncertain)return 'No pudimos confirmar la respuesta del API local. Comprueba que esté encendido y reintenta exactamente la misma operación.';
   return ({401:'La sesión ya no es válida. Vuelve a entrar desde Cuenta.',403:'No tienes permiso para esta operación o se retiró tu acceso. Actualiza tus grupos.',
     502:'El API local devolvió un contrato incompatible. Reinícialo desde esta rama y actualiza los grupos.',
@@ -23,7 +26,8 @@ export function academicClient(session:{uid:string;getIdToken:(uid:string)=>Prom
       const response=await fetch(`http://127.0.0.1:5200/v1/${operation}`,{method:'POST',redirect:'error',cache:'no-store',signal:AbortSignal.any([signal,AbortSignal.timeout(12000),...(cancel?[cancel]:[])]),
         headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(input)});
       if(signal.aborted||!session.current())throw new DOMException('Sesión cambiada','AbortError');
-      if(!response.ok)throw new AcademicError(operation==='getAcademicProfile'&&response.status===404?502:response.status);
+      if(!response.ok){let code='';try{const body=await response.json();if(['GAMERTAG_TAKEN','VERIFIED_EMAIL_REQUIRED','ONBOARDING_REQUIRED'].includes(body.error?.code))code=body.error.code;}catch{/* Never expose raw server errors. */}
+        throw new AcademicError(['getAcademicProfile','getPlayerIdentity'].includes(operation)&&response.status===404?502:response.status,false,code);}
       const result=await response.json();
       if(signal.aborted||!session.current())throw new DOMException('Sesión cambiada','AbortError');
       if(!compatible(operation,input,result))throw new AcademicError(502);
@@ -36,6 +40,9 @@ export type AcademicCall=ReturnType<typeof academicClient>;
 function compatible(operation:keyof Api,input:unknown,result:unknown):boolean {
   if(!result||typeof result!=='object')return false;
   const data=result as Record<string,unknown>;
+  if(operation==='getPlayerIdentity')return data.identity===null||!!data.identity&&typeof data.identity==='object'&&typeof (data.identity as {gamertag:unknown}).gamertag==='string';
+  if(operation==='gamertagAvailability')return typeof data.available==='boolean';
+  if(operation==='groupEnrollmentLink')return data.link===null||!!data.link&&typeof data.link==='object'&&Number.isInteger((data.link as {revision:number}).revision);
   if(operation==='getAcademicProfile')return Number.isSafeInteger(data.revision)&&validProfile(data.profile);
   if(operation==='requestStatus')return ['pending','approved','rejected'].includes(String(data.status))&&['active','revoked','none'].includes(String(data.membershipStatus))&&typeof data.accessAllowed==='boolean'&&typeof data.requestId==='string'&&typeof data.invitationState==='string';
   if(['roster','groupRequests','groupInvitations','myScopes'].includes(operation)){

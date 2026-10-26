@@ -1,29 +1,27 @@
-import {useState} from 'react';
-import type {Invitation,MutationResult,TeachingScope} from './types';
-import type {PagedState} from './usePage';
-import {Pagination,SectionState,key,scopeInput,type Prepare} from './components';
+import {useEffect,useState} from 'react';
+import type {AcademicCall} from './client';
+import type {EnrollmentLink,TeachingScope} from './types';
+import {key,scopeInput,type Prepare} from './components';
 import {invitationLink} from './invitationMemory';
-export function Invitations({scope,page,prepare,busy}:{scope:TeachingScope;page:PagedState<Invitation>;prepare:Prepare;busy:boolean}) {
-  const [ttl,setTtl]=useState(86400),[maxUses,setUses]=useState(70),[maxPending,setPending]=useState(70);
-  const [unit,setUnit]=useState(86400);
-  const [secret,setSecret]=useState<{token:string;inviteId:string}|null>(null),[copy,setCopy]=useState(''),[lost,setLost]=useState(false);
-  function created(result:MutationResult){setCopy('');setSecret(result.token&&result.inviteId?{token:result.token,inviteId:result.inviteId}:null);setLost(!result.token);}
-  if(!scope.capabilities.manageInvitations)return <p>No tienes capacidad para gestionar invitaciones en este grupo.</p>;
-  const fields={expiresInSeconds:ttl,maxUses,maxPending};
-  return <section aria-labelledby="teacher-invitations"><h2 id="teacher-invitations">Invitaciones</h2><p>Solicitud y aprobación obligatorias. El enlace abre la inscripción visual del alumno en este entorno local de emuladores; no activa inscripciones en GitHub Pages ni en otros dispositivos.</p>
-    <form onSubmit={e=>{e.preventDefault();setSecret(null);setLost(false);prepare({operation:'createInvitation',input:{...scopeInput(scope),...fields,idempotencyKey:key()},label:'Generar invitación',description:`Crear una invitación para ${scope.title}, válida ${ttl} segundos, hasta ${maxUses} admisiones y ${maxPending} solicitudes pendientes.`,done:created});}}>
-      <fieldset disabled={busy}><legend>Condiciones de la nueva invitación o reemisión</legend><div className="teacher-controls"><label>Duración de la invitación<input type="number" min={1} max={604800/unit} step={1} required value={ttl/unit} onChange={e=>setTtl(Number(e.target.value)*unit)}/></label>
-      <label>Unidad de duración<select aria-label="Unidad de duración" value={unit} onChange={e=>{const next=Number(e.target.value);setUnit(next);setTtl(Math.max(next,Math.min(604800,Math.ceil(ttl/next)*next)));}}><option value={3600}>Horas</option><option value={86400}>Días</option></select></label>
-      <label>Admisiones máximas<input type="number" min={1} max={100} required value={maxUses} onChange={e=>setUses(Number(e.target.value))}/></label><label>Pendientes máximos<input type="number" min={1} max={100} required value={maxPending} onChange={e=>setPending(Number(e.target.value))}/></label></div><button className="button primary" type="submit">Generar invitación</button></fieldset>
+export function Invitations({scope,call,refresh,prepare,busy}:{scope:TeachingScope;call:AcademicCall;refresh:number;prepare:Prepare;busy:boolean}){
+  const [link,setLink]=useState<EnrollmentLink|null>(null),[loaded,setLoaded]=useState(false),[error,setError]=useState('');
+  const [duration,setDuration]=useState(7),[unit,setUnit]=useState(86400),[secret,setSecret]=useState<{inviteId:string;token:string}|null>(null),[notice,setNotice]=useState('');
+  useEffect(()=>{const controller=new AbortController();setLoaded(false);setError('');
+    void call('groupEnrollmentLink',scopeInput(scope),controller.signal).then(r=>{if(!controller.signal.aborted){setLink(r.link);setLoaded(true);}}).catch(e=>{if(!controller.signal.aborted)setError(e.message);});
+    return ()=>controller.abort();},[call,scope.courseId,scope.termId,scope.groupId,refresh]);
+  if(!scope.capabilities.manageInvitations)return <p>No tienes permiso para invitar alumnos a este grupo.</p>;
+  return <section aria-labelledby="teacher-invitations"><h2 id="teacher-invitations">Invita a tus alumnos</h2><p>Grupo seleccionado: <strong>{scope.title}</strong>. Los alumnos con cuenta y correo verificado podrán inscribirse automáticamente.</p>
+    <p>El enlace se puede reutilizar por diferentes alumnos mientras esté vigente. No hay un cupo académico de admisiones. Comparte el enlace solo con tu grupo: quien lo reciba y cumpla los requisitos podrá entrar.</p>
+    {error&&<p role="alert" className="teacher-error">{error}</p>}{!loaded&&!error&&<p role="status">Consultando el enlace del grupo…</p>}
+    {loaded&&<p role="status">Estado: <strong>{link?({active:'Activo',expired:'Vencido',revoked:'Revocado'})[link.status]:'Sin enlace'}</strong>{link&&` · Vence ${new Date(link.expiresAt).toLocaleString('es')}`}</p>}
+    <form onSubmit={e=>{e.preventDefault();setSecret(null);setNotice('');prepare({operation:'rotateEnrollmentLink',input:{...scopeInput(scope),expectedVersion:link?.revision??0,idempotencyKey:key(),expiresInSeconds:duration*unit},
+      label:link?'Generar nuevo enlace':'Crear enlace de invitación',description:link?'El enlace anterior dejará de funcionar. Los alumnos ya inscritos conservarán su matrícula.':'Crear un enlace reutilizable para inscribir alumnos automáticamente en este grupo.',
+      done:r=>{setSecret(r.inviteId&&r.token?{inviteId:r.inviteId,token:r.token}:null);if(!r.token)setNotice('La operación fue confirmada, pero el enlace no se puede recuperar. Genera uno nuevo para invalidar el anterior.');}});}}>
+      <fieldset disabled={busy||!loaded}><legend>Duración del enlace</legend><div className="teacher-controls"><label>Duración<input required type="number" min={1} max={604800/unit} step={1} value={duration} onChange={e=>setDuration(Number(e.target.value))}/></label><label>Unidad<select aria-label="Unidad de duración" value={unit} onChange={e=>{const next=Number(e.target.value);setDuration(Math.min(604800/next,Math.max(1,Math.ceil(duration*unit/next))));setUnit(next);}}><option value={3600}>Horas</option><option value={86400}>Días</option></select></label></div>
+        <button className="button primary" type="submit">{link?'Generar nuevo enlace':'Crear enlace de invitación'}</button></fieldset>
     </form>
-    {secret&&<div className="teacher-secret" aria-label="Código de invitación recién generado"><h3>Código visible una sola vez</h3><p>Al salir de esta sección, actualizar o cambiar de cuenta se descarta. No lo publiques en capturas ni issues.</p><label>Identificador de invitación<input readOnly value={secret.inviteId}/></label><label>Token de invitación<input readOnly value={secret.token} autoComplete="off" spellCheck={false}/></label>
-      <button className="button" onClick={()=>{const text=JSON.stringify({...scopeInput(scope),inviteId:secret.inviteId,token:secret.token});void navigator.clipboard.writeText(text).then(()=>setCopy('Código copiado al portapapeles.')).catch(()=>setCopy('No se pudo copiar. Puedes seleccionarlo manualmente.'));}}>Copiar código</button>
-      <button className="button" onClick={()=>{const link=invitationLink(location.origin,import.meta.env.BASE_URL,{...scopeInput(scope),...secret});void navigator.clipboard.writeText(link).then(()=>setCopy('Enlace local de invitación copiado. Ábrelo en una ventana o perfil de alumno de esta Mac.')).catch(()=>setCopy('No se pudo copiar el enlace. Revisa el permiso del portapapeles y reintenta.'));}}>Copiar enlace de invitación</button>
-      <button className="button" onClick={()=>{setSecret(null);setCopy('');}}>Ocultar código</button><p role="status">{copy}</p></div>}
-    {lost&&<p role="status">Respuesta confirmada sin secreto recuperable. Consulta la lista y reemite la invitación si necesitas un código nuevo.</p>}
-    <SectionState loading={page.loading} error={page.error} empty={!page.data?.items.length}><ul className="teacher-records">{page.data?.items.map(inv=><li className="teacher-record" key={inv.inviteId}><div><strong>Invitación</strong><span className="teacher-identifier">ID: {inv.inviteId}</span><span className="teacher-badge">{inv.status==='revoked'?'Revocada':Date.parse(inv.expiresAt)<=Date.now()?'Vencida':inv.acceptedCount>=inv.maxUses?'Agotada':'Activa'}</span><p>Admisiones: {inv.acceptedCount}/{inv.maxUses} · Pendientes: {inv.pendingCount}/{inv.maxPending}</p><small>Vence: {new Date(inv.expiresAt).toLocaleString('es')}</small></div>
-      <div className="teacher-actions"><button className="button" disabled={busy||inv.status==='revoked'} onClick={()=>{setSecret(null);prepare({operation:'revokeInvitation',input:{...scopeInput(scope),inviteId:inv.inviteId,expectedVersion:inv.revision,idempotencyKey:key()},label:'Revocar invitación',description:`Desactivar la invitación de ${scope.title}. No da de baja a integrantes ya admitidos.`});}}>Revocar</button>
-      <button className="button" disabled={busy||!Number.isInteger(ttl)||ttl<1||ttl>604800||maxUses<1||maxUses>100||maxPending<1||maxPending>100} onClick={()=>{setSecret(null);prepare({operation:'reissueInvitation',input:{...scopeInput(scope),...fields,inviteId:inv.inviteId,expectedVersion:inv.revision,idempotencyKey:key()},label:'Reemitir invitación',description:'Revocar el código anterior y generar uno nuevo con las condiciones del formulario.',done:created});}}>Reemitir</button></div>
-    </li>)}</ul></SectionState><Pagination {...page} nextCursor={page.data?.nextCursor} disabled={busy||page.loading}/>
+    {secret&&<div className="teacher-secret"><h3>Tu enlace está listo</h3><p>Se conserva solo mientras estás en esta sección. Si lo pierdes, genera otro: no almacenamos su secreto para recuperarlo.</p><button className="button primary" onClick={()=>{const value=invitationLink(location.origin,import.meta.env.BASE_URL,{...scopeInput(scope),...secret});void navigator.clipboard.writeText(value).then(()=>setNotice('Enlace copiado. Ábrelo en una sesión de alumno de esta Mac.')).catch(()=>setNotice('No se pudo copiar. Revisa el permiso del portapapeles y reintenta.'));}}>Copiar enlace</button></div>}
+    {notice&&<p role="status">{notice}</p>}
+    {link&&<button className="button" disabled={busy||!loaded||link.status==='revoked'} onClick={()=>{setSecret(null);prepare({operation:'revokeEnrollmentLink',input:{...scopeInput(scope),expectedVersion:link.revision,idempotencyKey:key()},label:'Revocar enlace',description:'Los nuevos alumnos ya no podrán utilizarlo. No se borran las matrículas existentes.'});}}>Revocar enlace</button>}
   </section>;
 }

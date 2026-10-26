@@ -4,6 +4,8 @@
 
 **Inscripción estudiantil y perfil mínimo:** [STUDENT-ENROLLMENT.md](STUDENT-ENROLLMENT.md) agrega el enlace HashRouter seguro, consultas/escritura autenticadas de perfil propio y proyección docente condicionada. No concede lectura de progreso ni modifica Rules.
 
+**PR #18 rediseñada:** la enmienda A de ADR-003 cambia el flujo normal a canje directo con correo verificado, un enlace rotatorio por grupo y onboarding/gamertag atómico. La solicitud/aprobación de las secciones históricas siguientes queda solo como compatibilidad; usar el contrato vigente de STUDENT-ENROLLMENT.md. No hay cupo70 ni maxUses en los nuevos enlaces.
+
 Backend modular Node 22/TypeScript con Auth y Firestore Emulator. Rama basada en el merge documental de PR #15, `41c2ebe9fb79dbdb9ff358de5b07c65602c570da`. La entrega es una PR sin merge ni despliegue. Producción y UI administrativa requieren fases posteriores.
 
 ## Ejecución en Mac

@@ -6,6 +6,7 @@ import {exact,integer,parseInput} from './validation';
 import {millis,invitation,details} from './models';
 import {conflict} from './errors';
 import {plan,type Plan} from './plans';
+import {playerDocument} from './playerModel';
 export interface AuthIdentity {email:string|null;emailVerified:boolean}
 export function profileDocument(raw:Data|null,uid:string):Data|null {
   if(!raw)return null;
@@ -22,12 +23,14 @@ export function publicProfile(raw:Data|null):Data|null {
 export async function ownProfile(r:Reader,uid:string):Promise<Data> {
   const p=profileDocument(await r.get(`academicProfiles/${uid}`),uid);return {profile:publicProfile(p),revision:p?.revision??0};
 }
-export async function updateProfile(r:Reader,actor:Actor,input:Input,identity:AuthIdentity,time:()=>unknown):Promise<Plan> {
+export async function updateProfile(r:Reader,actor:Actor,input:Input,identity:AuthIdentity,time:()=>unknown,playerOverride?:Data):Promise<Plan> {
   if(identity.email!==null&&(identity.email.length>254||!/^[^\s@]+@[^\s@]+$/.test(identity.email)))throw conflict();
   const old=profileDocument(await r.get(`academicProfiles/${actor.uid}`),actor.uid),revision=old?.revision??0;
   if(revision!==input.expectedVersion)throw conflict();
+  const player=playerOverride??playerDocument(await r.get(`playerIdentities/${actor.uid}`),actor.uid);
   const data={schemaVersion:2,uid:actor.uid,revision:revision+1,fullName:input.fullName!,...identity,shareGameIdentity:input.shareGameIdentity!,
-    nickname:input.nickname!,avatarId:input.avatarId!,companionId:input.companionId!,updatedAt:time()};
+    nickname:input.shareGameIdentity?(player?.gamertag??input.nickname!):null,
+    avatarId:input.shareGameIdentity?(player?.avatarId??input.avatarId!):null,companionId:input.shareGameIdentity?(player?.companionId??input.companionId!):null,updatedAt:time()};
   return plan({outcome:'academic-profile-updated',uid:actor.uid,version:revision+1},[{path:`academicProfiles/${actor.uid}`,data}]);
 }
 /** Caller has already authorized this exact group in the same read snapshot.

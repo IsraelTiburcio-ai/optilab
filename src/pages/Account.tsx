@@ -8,10 +8,13 @@ import {AvatarPortrait} from '../components/AvatarPortrait';
 import {CompanionPortrait} from '../components/CompanionPortrait';
 import {academicEnabled} from '../academic/config';
 import {invitationSnapshot,subscribeInvitation} from '../academic/invitationMemory';
+import {useAcademicAccess} from '../academic/AcademicAccess';
+import {AccountAcademicEntry} from '../academic/AccountAcademicEntry';
 
 type Mode = 'login' | 'register' | 'reset';
 export default function Account() {
   const auth = useAuth();
+  const academicAccess=useAcademicAccess();
   const invitation=useSyncExternalStore(subscribeInvitation,invitationSnapshot);
   const {state, evolution, sync} = useProgress();
   const [mode, setMode] = useState<Mode>('login');
@@ -76,8 +79,8 @@ export default function Account() {
         </div>}
         <p className="account-session-note">{sync?'Auth Emulator mantiene la sesión. El panel indica si el progreso fue confirmado en Firestore Emulator.':'Firebase mantiene tu sesión. No se ha creado un perfil ni se ha guardado progreso en Firestore.'}</p>
         <Link className="button primary" to="/aventura">Volver a mi aventura <ArrowRight size={17}/></Link>
-        {academicEnabled&&<Link className="button" to="/docente">Abrir panel de la profesora <ArrowRight size={17}/></Link>}
-        {academicEnabled&&<Link className="button" to="/unirse">Mi perfil académico e inscripción <ArrowRight size={17}/></Link>}
+        {academicEnabled&&academicAccess.teacher&&<Link className="button" to="/docente">Abrir panel de la profesora <ArrowRight size={17}/></Link>}
+        {academicEnabled&&<><AccountAcademicEntry/><Link className="button" to="/bienvenida">Mi identidad y mi aventura <ArrowRight size={17}/></Link></>}
         <button className="button account-logout" disabled={busy} onClick={() => void run(auth.logout, 'Sesión cerrada. Puedes continuar como invitado; tu progreso local sigue aquí.')}><LogOut size={16}/> Cerrar sesión</button>
       </div> : <>
         <button className="button google-sign-in" disabled={busy || !enabled} onClick={() => void run(auth.google, 'Acceso con Google completado. Tu progreso sigue en este navegador.')}><span aria-hidden="true">G</span> Continuar con Google <ArrowRight size={17}/></button>

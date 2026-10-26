@@ -14,9 +14,12 @@ import {Progress} from '../components/Progress';
 import {CompanionPortrait} from '../components/CompanionPortrait';
 import {CompanionProgress} from '../components/CompanionProgress';
 import {EvolutionLine} from '../components/EvolutionLine';
+import {academicEnabled} from '../academic/config';
+import {useAcademicAccess} from '../academic/AcademicAccess';
 
 export default function Profile() {
   const {state, badges, nickname, reset, evolution, sync} = useProgress();
+  const player=useAcademicAccess().identity;
   const [confirm, setConfirm] = useState(false);
   const [nicknameDraft,setNicknameDraft]=useState<string|null>(null);
   const nicknameBase=useRef<{baseRevision:number;predecessor:string|null}|null>(null);
@@ -34,10 +37,10 @@ export default function Profile() {
       <div className="profile-companion-stage"><CompanionPortrait id={state.companionId} stage={state.companionId?evolution.stage:1} eager/>
         <strong>{form.name}</strong><span>{state.companionId?`Etapa ${evolution.stage} de 3`:'Vista predeterminada · por elegir'}</span>
       </div></div>
-      <div><label className="eyebrow" htmlFor="nickname">{sync?'TU APODO DE CUENTA':'TU APODO LOCAL'}</label>
-        <input id="nickname" className="nickname" maxLength={30} value={nicknameDraft??state.nickname}
+      <div><label className="eyebrow" htmlFor="nickname">{academicEnabled&&player?'TU GAMERTAG ÚNICO':sync?'TU APODO DE CUENTA':'TU APODO LOCAL'}</label>
+        <input id="nickname" className="nickname" maxLength={30} readOnly={academicEnabled&&!!player} value={academicEnabled&&player?player.gamertag:nicknameDraft??state.nickname}
           onFocus={()=>{if(sync)nicknameBase.current=sync.engine.captureBase('nickname');}}
-          onChange={e=>sync?setNicknameDraft(e.target.value):nickname(e.target.value)}
+          onChange={e=>{if(academicEnabled&&player)return;sync?setNicknameDraft(e.target.value):nickname(e.target.value);}}
           onBlur={()=>{if(sync&&nicknameDraft!==null){sync.engine.change({...sync.engine.getSnapshot().progress,nickname:nicknameDraft},
             {nickname:nicknameBase.current??sync.engine.captureBase('nickname')});setNicknameDraft(null);}}}/>
         {sync&&<small>El apodo se guarda al salir del campo.</small>}
@@ -45,6 +48,7 @@ export default function Profile() {
         <small>Tu práctica es autorregistrada. Visitar, practicar y evaluar son estados diferentes.</small>
         <Link className="button change-trainer" to="/entrenador?volver=aventura">Cambiar entrenador</Link>
         <Link className="text-button account-profile-link" to="/cuenta">Cuenta e inicio de sesión</Link>
+        {academicEnabled&&<Link className="button" to="/bienvenida?editar=1">Cambiar gamertag y equipo</Link>}
       </div>
     </section>
     <section className="paper companion-profile" aria-label="Mi compañero de aventura">

@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import {revokeFixtureTeacher} from '../../../server/academic/bootstrap';
 test('invitado: ruta directa pide la sesión existente sin pedir contraseña dentro del panel',async({page,fixture})=>{
   const calls:string[]=[];page.on('request',r=>{if(r.url().includes(':5200'))calls.push(r.url());});
-  await page.goto('#/docente');await expect(page.getByRole('link',{name:'Ir a Cuenta'})).toBeVisible();
+  await page.goto('#/docente');await expect(page.getByRole('heading',{name:'Sin acceso docente autorizado'})).toBeVisible();
   await expect(page.locator('input[type=password]')).toHaveCount(0);expect(calls.length).toBe(0);
 });
 test('alumno: sin scopes docentes ni datos privados',async({page,fixture})=>{
@@ -23,29 +23,28 @@ test('roster y solicitudes: nombres elegidos y resúmenes limitados a la página
   await expect(page.getByText('Cifras de las páginas consultadas, no totales globales.',{exact:false})).toBeVisible();
   await tab(page,'Solicitudes');await expect(page.getByText('Synthetic studentB',{exact:true})).toBeVisible();await expect(page.getByText('Synthetic studentC',{exact:true})).toBeVisible();
 });
-test('crear invitación: confirmar, doble clic no duplica, secreto transitorio y copia explícita',async({page,fixture,browserName})=>{
+test('crear enlace: sin claves técnicas, doble clic no duplica y copia explícita',async({page,fixture})=>{
+  let copied='';await page.exposeFunction('qaCopyLink',(value:string)=>{copied=value;});
   await login(page,fixture);await ready(page);await tab(page,'Invitaciones');
-  await page.getByRole('button',{name:'Generar invitación',exact:true}).click();
+  await page.getByRole('button',{name:'Crear enlace de invitación',exact:true}).click();
   await page.getByRole('dialog').getByRole('button',{name:'Confirmar',exact:true}).evaluate((button:HTMLButtonElement)=>{button.click();button.click();});
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  const secret=await page.getByLabel('Token de invitación',{exact:true}).inputValue();expect(/^[A-Za-z0-9_-]{43}$/.test(secret)).toBe(true);
-  expect(fixture.commands.filter(c=>c==='createInvitation').length).toBe(1);
-  expect((await fixture.call('teacherA','groupInvitations',fixture.scope())).body.items.length).toBe(2);
+  expect(fixture.commands.filter(c=>c==='rotateEnrollmentLink').length).toBe(1);
+  await expect(page.getByLabel('Token de invitación',{exact:true})).toHaveCount(0);await expect(page.getByLabel('Admisiones máximas')).toHaveCount(0);await expect(page.getByLabel('Pendientes máximos')).toHaveCount(0);
+  await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async(value:string)=>{await (window as any).qaCopyLink(value);}}}));
+  await page.getByRole('button',{name:'Copiar enlace',exact:true}).click();await expect.poll(()=>!!copied).toBe(true);
+  const url=new URL(copied),secret=new URLSearchParams(url.hash.split('?')[1]).get('token')!;expect(secret.length===43).toBe(true);expect(url.search==='').toBe(true);
   expect(await page.evaluate(token=>JSON.stringify([Object.entries(localStorage),Object.entries(sessionStorage)]).includes(token),secret)).toBe(false);
   expect(page.url().includes(secret)).toBe(false);
-  // Clipboard is a browser capability; stub only the write boundary, not API calls.
-  await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{}}}));
-  await page.getByRole('button',{name:'Copiar código'}).click();await expect(page.getByText('Código copiado al portapapeles.')).toBeVisible();
-  await tab(page,'Alumnos');await tab(page,'Invitaciones');await expect(page.getByLabel('Token de invitación',{exact:true})).toHaveCount(0);
-  await page.reload();await ready(page);await tab(page,'Invitaciones');await expect(page.getByLabel('Token de invitación',{exact:true})).toHaveCount(0);
+  await tab(page,'Alumnos');await tab(page,'Invitaciones');await expect(page.getByRole('button',{name:'Copiar enlace',exact:true})).toHaveCount(0);
+  await page.reload();await ready(page);await tab(page,'Invitaciones');await expect(page.getByRole('button',{name:'Copiar enlace',exact:true})).toHaveCount(0);
 });
 test('reemitir y revocar invitaciones con revisión actual',async({page,fixture})=>{
   await login(page,fixture);await ready(page);await tab(page,'Invitaciones');
-  await page.getByRole('button',{name:'Reemitir',exact:true}).click();await confirm(page);await expect(page.getByLabel('Token de invitación',{exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'Ocultar código'}).click();
-  const revoke=page.getByRole('button',{name:'Revocar',exact:true}).and(page.locator(':enabled'));
-  await expect(revoke).toHaveCount(1);await revoke.click();
-  await confirm(page);await expect.poll(async()=>{const r=await fixture.call('teacherA','groupInvitations',fixture.scope());return r.body.items.filter((i:any)=>i.status==='active').length;}).toBe(0);
+  await page.getByRole('button',{name:'Crear enlace de invitación',exact:true}).click();await confirm(page);
+  await page.getByRole('button',{name:'Generar nuevo enlace',exact:true}).click();await expect(page.getByRole('dialog')).toContainText('El enlace anterior dejará de funcionar');await confirm(page);
+  await page.getByRole('button',{name:'Revocar enlace',exact:true}).click();await confirm(page);
+  await expect.poll(async()=>(await fixture.call('teacherA','groupEnrollmentLink',fixture.scope())).body.link.status).toBe('revoked');
 });
 test('aprobar solicitud y refrescar roster solo tras confirmación',async({page,fixture})=>{
   await login(page,fixture);await ready(page);await tab(page,'Solicitudes');
@@ -88,15 +87,15 @@ test('409 real: versión obsoleta no sobrescribe y obliga a actualizar',async({p
   expect((await fixture.call('teacherA','roster',fixture.scope())).body.items[0].revision).toBe(2);
 });
 test('respuesta perdida: reintento con misma intención no duplica ni recupera el secreto',async({page,fixture})=>{
-  await login(page,fixture);await ready(page);await tab(page,'Invitaciones');fixture.fault.lost='createInvitation';
-  await page.getByRole('button',{name:'Generar invitación',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Confirmar',exact:true}).click();
+  await login(page,fixture);await ready(page);await tab(page,'Invitaciones');fixture.fault.lost='rotateEnrollmentLink';
+  await page.getByRole('button',{name:'Crear enlace de invitación',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Confirmar',exact:true}).click();
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('No pudimos confirmar');await page.getByRole('button',{name:'Reintentar misma operación'}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.getByText('Respuesta confirmada sin secreto recuperable.',{exact:false})).toBeVisible();await expect(page.getByLabel('Token de invitación',{exact:true})).toHaveCount(0);
-  expect((await fixture.call('teacherA','groupInvitations',fixture.scope())).body.items.length).toBe(2);
+  await expect(page.getByText('el enlace no se puede recuperar',{exact:false})).toBeVisible();await expect(page.getByRole('button',{name:'Copiar enlace',exact:true})).toHaveCount(0);
+  expect((await fixture.call('teacherA','groupEnrollmentLink',fixture.scope())).body.link.revision).toBe(1);
 });
 test('429 muestra espera y permite reintentar sin éxito anticipado',async({page,fixture})=>{
-  await login(page,fixture);await ready(page);await tab(page,'Invitaciones');fixture.fault.rate='createInvitation';
-  await page.getByRole('button',{name:'Generar invitación',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Confirmar',exact:true}).click();
+  await login(page,fixture);await ready(page);await tab(page,'Invitaciones');fixture.fault.rate='rotateEnrollmentLink';
+  await page.getByRole('button',{name:'Crear enlace de invitación',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Confirmar',exact:true}).click();
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Espera un minuto');await page.getByRole('button',{name:'Reintentar misma operación'}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 test('API apagada: error recuperable sin listas privadas anteriores',async({page,fixture})=>{
@@ -107,11 +106,11 @@ test('API apagada: error recuperable sin listas privadas anteriores',async({page
 test('API anterior sin contrato visual muestra actualización requerida, no rompe la aplicación',async({page,fixture})=>{
   fixture.fault.legacy=true;await login(page,fixture);await expect(page.getByRole('alert')).toContainText('contrato incompatible');
   await expect(page.getByLabel('Grupo',{exact:true})).toHaveCount(0);fixture.fault.legacy=false;
-  await page.getByRole('button',{name:'Actualizar grupos y datos'}).click();await ready(page);
+  await page.getByRole('button',{name:'Actualizar acceso',exact:true}).click();await ready(page);
 });
 test('logout y A→B descartan respuesta tardía, errores y secretos de A',async({page,fixture})=>{
   fixture.fault.hold='roster';await login(page,fixture);await ready(page);await fixture.fault.waiting;
-  await page.getByRole('button',{name:'Cerrar sesión docente'}).click();await expect(page.getByRole('link',{name:'Ir a Cuenta'})).toBeVisible();
+  await page.getByRole('button',{name:'Cerrar sesión docente'}).click();await expect(page.getByRole('heading',{name:'Sin acceso docente autorizado'})).toBeVisible();
   await login(page,fixture,'teacherB');await ready(page);fixture.fault.release();
   await expect(page.getByLabel('Grupo',{exact:true})).toHaveValue(fixture.f.groups.b);
   await expect(page.getByText('Synthetic studentA',{exact:true})).toHaveCount(0);await expect(page.getByLabel('Token de invitación',{exact:true})).toHaveCount(0);
@@ -139,9 +138,9 @@ test('paginación real de roster sin totales globales inventados',async({page,fi
 });
 test('logout desde otra pestaña descarta código privado y sesión anterior',async({page,fixture,context})=>{
   await login(page,fixture);await ready(page);await tab(page,'Invitaciones');
-  await page.getByRole('button',{name:'Generar invitación',exact:true}).click();await confirm(page);await expect(page.getByLabel('Token de invitación',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Crear enlace de invitación',exact:true}).click();await confirm(page);await expect(page.getByRole('button',{name:'Copiar enlace',exact:true})).toBeVisible();
   const peer=await context.newPage();await peer.goto('#/cuenta');await peer.getByRole('button',{name:'Cerrar sesión',exact:true}).click();
-  await expect(page.getByRole('link',{name:'Ir a Cuenta'})).toBeVisible();await expect(page.getByLabel('Token de invitación',{exact:true})).toHaveCount(0);
+  await expect(page.getByRole('heading',{name:'Sin acceso docente autorizado'})).toBeVisible();await expect(page.getByRole('button',{name:'Copiar enlace',exact:true})).toHaveCount(0);
   await login(page,fixture,'teacherB');await ready(page);await expect(page.getByLabel('Grupo',{exact:true})).toHaveValue(fixture.f.groups.b);await expect(page.getByText('Synthetic studentA',{exact:true})).toHaveCount(0);
 });
 for(const width of [390,820,1180,1440])test(`responsive ${width}, teclado y accesibilidad`,async({page,fixture,browserName})=>{

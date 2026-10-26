@@ -7,7 +7,7 @@ import {plan,type Plan} from './plans';
 import {liveInvite,type Clock} from './invitations';
 const memberGrant=(s:Scope,uid:string,status:string)=>({schemaVersion:1,...s,uid,status});
 const pointer=(s:Scope,uid:string,status:string)=>({...context(s),uid,status});
-async function membershipState(r:Reader,s:Scope,uid:string) {
+export async function membershipState(r:Reader,s:Scope,uid:string) {
   const root=groupPath(s),c=coursePath(s.courseId);
   const [m,d,i,cm,settings]=await Promise.all([r.get(`${root}/members/${uid}`),r.get(`${root}/membershipDetails/${uid}`),
     r.get(`${c}/academicMemberships/${uid}`),r.get(`${c}/members/${uid}`),r.get(`${c}/academicSettings/current`)]);
@@ -17,6 +17,21 @@ async function membershipState(r:Reader,s:Scope,uid:string) {
   const active=grant(m,uid,s,true),indexed=!!index.activeScopes[scopeKey(s)];
   if(active!==indexed||(m&&!d))throw conflict();
   return {m,detail,index,cm,multi,active};
+}
+/** Shared admission projection: both historical approval and verified direct
+ * redemption use the same v1 grants, CAS details, index and discovery pointer. */
+export function admissionWrites(state:Awaited<ReturnType<typeof membershipState>>,s:Scope,uid:string,label:string,inviteId:string,clock:Clock,commandId:string):Plan['writes'] {
+  if(state.active)return [];
+  if(Object.keys(state.index.activeScopes).length>=100)throw conflict();
+  if(!state.multi&&Object.values(state.index.activeScopes).some((v:any)=>v.termId===s.termId))throw conflict();
+  const root=groupPath(s),version=state.detail.revision+1;
+  const writes:Plan['writes']=[{path:`${root}/members/${uid}`,data:memberGrant(s,uid,'active')},
+    {path:`${root}/membershipDetails/${uid}`,data:{...state.detail,revision:version,lastAdmissionId:commandId,lastInvitationId:inviteId,updatedAt:clock.time()}},
+    {path:`${coursePath(s.courseId)}/academicMemberships/${uid}`,data:{...state.index,activeScopes:{...state.index.activeScopes,[scopeKey(s)]:{termId:s.termId,groupId:s.groupId}}}},
+    {path:`users/${uid}/enrollments/${scopeKey(s)}`,data:pointer(s,uid,'active')},
+    {path:`${root}/roster/${uid}`,data:{...context(s),uid,label,labelSource:'self-chosen',status:'active'}}];
+  if(!state.cm)writes.push({path:`${coursePath(s.courseId)}/members/${uid}`,data:{schemaVersion:1,uid,courseId:s.courseId,status:'active'}});
+  return writes;
 }
 export async function decideMembership(r:Reader,s:Scope,actor:Actor,input:Input,clock:Clock,approve:boolean,commandId:string):Promise<Plan> {
   const root=groupPath(s),req=request(await r.get(`${root}/membershipRequests/${input.requestId}`),s,input.requestId!);
@@ -31,13 +46,7 @@ export async function decideMembership(r:Reader,s:Scope,actor:Actor,input:Input,
     {path:`${root}/invitations/${inv.inviteId}`,data:{...inv,revision:inv.revision+1,pendingCount:inv.pendingCount-1,acceptedCount:inv.acceptedCount+(approve&&!state.active?1:0)}}];
   let version=state.detail.revision;
   if(approve&&!state.active) {
-    if(Object.keys(state.index.activeScopes).length>=100)throw conflict();version++;
-    writes.push({path:`${root}/members/${req.uid}`,data:memberGrant(s,req.uid,'active')},
-      {path:`${root}/membershipDetails/${req.uid}`,data:{...state.detail,revision:version,lastAdmissionId:commandId,lastInvitationId:inv.inviteId,updatedAt:clock.time()}},
-      {path:`${coursePath(s.courseId)}/academicMemberships/${req.uid}`,data:{...state.index,activeScopes:{...state.index.activeScopes,[scopeKey(s)]:{termId:s.termId,groupId:s.groupId}}}},
-      {path:`users/${req.uid}/enrollments/${scopeKey(s)}`,data:pointer(s,req.uid,'active')},
-      {path:`${root}/roster/${req.uid}`,data:{...context(s),uid:req.uid,label:req.label,labelSource:'self-chosen',status:'active'}});
-    if(!state.cm)writes.push({path:`${coursePath(s.courseId)}/members/${req.uid}`,data:{schemaVersion:1,uid:req.uid,courseId:s.courseId,status:'active'}});
+    version++;writes.push(...admissionWrites(state,s,req.uid,req.label,inv.inviteId,clock,commandId));
   }
   return plan({outcome:approve?'membership-approved':'membership-rejected',requestId:req.requestId,uid:req.uid,version},writes,
     [{scope:s,action:approve?'membership-approved':'membership-rejected',subjectUid:req.uid,version}]);

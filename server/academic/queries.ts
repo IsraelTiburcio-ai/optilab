@@ -3,10 +3,14 @@ import {scopeOf,identifier,exact,integer} from './validation';
 import {activeContext,contextData,grant,type Policy} from './authorization';
 import {type AcademicReadView,coursePath,groupPath,scopeKey,hash} from './repository';
 import {ownProfile,teacherProfile} from './profiles';
+import {ownPlayer,tagAvailability} from './players';
+import {currentEnrollmentLink} from './enrollmentLinks';
 import {invitation,request,publicInvite,publicRequest,scoped,roster,millis,details} from './models';
 import {ApiError,denied,conflict} from './errors';
 export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Actor,operation:Operation,input:Input):Promise<Data> {
   if(operation==='getAcademicProfile')return ownProfile(repo,actor.uid);
+  if(operation==='getPlayerIdentity')return ownPlayer(repo,actor.uid);
+  if(operation==='gamertagAvailability')return tagAvailability(repo,actor.uid,input.gamertag!);
   if(operation==='myScopes') {
     // Course creation capabilities authorize bounded discovery of periods, not groups.
     if(input.courseId) {
@@ -45,6 +49,7 @@ export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Ac
     return {items:result,nextCursor:rows.length===input.limit?rows.at(-1)!.id:null};
   }
   const s=scopeOf(input),root=groupPath(s);
+  if(operation==='groupEnrollmentLink'){await policy.group(repo,actor.uid,s,'manageInvitations');return currentEnrollmentLink(repo,s);}
   if(operation==='requestStatus') {
     const requestId=input.inviteId?hash(`${input.inviteId}:${actor.uid}`):input.requestId!;
     const raw=await repo.get(`${root}/membershipRequests/${requestId}`);

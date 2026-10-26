@@ -12,9 +12,18 @@ export interface Request {requestId:string;inviteId:string;uid:string;label:stri
 export interface RequestStatus extends Request {membershipStatus:'active'|'revoked'|'none';accessAllowed:boolean;invitationState:'active'|'expired'|'revoked'|'exhausted'|'unavailable'}
 export interface Invitation {inviteId:string;status:'active'|'revoked';revision:number;expiresAt:string;maxUses:number;acceptedCount:number;pendingCount:number;maxPending:number}
 export interface MutationResult {outcome:string;commandId:string;operation:string;replayed:boolean;tokenAvailable?:boolean;token?:string;inviteId?:string;requestId?:string;termId?:string;groupId?:string;version?:number}
+export interface PlayerIdentity {revision:number;gamertag:string;avatarId:string;companionId:string;updatedAt:string}
+export interface EnrollmentLink {revision:number;status:'active'|'expired'|'revoked';expiresAt:string}
 type Command={idempotencyKey:string};type CAS={expectedVersion:number};
 type InviteFields={expiresInSeconds:number;maxUses:number;maxPending:number};
 export interface Api {
+  getPlayerIdentity:{input:Record<string,never>;output:{identity:PlayerIdentity|null}};
+  gamertagAvailability:{input:{gamertag:string};output:{available:boolean}};
+  savePlayerIdentity:{input:Command&CAS&{expectedProfileVersion:number;fullName:string;gamertag:string;avatarId:string;companionId:string;shareGameIdentity:boolean};output:MutationResult};
+  groupEnrollmentLink:{input:Scope;output:{link:EnrollmentLink|null}};
+  rotateEnrollmentLink:{input:Scope&Command&CAS&{expiresInSeconds:number};output:MutationResult};
+  revokeEnrollmentLink:{input:Scope&Command&CAS;output:MutationResult};
+  redeemInvitation:{input:Scope&Command&{inviteId:string;token:string};output:MutationResult};
   myScopes:{input:{kind:'teacher'|'student';limit?:number;cursor?:string;courseId?:string};output:Discovery};
   getAcademicProfile:{input:Record<string,never>;output:{profile:AcademicProfile|null;revision:number}};
   updateAcademicProfile:{input:Command&CAS&{fullName:string;shareGameIdentity:boolean;nickname:string|null;avatarId:string|null;companionId:string|null};output:MutationResult};
@@ -33,4 +42,4 @@ export interface Api {
   createTerm:{input:Command&{courseId:string;title:string};output:MutationResult};
   createGroup:{input:Command&{courseId:string;termId:string;title:string};output:MutationResult};
 }
-export type CommandName=Exclude<keyof Api,'myScopes'|'roster'|'groupRequests'|'groupInvitations'|'getAcademicProfile'|'requestStatus'>;
+export type CommandName=Exclude<keyof Api,'myScopes'|'roster'|'groupRequests'|'groupInvitations'|'getAcademicProfile'|'requestStatus'|'getPlayerIdentity'|'gamertagAvailability'|'groupEnrollmentLink'>;
