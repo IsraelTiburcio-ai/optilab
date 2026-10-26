@@ -43,7 +43,10 @@ export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Ac
           const course=await repo.get(coursePath(s.courseId)),term=await repo.get(`${coursePath(s.courseId)}/terms/${s.termId}`);
           result.push({...s,status:p.status,title:metadata!.title,courseTitle:course!.title,termTitle:term!.title,
             capabilities:{manageMembers:caps!.manageMembers,manageInvitations:caps!.manageInvitations,readHistory:caps!.readHistory,...await courseCapabilities(repo,policy,actor.uid,s.courseId)}});
-        } else result.push({...s,status:p.status,title:metadata!.title});
+        } else {
+          const [course,term]=await Promise.all([repo.get(coursePath(s.courseId)),repo.get(`${coursePath(s.courseId)}/terms/${s.termId}`)]);
+          result.push({...s,status:p.status,title:metadata!.title,courseTitle:course!.title,termTitle:term!.title});
+        }
       }catch(e){if(!(e instanceof ApiError&&e.status===403))throw e;}
     }
     return {items:result,nextCursor:rows.length===input.limit?rows.at(-1)!.id:null};
@@ -75,7 +78,9 @@ export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Ac
   const items:Data[]=[];
   for(const {id,data} of rows) {
     if(name==='invitations')items.push(publicInvite(invitation(data,s,id)));
-    else if(name==='membershipRequests'){const req=request(data,s,id);items.push({...publicRequest(req),academicProfile:await teacherProfile(repo,s,req.uid,req.status==='pending'?req:undefined)});}
+    else if(name==='membershipRequests'){const req=request(data,s,id),[member,courseMember]=await Promise.all([repo.get(`${root}/members/${req.uid}`),repo.get(`${coursePath(s.courseId)}/members/${req.uid}`)]);
+      items.push({...publicRequest(req),membershipStatus:grant(member,req.uid,s,true)&&grant(courseMember,req.uid,s,false)?'active':grant(member,req.uid,s,true,'revoked')||grant(courseMember,req.uid,s,false,'revoked')?'revoked':'none',
+        academicProfile:await teacherProfile(repo,s,req.uid,req.status==='pending'?req:undefined)});}
     else if(name==='roster') {
       roster(data,s,id);
       const member=await repo.get(`${root}/members/${id}`);

@@ -4,7 +4,7 @@ test('production build stays guest/local with zero Firebase requests even when a
   await context.route('**/*',async route=>{
     const url=route.request().url();
     if(/firestore|identitytoolkit|securetoken|:8085|:9099|:5200/.test(url)){firebase.push(new URL(url).hostname);await route.abort();}
-    else {if(/(?:CloudProgress|SyncPanel|TeacherPanel|EnrollmentPage|teacher)-.*\.js/.test(url))chunks.push(url);await route.continue();}
+    else {if(/(?:CloudProgress|SyncPanel|TeacherPanel|EnrollmentPage|MyClasses|teacher)-.*\.js/.test(url))chunks.push(url);await route.continue();}
   });
   await page.goto('#/cuenta',{waitUntil:'domcontentloaded'});
   await expect(page.getByRole('heading',{name:'Tu cuenta OptiLab',exact:true})).toBeVisible();

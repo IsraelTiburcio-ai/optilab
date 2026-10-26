@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useRef,useState,useSyncExternalStore} from 'react';
-import {Link,useNavigate,useSearchParams} from 'react-router-dom';
+import {Link,useLocation,useNavigate,useSearchParams} from 'react-router-dom';
 import {useAuth} from '../auth/AuthProvider';
 import {useProgress} from '../store';
 import {avatars} from '../data/avatars';
@@ -21,7 +21,7 @@ function Onboarding({uid}:{uid:string}){
   const auth=useAuth(),authRef=useRef(auth);authRef.current=auth;
   const progress=useProgress(),progressRef=useRef(progress);progressRef.current=progress;
   const memory=useSyncExternalStore(subscribeInvitation,invitationSnapshot),invitation=memory.context;
-  const [search]=useSearchParams(),navigate=useNavigate();const editing=search.get('editar')==='1';
+  const [search]=useSearchParams(),navigate=useNavigate(),location=useLocation();const editing=search.get('editar')==='1';
   const api=useRef<AcademicCall|null>(null),generation=useRef(0),lock=useRef(false);
   const [identity,setIdentity]=useState<PlayerIdentity|null>(null),[profile,setProfile]=useState<AcademicProfile|null>(null),[loaded,setLoaded]=useState(false);
   const [step,setStep]=useState(0),[name,setName]=useState(''),[tag,setTag]=useState(''),[avatar,setAvatar]=useState(''),[companion,setCompanion]=useState(''),[share,setShare]=useState(false);
@@ -87,11 +87,11 @@ function Onboarding({uid}:{uid:string}){
       if(!current())return;
       if(!active)throw new AcademicError(409);
       setEnrolled(true);discardInvitationSecret();setRedeemIntent(null);
-    }catch(e){if(current()&&(e as Error).name!=='AbortError')setError((e as AcademicError).status===404?'Este enlace venció, fue revocado o reemplazado. Pide uno nuevo a tu profesora.':(e as AcademicError).status===403&&(e as AcademicError).code!=='VERIFIED_EMAIL_REQUIRED'?'No podemos inscribirte en este grupo. Consulta a tu profesora para revisar tu situación.':(e as Error).message);}
+    }catch(e){if(current()&&(e as Error).name!=='AbortError')setError((e as AcademicError).status===404?'Este enlace de invitación ya no está disponible. Pide uno nuevo a tu profesora':(e as AcademicError).status===403&&(e as AcademicError).code!=='VERIFIED_EMAIL_REQUIRED'?'No podemos inscribirte en este grupo. Consulta a tu profesora para revisar tu situación.':(e as Error).message);}
     finally{redeemRunning.current=false;if(current())setBusy(false);}
   }
   useEffect(()=>{if(loaded&&identity&&invitation&&memory.uid===uid&&(!editing||saved))void redeem();},[loaded,identity?.revision,invitation?.inviteId,memory.uid,saved]);
-  useEffect(()=>{if(loaded&&identity&&!invitation&&!editing&&!saved)navigate('/aventura',{replace:true});},[loaded,identity,invitation,editing,saved,navigate]);
+  useEffect(()=>{if(location.pathname==='/bienvenida'&&loaded&&identity&&!invitation&&!editing&&!saved&&current()&&!invitationSnapshot().context)navigate('/aventura',{replace:true});},[loaded,identity,invitation,editing,saved,navigate,location.pathname]);
   async function refreshVerified(){setError('');try{await auth.refreshUser();await redeem();}catch{if(current())setError('No se pudo actualizar tu sesión. Reintenta desde Cuenta.');}}
   async function withdraw(){if(lock.current)return;lock.current=true;setBusy(true);setError('');
     try{const own=await call('getAcademicProfile',{});if(!own.profile)return;
@@ -118,7 +118,7 @@ function Onboarding({uid}:{uid:string}){
       <h2>{identity?.gamertag}</h2><p>Tu nombre académico y tu gamertag son identidades distintas. Puedes repetir un nombre completo; tu gamertag tiene una reserva única.</p>
       {invitation?<>{busy&&<p role="status">Comprobando tu enlace e inscribiéndote…</p>}{enrolled?<p role="status" className="teacher-success">¡Ya estás dentro de tu grupo! Matrícula activa confirmada.</p>:<><p>La inscripción es automática: no necesitas esperar una aprobación individual.</p>
         {!auth.user?.emailVerified&&<p>Ya puedes personalizar tu aventura. Para entrar al grupo, verifica el correo con el mensaje enviado a tu cuenta.</p>}
-        <Link className="button" to="/cuenta?verificar=1">Verificar mi correo en Cuenta</Link><button className="button" disabled={busy} onClick={()=>void refreshVerified()}>Ya verifiqué mi correo · reintentar inscripción</button></>}</>:<p>Tu aventura puede comenzar, aunque no tengas un enlace de grupo.</p>}
+        <Link className="button" to="/cuenta?verificar=1">Verificar mi correo en Cuenta</Link><button className="button" disabled={busy} onClick={()=>void refreshVerified()}>Ya verifiqué mi correo · reintentar inscripción</button></>}</>:<p>{location.pathname==='/unirse'?'No hay una invitación en memoria. Vuelve a abrir el enlace original.':'Tu aventura puede comenzar, aunque no tengas un enlace de grupo.'}</p>}
       <Link className="button primary" to="/aventura">Comenzar aventura</Link><Link className="button" to="/bienvenida?editar=1">Cambiar gamertag o equipo</Link>
       {profile&&<p>Nombre declarado: {profile.fullName}. Identidad de juego: {profile.shareGameIdentity?'compartida con docentes autorizados':'privada'}.</p>}
       {profile?.shareGameIdentity&&<button className="button" disabled={busy} onClick={()=>void withdraw()}>Ocultar mi identidad de juego a la profesora</button>}

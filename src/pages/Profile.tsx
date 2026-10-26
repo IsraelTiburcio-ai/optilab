@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {lazy,Suspense,useRef, useState} from 'react';
 import {Link} from 'react-router-dom';
 import {Flag, LockKeyhole, Shield, Trophy} from 'lucide-react';
 import {games, gyms, gymGames, questions} from '../data';
@@ -16,6 +16,7 @@ import {CompanionProgress} from '../components/CompanionProgress';
 import {EvolutionLine} from '../components/EvolutionLine';
 import {academicEnabled} from '../academic/config';
 import {useAcademicAccess} from '../academic/AcademicAccess';
+const MyClasses=academicEnabled?lazy(()=>import('../academic/MyClasses')):null;
 
 export default function Profile() {
   const {state, badges, nickname, reset, evolution, sync} = useProgress();
@@ -51,6 +52,7 @@ export default function Profile() {
         {academicEnabled&&<Link className="button" to="/bienvenida?editar=1">Cambiar gamertag y equipo</Link>}
       </div>
     </section>
+    {MyClasses&&<Suspense fallback={<p role="status">Abriendo mis clases…</p>}><MyClasses/></Suspense>}
     <section className="paper companion-profile" aria-label="Mi compañero de aventura">
       <div className="section-heading"><h2>Tu compañero de aventura</h2><Link className="button" to="/companero?volver=aventura">{state.companionId?'Cambiar compañero':'Elegir compañero'}</Link></div>
       <CompanionProgress/>

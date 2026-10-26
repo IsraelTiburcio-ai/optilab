@@ -466,3 +466,15 @@ test('changing a gamertag releases the previous index, preserves progress and ca
   assert.ok(JSON.stringify((await sdk.db.doc(`users/${f.actors.studentA.uid}/sync/current`).get()).data())===before);
   assert.ok((await ok('studentA','getPlayerIdentity',{})).identity.gamertag.startsWith('Nuevo_Tag'));
 });
+test('student scope discovery returns real course/period names and current states without relying on invitations',async()=>{
+  await admit();const page=await ok('studentA','myScopes',{kind:'student',limit:1});assert.equal(page.items.length,1);assert.equal(page.items[0].courseTitle,'Synthetic course');assert.equal(page.items[0].termTitle,'Synthetic period');
+  assert.equal((await ok('studentB','myScopes',{kind:'student'})).items.length,0);
+  const m=(await ok('teacherA','roster',s())).items[0];await ok('teacherA','revokeMembership',{...s(),uid:m.uid,expectedVersion:m.revision,idempotencyKey:key()});
+  assert.equal((await ok('studentA','myScopes',{kind:'student'})).items[0].status,'revoked');
+});
+test('historical pending request stays unchanged while projection reports an automatically enrolled member',async()=>{
+  const old=await request(await invite(),'studentB');await onboard('studentB','Historia');const inv=await directLink();
+  await ok('studentB','redeemInvitation',{...s(),inviteId:inv.inviteId,token:inv.token,idempotencyKey:key()});
+  const row=(await ok('teacherA','groupRequests',{...s(),status:'pending'})).items.find((r:any)=>r.requestId===old.requestId);
+  assert.equal(row.status,'pending');assert.equal(row.membershipStatus,'active');
+});

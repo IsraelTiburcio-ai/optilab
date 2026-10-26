@@ -2,6 +2,8 @@
 
 Solo `demo-optilab-sync`, Auth/Firestore Emulator y API local. Se actualiza **la misma PR #18**, sin merge/despliegue. La [enmienda A de ADR-003](architecture/ADR-003-academic-administration.md) sustituye la aprobación individual como política normal del prototipo. Las pruebas manuales de la versión anterior no aprueban esta revisión; QA nuevo pendiente del propietario.
 
+**Cierre visual posterior:** [Mis clases, historial y roster compacto](QA-PR18-FINAL-POLISH.md). Mi aventura descubre matrículas por myScopes, sin depender del enlace original; solicitudes antiguas quedan en historial secundario y las filas docentes son compactas. QA manual de estos ajustes pendiente, separado del flujo que el propietario ya confirmó.
+
 ## Arranque en la Mac existente
 
 Desde `feat/student-enrollment-emulator`, Node22 y Java21:

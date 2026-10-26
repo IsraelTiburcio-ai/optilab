@@ -74,5 +74,8 @@ export async function login(page:Page,fixture:Fixture,actor:keyof Fixtures['acto
   await page.goto('#/docente');if(!fixture.fault.legacy)await expect(page.getByRole('heading',{name:actor.startsWith('teacher')?'Panel de la profesora':'Sin acceso docente autorizado'})).toBeVisible();
 }
 export async function ready(page:Page) {await expect(page.getByLabel('Grupo',{exact:true})).toBeVisible();await expect(page.getByText('Comprobando tus grupos autorizados…')).toHaveCount(0);}
-export async function tab(page:Page,name:string){await page.getByRole('navigation',{name:'Secciones del panel'}).getByRole('button',{name:name==='Solicitudes'?'Solicitudes anteriores':name,exact:true}).click();}
+export async function tab(page:Page,name:string){
+  if(name==='Solicitudes'){const history=page.locator('details.teacher-history');if(!await history.evaluate((n:HTMLDetailsElement)=>n.open))await history.locator('summary').click();return;}
+  await page.getByRole('navigation',{name:'Secciones del panel'}).getByRole('button',{name,exact:true}).click();
+}
 export async function confirm(page:Page){await page.getByRole('dialog').getByRole('button',{name:'Confirmar',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);}

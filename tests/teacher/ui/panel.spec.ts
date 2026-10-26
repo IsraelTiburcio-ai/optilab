@@ -19,7 +19,8 @@ for(const actor of ['teacherA','teacherB','teacherBoth'] as const)test(`${actor}
 });
 test('roster y solicitudes: nombres elegidos y resúmenes limitados a la página',async({page,fixture})=>{
   await login(page,fixture);await ready(page);
-  await expect(page.getByText('Synthetic studentA',{exact:true})).toBeVisible();await expect(page.getByText('Nombre elegido · identidad académica no verificada')).toBeVisible();
+  await expect(page.getByText('Synthetic studentA',{exact:true})).toBeVisible();await expect(page.getByText('Nombre elegido · identidad académica no verificada')).not.toBeVisible();
+  await page.locator('.teacher-student-row summary').first().click();await expect(page.getByText('Nombre elegido · identidad académica no verificada')).toBeVisible();
   await expect(page.getByText('Cifras de las páginas consultadas, no totales globales.',{exact:false})).toBeVisible();
   await tab(page,'Solicitudes');await expect(page.getByText('Synthetic studentB',{exact:true})).toBeVisible();await expect(page.getByText('Synthetic studentC',{exact:true})).toBeVisible();
 });

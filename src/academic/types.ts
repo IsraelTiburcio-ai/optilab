@@ -1,6 +1,6 @@
 export interface Scope {courseId:string;termId:string;groupId:string}
 export interface Capabilities {manageMembers:boolean;manageInvitations:boolean;readHistory:boolean;createTerms:boolean;createGroups:boolean}
-export interface StudentScope extends Scope {title:string;status:'active'|'revoked'}
+export interface StudentScope extends Scope {title:string;status:'active'|'revoked';courseTitle?:string;termTitle?:string}
 export interface TeachingScope extends StudentScope {courseTitle:string;termTitle:string;capabilities:Capabilities}
 export interface Period {courseId:string;termId:string;title:string}
 export interface Page<T> {items:T[];nextCursor:string|null}
@@ -8,7 +8,7 @@ export interface Discovery extends Page<StudentScope> {periods?:Period[]}
 export interface AcademicProfile {revision:number;fullName:string;nameSource:'self-declared';email:string|null;emailVerified:boolean;shareGameIdentity:boolean;
   gameIdentity:{nickname:string|null;avatarId:string|null;companionId:string|null}|null;updatedAt:string}
 export interface Member {uid:string;label:string;labelSource:'self-chosen';status:'active'|'revoked';revision:number;academicProfile?:AcademicProfile|null}
-export interface Request {requestId:string;inviteId:string;uid:string;label:string;status:'pending'|'approved'|'rejected';revision:number;createdAt:string;academicProfile?:AcademicProfile|null}
+export interface Request {requestId:string;inviteId:string;uid:string;label:string;status:'pending'|'approved'|'rejected';revision:number;createdAt:string;academicProfile?:AcademicProfile|null;membershipStatus?:'active'|'revoked'|'none'}
 export interface RequestStatus extends Request {membershipStatus:'active'|'revoked'|'none';accessAllowed:boolean;invitationState:'active'|'expired'|'revoked'|'exhausted'|'unavailable'}
 export interface Invitation {inviteId:string;status:'active'|'revoked';revision:number;expiresAt:string;maxUses:number;acceptedCount:number;pendingCount:number;maxPending:number}
 export interface MutationResult {outcome:string;commandId:string;operation:string;replayed:boolean;tokenAvailable?:boolean;token?:string;inviteId?:string;requestId?:string;termId?:string;groupId?:string;version?:number}

@@ -60,7 +60,7 @@ test('jugador: usuario existente canjea automáticamente sin repetir bienvenida 
 for(const state of ['expired','revoked'] as const)test(`jugador: enlace ${state} no crea matrícula`,async({page,fixture})=>{
   await preparePlayer(fixture);const inv=await invite(fixture,{expiresInSeconds:state==='expired'?1:3600});
   if(state==='expired')await new Promise(r=>setTimeout(r,1100));else await fixture.call('teacherBoth','revokeEnrollmentLink',{...fixture.scope('b'),expectedVersion:1,idempotencyKey:crypto.randomUUID()});
-  await open(page,inv);await account(page,fixture,'studentB',true);await expect(page.getByRole('alert')).toContainText('venció, fue revocado o reemplazado');
+  await open(page,inv);await account(page,fixture,'studentB',true);await expect(page.getByRole('alert')).toContainText('Este enlace de invitación ya no está disponible. Pide uno nuevo a tu profesora');
   expect((await fixture.call('studentB','myScopes',{kind:'student'})).body.items.length).toBe(0);
 });
 test('jugador: el mismo enlace inscribe a distintos alumnos, sin cupos ni aprobaciones',async({page,fixture,browser})=>{
@@ -74,7 +74,7 @@ test('jugador: enlace abierto dos veces conserva una matrícula y no reingresa d
   await preparePlayer(fixture);const inv=await invite(fixture);await open(page,inv);await account(page,fixture,'studentB',true);await expect(page.getByText('¡Ya estás dentro de tu grupo! Matrícula activa confirmada.',{exact:true})).toBeVisible();
   await open(page,inv);await expect(page.getByText('¡Ya estás dentro de tu grupo! Matrícula activa confirmada.',{exact:true})).toBeVisible();
   const m=(await fixture.call('teacherBoth','roster',fixture.scope('b'))).body.items[0];await fixture.call('teacherBoth','revokeMembership',{...fixture.scope('b'),uid:m.uid,expectedVersion:m.revision,idempotencyKey:crypto.randomUUID()});
-  await open(page,inv);await expect(page.getByRole('alert')).toContainText('venció, fue revocado o reemplazado');expect((await fixture.call('teacherBoth','roster',fixture.scope('b'))).body.items[0].status).toBe('revoked');
+  await open(page,inv);await expect(page.getByRole('alert')).toContainText('Este enlace de invitación ya no está disponible. Pide uno nuevo a tu profesora');expect((await fixture.call('teacherBoth','roster',fixture.scope('b'))).body.items[0].status).toBe('revoked');
 });
 test('jugador: gamertag ocupado y variantes de mayúsculas no pasan disponibilidad',async({page,fixture})=>{
   const tag=await preparePlayer(fixture,'studentA');await page.goto(base+'#/cuenta');await account(page,fixture);await page.getByRole('button',{name:'Continuar',exact:true}).click();

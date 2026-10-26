@@ -82,16 +82,15 @@ function TeacherSession({uid}:{uid:string}) {
   </section>;
 }
 function GroupWorkspace({scope,scopes,call,refresh,prepare,busy}:{scope:TeachingScope;scopes:TeachingScope[];call:AcademicCall;refresh:number;prepare:Prepare;busy:boolean}) {
-  const [tab,setTab]=useState('Alumnos'),[status,setStatus]=useState<Request['status']>('pending');
+  const [tab,setTab]=useState('Alumnos'),[status,setStatus]=useState<Request['status']>('pending'),[historyOpen,setHistoryOpen]=useState(false);
   const roster=useAcademicPage(call,'roster',scopeInput(scope),refresh,scope.capabilities.manageMembers);
-  const requests=useAcademicPage(call,'groupRequests',{...scopeInput(scope),status},refresh,scope.capabilities.manageMembers);
-  const invitations=useAcademicPage(call,'groupInvitations',scopeInput(scope),refresh,scope.capabilities.manageInvitations);
+  const requests=useAcademicPage(call,'groupRequests',{...scopeInput(scope),status},refresh,historyOpen&&scope.capabilities.manageMembers);
   return <><p className="teacher-current">Grupo seleccionado: <strong>{scope.title}</strong> · {scope.termTitle} · <span className="teacher-identifier">{scope.groupId}</span></p>
     <div className="teacher-summary" aria-label="Resumen de páginas consultadas">{[
       ['Integrantes activos en esta página',roster.data?.items.filter(m=>m.status==='active').length],
-      ['Solicitudes anteriores en esta página',requests.data?.items.length],
     ].map(([label,count])=><div className="paper" key={label}><strong>{count??'—'}</strong><span>{label}</span></div>)}</div><p className="muted">Cifras de las páginas consultadas, no totales globales. Cada sección tiene su propia paginación.</p>
-    <nav className="teacher-tabs" aria-label="Secciones del panel">{['Alumnos','Solicitudes','Invitaciones','Periodos y grupos'].map(t=><button className="button" key={t} aria-pressed={tab===t} disabled={busy} onClick={()=>setTab(t)}>{t==='Solicitudes'?'Solicitudes anteriores':t}</button>)}</nav>
-    <div className="paper teacher-section" aria-busy={busy}>{tab==='Alumnos'?<Students scope={scope} scopes={scopes} page={roster} prepare={prepare} busy={busy}/>:tab==='Solicitudes'?<Requests scope={scope} page={requests} prepare={prepare} busy={busy} status={status} setStatus={setStatus}/>:tab==='Invitaciones'?<Invitations scope={scope} call={call} refresh={refresh} prepare={prepare} busy={busy}/>:<Creation scope={scope} call={call} refresh={refresh} prepare={prepare} busy={busy}/>}</div>
+    <nav className="teacher-tabs" aria-label="Secciones del panel">{['Alumnos','Invitaciones','Periodos y grupos'].map(t=><button className="button" key={t} aria-pressed={tab===t} disabled={busy} onClick={()=>setTab(t)}>{t}</button>)}</nav>
+    <div className="paper teacher-section" aria-busy={busy}>{tab==='Alumnos'?<Students scope={scope} scopes={scopes} page={roster} prepare={prepare} busy={busy}/>:tab==='Invitaciones'?<Invitations scope={scope} call={call} refresh={refresh} prepare={prepare} busy={busy}/>:<Creation scope={scope} call={call} refresh={refresh} prepare={prepare} busy={busy}/>}</div>
+    {scope.capabilities.manageMembers&&<details className="paper teacher-history" onToggle={e=>setHistoryOpen(e.currentTarget.open)}><summary>Historial de solicitudes anteriores</summary>{historyOpen&&<Requests scope={scope} page={requests} prepare={prepare} busy={busy} status={status} setStatus={setStatus}/>}</details>}
   </>;
 }
