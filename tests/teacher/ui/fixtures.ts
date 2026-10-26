@@ -73,9 +73,20 @@ export async function login(page:Page,fixture:Fixture,actor:keyof Fixtures['acto
   else await expect(page.getByRole('heading',{name:'¿Cómo te llamas?'})).toBeVisible();
   await page.goto('#/docente');if(!fixture.fault.legacy)await expect(page.getByRole('heading',{name:actor.startsWith('teacher')?'Panel de la profesora':'Sin acceso docente autorizado'})).toBeVisible();
 }
-export async function ready(page:Page) {await expect(page.getByLabel('Grupo',{exact:true})).toBeVisible();await expect(page.getByText('Comprobando tus grupos autorizados…')).toHaveCount(0);}
+export async function manage(page:Page,groupId:string){
+  if(await page.locator('.teacher-workspace').count())await page.getByRole('button',{name:'← Mis grupos',exact:true}).click();
+  const card=page.locator(`.teacher-group-card[data-group-id="${groupId}"]`);await expect(card).toBeVisible();await card.getByRole('button').click();await expect(page.locator('.teacher-workspace')).toBeVisible();
+}
+export async function ready(page:Page) {
+  if(!await page.locator('.teacher-workspace').count()){
+    await expect(page.locator('.teacher-group-card').first()).toBeVisible();
+    const a=page.locator('.teacher-group-card[data-group-id="fixture-a"]');await (await a.count()?a:page.locator('.teacher-group-card').first()).getByRole('button').click();
+  }
+  await expect(page.locator('.teacher-workspace')).toBeVisible();await expect(page.getByText('Comprobando tus grupos autorizados…')).toHaveCount(0);
+}
 export async function tab(page:Page,name:string){
   if(name==='Solicitudes'){const history=page.locator('details.teacher-history');if(!await history.evaluate((n:HTMLDetailsElement)=>n.open))await history.locator('summary').click();return;}
+  if(name==='Periodos y grupos'){if(await page.locator('.teacher-workspace').count())await page.getByRole('button',{name:'← Mis grupos',exact:true}).click();await page.getByRole('button',{name:'Crear grupo',exact:true}).click();return;}
   await page.getByRole('navigation',{name:'Secciones del panel'}).getByRole('button',{name,exact:true}).click();
 }
 export async function confirm(page:Page){await page.getByRole('dialog').getByRole('button',{name:'Confirmar',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);}

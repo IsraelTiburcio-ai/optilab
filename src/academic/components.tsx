@@ -12,7 +12,8 @@ export function SectionState({loading,error,empty,children}:{loading:boolean;err
 }
 export function Confirmation({intent,busy,error,retry,blocked,confirm,cancel,exitSession}:{intent:Intent;busy:boolean;error:string;retry:boolean;blocked:boolean;confirm:()=>void;cancel:()=>void;exitSession?:()=>void}) {
   const dialog=useRef<HTMLDialogElement>(null),cancelButton=useRef<HTMLButtonElement>(null);
-  useEffect(()=>{const previous=document.activeElement as HTMLElement|null;dialog.current?.showModal();cancelButton.current?.focus();return ()=>previous?.focus();},[]);
+  const opener=useRef(document.activeElement as HTMLElement|null);
+  useEffect(()=>{dialog.current?.showModal();cancelButton.current?.focus();return ()=>{if(opener.current?.isConnected)opener.current.focus();};},[]);
   return <dialog ref={dialog} className="teacher-dialog paper" aria-labelledby="teacher-confirm-title" onCancel={e=>{e.preventDefault();if(!busy)cancel();}}>
     <span className="eyebrow">CONFIRMAR OPERACIÓN</span><h2 id="teacher-confirm-title">{intent.label}</h2><p>{intent.description}</p>
     <p>La operación solo se mostrará como completada cuando el API la confirme.</p>
