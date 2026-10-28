@@ -1,0 +1,27 @@
+name: External activity player checks (no deploy)
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  activities:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        browser: [chromium, webkit]
+    env:
+      ACTIVITY_BROWSER: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:activities:security
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      # Deterministic fixtures only; live providers remain an explicit local opt-in.
+      - run: npm run test:activities -- player.spec.ts --reporter=dot
