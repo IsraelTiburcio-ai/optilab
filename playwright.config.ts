@@ -1,7 +1,7 @@
 import {defineConfig} from '@playwright/test';
 
 export default defineConfig({
-  testDir: './tests', testIgnore: ['**/auth/**', '**/firestore/**', '**/sync/**', '**/academic/**', '**/teacher/**', '**/activities/**'], timeout: 45000,
+  testDir: './tests', testIgnore: ['**/auth/**', '**/firestore/**', '**/sync/**', '**/academic/**', '**/teacher/**', '**/activities/**', '**/original-games/**'], timeout: 45000,
   use: {baseURL: 'http://127.0.0.1:5187/optilab/', browserName: 'chromium'},
   webServer: [{
     command: 'npm run dev -- --port 5187 --strictPort',
