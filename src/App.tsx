@@ -29,6 +29,7 @@ import './styles/sync.css';
 const SyncPanel=lazy(()=>import('./progress/SyncPanel'));
 const Account=lazy(()=>import('./pages/Account'));
 const ExternalActivityPlayer=lazy(()=>import('./pages/ExternalActivityPlayer'));
+const OriginalGamePlayer=lazy(()=>import('./pages/OriginalGamePlayer'));
 const TeacherPanel=academicEnabled?lazy(()=>import('./academic/TeacherPanel')):null;
 const EnrollmentPage=academicEnabled?lazy(()=>import('./academic/EnrollmentPage')):null;
 const links=[['/','Inicio',HomeIcon],['/mapa','Mapa',MapIcon],['/optidex','OptiDex',BookOpen],['/entrenar','Entrenar',Signpost],['/aventura','Mi aventura',UserRound],['/cuenta','Cuenta',KeyRound]] as const;
@@ -71,7 +72,7 @@ function GymDetail() {
       </div><CompanionPortrait id={getGymCompanion(gym.id).id} stage={1} className="mascot"/><Badge id={gym.id} earned={badges.includes(gym.id)}/>
     </section>
     <div className="section-heading"><h2>Tu campo de entrenamiento</h2><span>{list.length} actividades disponibles</span></div>
-    <p className="muted">{gym.id === 3 ? 'Memorama Simplex se juega dentro de OptiLab y registra su finalización. Los otros juegos abren otra pestaña. La práctica manual sigue disponible en todas las fichas.' : 'Los juegos se abren en otra pestaña. Al regresar, registra tu práctica manualmente.'}</p>
+    <p className="muted">{gym.id === 3 ? 'Los cinco juegos de este gimnasio se juegan dentro de OptiLab. Solo Memorama Simplex comunica su finalización; los otros cuatro usan un visor aislado sin resultados conectados. La práctica manual sigue disponible en todas las fichas.' : 'Los juegos se abren en otra pestaña. Al regresar, registra tu práctica manualmente.'}</p>
     <div className="game-grid">{list.map((g,i)=><GameCard key={g.repo} game={g} index={i}/>)}</div>
     <ExternalActivityCards gymId={gym.id}/>
   </>;
@@ -96,6 +97,7 @@ export default function App(){
         <Route path="/" element={<Home/>}/><Route path="/entrenador" element={<TrainerSelect/>}/><Route path="/companero" element={<CompanionSelector/>}/>
         <Route path="/mapa" element={<GymMap/>}/><Route path="/gimnasio/:id" element={<GymDetail/>}/><Route path="/jugar/:id" element={<GamePlayer/>}/>
         <Route path="/actividad/:activityId" element={<Suspense fallback={<p role="status">Abriendo la actividad complementaria…</p>}><ExternalActivityPlayer/></Suspense>}/>
+        <Route path="/jugar-original/:gameId" element={<Suspense fallback={<p role="status">Abriendo el juego…</p>}><OriginalGamePlayer/></Suspense>}/>
         <Route path="/optidex" element={<OptiDex/>}/><Route path="/entrenar" element={<Training/>}/><Route path="/reto" element={<Exam/>}/>
         <Route path="/aventura" element={<><Profile/><GameHistory/></>}/>
         <Route path="/cuenta" element={<Suspense fallback={<p className="account-loading" role="status">Abriendo el portal de cuentas…</p>}><Account/></Suspense>}/>

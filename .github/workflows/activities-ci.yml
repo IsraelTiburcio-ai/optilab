@@ -13,6 +13,7 @@ jobs:
         browser: [chromium, webkit]
     env:
       ACTIVITY_BROWSER: ${{ matrix.browser }}
+      ORIGINAL_GAME_BROWSER: ${{ matrix.browser }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,3 +26,4 @@ jobs:
       - run: npx playwright install --with-deps ${{ matrix.browser }}
       # Deterministic fixtures only; live providers remain an explicit local opt-in.
       - run: npm run test:activities -- player.spec.ts --reporter=dot
+      - run: npm run test:original-games -- player.spec.ts --reporter=dot

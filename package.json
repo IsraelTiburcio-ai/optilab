@@ -28,7 +28,8 @@
     "test:teacher:ui": "playwright test --config playwright.teacher.config.ts",
     "academic:seed:panel": "node scripts/seed-academic-panel.mjs",
     "test:activities:security": "node --import tsx --test --test-reporter=spec tests/activities/*.test.ts",
-    "test:activities": "playwright test --config playwright.activities.config.ts"
+    "test:activities": "playwright test --config playwright.activities.config.ts",
+    "test:original-games": "playwright test --config playwright.original-games.config.ts"
   },
   "dependencies": {
     "firebase": "12.19.0",
