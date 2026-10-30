@@ -23,7 +23,9 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run test:activities:security
+      - run: npm run test:original-results:security
       - run: npx playwright install --with-deps ${{ matrix.browser }}
       # Deterministic fixtures only; live providers remain an explicit local opt-in.
       - run: npm run test:activities -- player.spec.ts --reporter=dot
       - run: npm run test:original-games -- player.spec.ts --reporter=dot
+      - run: npm run test:original-games -- results-fixtures.spec.ts --reporter=dot

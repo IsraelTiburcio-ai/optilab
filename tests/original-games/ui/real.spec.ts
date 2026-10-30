@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {protectedProgress,visitedGyms,observeFirebase} from '../progressAssertions';
 test.skip(process.env.VERIFY_ORIGINAL_GAMES!=='1','Red real opt-in: VERIFY_ORIGINAL_GAMES=1; no mocks.');
 const ids=['ahorcado-simplex','ordena-simplex','rompecabezas-simplex','caza-el-pivote'];
 const startButtons:Record<string,string>={'ahorcado-simplex':'#btn-empezar','ordena-simplex':'#btn-start','rompecabezas-simplex':'#start-game','caza-el-pivote':'#play-button'};
@@ -6,6 +7,7 @@ for(const id of ids)for(const [width,height] of [[390,844],[820,1180],[1180,820]
   test.use({hasTouch:width===390});
   test('juego real: interacción, aislamiento, misma partida y navegación',async({page,context})=>{
     test.setTimeout(90000);await page.setViewportSize({width,height});const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+    const firebase=observeFirebase(page);
     await page.goto(`#/jugar-original/${id}`);await expect(page.getByRole('status')).toContainText('Visor abierto',{timeout:60000});
     const frame=page.frameLocator('.original-player iframe'),node=page.locator('.original-player iframe');
     const press=async(selector:string)=>{if(width===390)await frame.locator(selector).first().tap();else await frame.locator(selector).first().click();};
@@ -39,7 +41,7 @@ for(const id of ids)for(const [width,height] of [[390,844],[820,1180],[1180,820]
     },id);
     const clock=async()=>{const value=await frame.locator(id==='ahorcado-simplex'?'#txt-tiempo':'#timer').innerText();const [minutes,seconds]=value.split(':').map(Number);return minutes*60+seconds;};
     const timeBefore=await clock();
-    const state=await snapshot(),progress=await page.evaluate(()=>localStorage.getItem('optilab-v1'));
+    const state=await snapshot(),progress=await protectedProgress(page),visits=await visitedGyms(page);
     const marker=await frame.locator('body').evaluate(()=>{(window as any).pilotMarker=crypto.randomUUID();return (window as any).pilotMarker;});
     await node.evaluate(el=>{(el as any).initialWindow=(el as HTMLIFrameElement).contentWindow;});const handle=await node.elementHandle(),src=await node.getAttribute('src');
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(await frame.locator('html').evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -47,12 +49,13 @@ for(const id of ids)for(const [width,height] of [[390,844],[820,1180],[1180,820]
     const box=await node.boundingBox();expect(box!.width).toBeGreaterThanOrEqual(width-4);expect(box!.height).toBeGreaterThanOrEqual(height-100);expect(box!.y+box!.height).toBeLessThanOrEqual(height+1);
     expect(await node.evaluate(el=>(el as any).initialWindow===(el as HTMLIFrameElement).contentWindow)).toBe(true);expect(await snapshot()).toEqual(state);
     await page.getByRole('button',{name:'Salir de pantalla grande',exact:true}).click();await expect(page.getByRole('button',{name:'Pantalla grande',exact:true})).toBeFocused();expect(await handle!.evaluate(el=>el.isConnected)).toBe(true);expect(await node.getAttribute('src')).toBe(src);expect(await frame.locator('body').evaluate(()=>(window as any).pilotMarker)).toBe(marker);expect(await snapshot()).toEqual(state);await expect(page.locator('body')).not.toHaveAttribute('data-game-arena','expanded');
-    expect(await page.evaluate(()=>localStorage.getItem('optilab-v1'))).toBe(progress);expect(context.pages()).toHaveLength(1);
+    expect(await protectedProgress(page)).toEqual(progress);expect(await visitedGyms(page)).toEqual(visits);expect(context.pages()).toHaveLength(1);
     const timeAfter=await clock();if(id==='ahorcado-simplex'||id==='caza-el-pivote')expect(timeAfter).toBeLessThanOrEqual(timeBefore);else expect(timeAfter).toBeGreaterThanOrEqual(timeBefore);
     if(id==='rompecabezas-simplex')await expect.poll(clock).toBeGreaterThan(timeBefore);
     if(id==='caza-el-pivote')await expect.poll(clock).toBeLessThan(timeBefore);
-    const popupPromise=page.waitForEvent('popup');await page.getByRole('link',{name:'Abrir juego independiente',exact:false}).click();const popup=await popupPromise;await popup.waitForLoadState('domcontentloaded');expect(popup.url()).toBe(src);expect(await popup.evaluate(()=>window.opener===null&&document.referrer==='')).toBe(true);await popup.close();
+    const popupPromise=page.waitForEvent('popup');await page.getByRole('link',{name:'Abrir juego independiente',exact:false}).click();const popup=await popupPromise;await popup.waitForLoadState('domcontentloaded');expect(popup.url()).toBe(`https://israeltiburcio-ai.github.io/${id}/`);expect(await popup.evaluate(()=>window.opener===null&&document.referrer==='')).toBe(true);await popup.close();
     await page.getByRole('button',{name:'Pantalla grande',exact:true}).click();await page.getByRole('link',{name:'Regresar al gimnasio desde pantalla grande'}).click();await expect(page.locator('.gym-banner h1')).toHaveText('Fortaleza Simplex');await expect(page.locator('body')).not.toHaveAttribute('data-game-arena','expanded');await expect(page.locator('[inert]')).toHaveCount(0);expect(await page.locator('body').evaluate(el=>getComputedStyle(el).position)).not.toBe('fixed');await expect(page.locator('.original-player iframe')).toHaveCount(0);expect(errors).toEqual([]);
+    await expect.poll(()=>visitedGyms(page)).toContain(3);expect(await protectedProgress(page)).toEqual(progress);expect(firebase).toEqual([]);
   });
 });
 for(const id of ids)test(`origen compartido real: ${id} no puede acceder a OptiLab`,async({page})=>{

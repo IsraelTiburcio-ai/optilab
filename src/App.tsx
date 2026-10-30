@@ -72,7 +72,7 @@ function GymDetail() {
       </div><CompanionPortrait id={getGymCompanion(gym.id).id} stage={1} className="mascot"/><Badge id={gym.id} earned={badges.includes(gym.id)}/>
     </section>
     <div className="section-heading"><h2>Tu campo de entrenamiento</h2><span>{list.length} actividades disponibles</span></div>
-    <p className="muted">{gym.id === 3 ? 'Los cinco juegos de este gimnasio se juegan dentro de OptiLab. Solo Memorama Simplex comunica su finalización; los otros cuatro usan un visor aislado sin resultados conectados. La práctica manual sigue disponible en todas las fichas.' : 'Todos los juegos de este gimnasio se juegan dentro de OptiLab, en un visor aislado sin resultados conectados. La apertura independiente sigue disponible como alternativa. La práctica manual sigue disponible en todas las fichas.'}</p>
+    <p className="muted">{gym.id === 3 ? 'Los cinco juegos se juegan dentro de OptiLab. Memorama conserva su registro de finalización. Ahorcado y Ordena tienen un piloto de informes temporales de sesión, sin cambios en progreso ni recompensas. Los otros dos usan un visor sin resultados conectados. La práctica manual sigue disponible en todas las fichas.' : 'Todos los juegos de este gimnasio se juegan dentro de OptiLab, en un visor aislado sin resultados conectados. La apertura independiente sigue disponible como alternativa. La práctica manual sigue disponible en todas las fichas.'}</p>
     <div className="game-grid">{list.map((g,i)=><GameCard key={g.repo} game={g} index={i}/>)}</div>
     <ExternalActivityCards gymId={gym.id}/>
   </>;
