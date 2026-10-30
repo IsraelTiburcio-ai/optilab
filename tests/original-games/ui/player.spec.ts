@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import catalog from '../../../catalogo_optimizacion_gimnasios_1_a_5.json' with {type:'json'};
 const ids=catalog.juegos.filter(g=>g.repo!=='memorama-simplex').map(g=>g.repo);
 const fixture='<!doctype html><html lang="es"><title>Fixture, no juego real</title><body><button>Partida de prueba</button></body></html>';
-test.beforeEach(async({context})=>{for(const id of ids)await context.route(`https://israeltiburcio-ai.github.io/${id}/`,r=>r.fulfill({contentType:'text/html',body:fixture}));});
+test.beforeEach(async({context})=>{for(const id of ids)await context.route(`https://israeltiburcio-ai.github.io/${id}/*`,r=>r.fulfill({contentType:'text/html',body:fixture}));});
 
 test('28 juegos integrados, Memorama conserva su ruta y no hay aperturas externas por defecto',async({page})=>{
   await page.goto('#/optidex');await expect(page.locator('.cartridge')).toHaveCount(28);
@@ -13,17 +13,19 @@ test('28 juegos integrados, Memorama conserva su ruta y no hay aperturas externa
 });
 for(const id of ids)test(`${id}: sandbox opaco y mensajes sin resultados ni progreso`,async({page})=>{
   await page.goto(`#/jugar-original/${id}`);const node=page.locator('.original-player iframe'),child=page.frameLocator('.original-player iframe');await child.getByRole('button').waitFor();
-  await expect(node).toHaveAttribute('sandbox','allow-scripts');await expect(node).toHaveAttribute('referrerpolicy','no-referrer');await expect(node).toHaveAttribute('src',`https://israeltiburcio-ai.github.io/${id}/`);
+  await expect(node).toHaveAttribute('sandbox','allow-scripts');await expect(node).toHaveAttribute('referrerpolicy','no-referrer');
+  const url=new URL((await node.getAttribute('src'))!);expect(url.origin+url.pathname).toBe(`https://israeltiburcio-ai.github.io/${id}/`);
+  expect([...url.searchParams.keys()]).toEqual(['ahorcado-simplex','ordena-simplex'].includes(id)?['optilabSession','optilabOrigin']:[]);
   const before=await page.evaluate(()=>localStorage.getItem('optilab-v1'));
   expect(await child.locator('body').evaluate(()=>{try{localStorage.setItem('optilab-v1','corrupted');return false;}catch(e){return (e as Error).name==='SecurityError';}})).toBe(true);
   await child.locator('body').evaluate(()=>{parent.postMessage({protocol:'optilab-game',version:1,type:'game:completed',gameId:'memorama-simplex',result:{accuracy:100}},'*');parent.postMessage('AppSolved|pznycxd7t21|100|4|0','*');});
-  await expect(page.getByText('Este piloto no comunica resultados',{exact:false})).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('optilab-v1'))).toBe(before);await expect(page.locator('.game-result-panel,.external-observed')).toHaveCount(0);
+  await expect(page.getByText(['ahorcado-simplex','ordena-simplex'].includes(id)?'sin guardar resultados ni conceder recompensas':'Este piloto no comunica resultados',{exact:false})).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('optilab-v1'))).toBe(before);await expect(page.locator('.game-result-panel,.external-observed,.original-session-result')).toHaveCount(0);
 });
 test('rutas no permiten URLs arbitrarias ni habilitan otros juegos',async({page})=>{
   for(const id of ['not-in-catalog','memorama-simplex','https%3A%2F%2Fevil.example']){await page.goto(`#/jugar-original/${id}?url=https://evil.example`);await expect(page.getByRole('heading',{name:'Este juego no está disponible en el piloto integrado'})).toBeVisible();await expect(page.locator('.original-player iframe')).toHaveCount(0);}
 });
 test('fallo de red conserva fallback externo seguro sin afirmar carga útil',async({page})=>{
-  await page.route('https://israeltiburcio-ai.github.io/ahorcado-simplex/',r=>r.abort());await page.goto('#/jugar-original/ahorcado-simplex');
+  await page.route('https://israeltiburcio-ai.github.io/ahorcado-simplex/*',r=>r.abort());await page.goto('#/jugar-original/ahorcado-simplex');
   await expect(page.getByRole('heading',{name:'¿No aparece o no responde?'})).toBeVisible();const link=page.getByRole('link',{name:'Abrir en otra pestaña',exact:false});await expect(link).toHaveAttribute('href','https://israeltiburcio-ai.github.io/ahorcado-simplex/');await expect(link).toHaveAttribute('rel','noopener noreferrer');await expect(link).toHaveAttribute('referrerpolicy','no-referrer');
 });
 test('cambiar de juego y salir desmonta la sesión y limpia la arena',async({page})=>{

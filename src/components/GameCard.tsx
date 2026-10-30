@@ -5,6 +5,7 @@ import {games, gyms, type Game} from '../data';
 import {useProgress} from '../store';
 import {GAME_ID} from '../integration/protocol';
 import {embeddedOriginalGame} from '../integration/originalGames';
+import {isResultPilot} from '../integration/originalResults';
 import {SimplexCover} from './SimplexCover';
 
 export function GameCard({game, index = 0}: {game: Game; index?: number}) {
@@ -32,7 +33,7 @@ export function GameCard({game, index = 0}: {game: Game; index?: number}) {
       {integrated && <span className="integrated-label">Piloto · juega dentro de OptiLab</span>}
       {completion && <p className="completion-label">Partida completada · {completion.accuracy}% de precisión</p>}
       {details && <div className="game-details">
-        <p>{memorama ? 'Piloto integrado: registra el resultado informado por el juego al completar ocho parejas.' : integrated ? 'Piloto integrado aislado: el resultado no se comunica a OptiLab.' : 'Actividad externa: el resultado no se comunica a OptiLab.'} · {gym.topic}.</p>
+        <p>{memorama ? 'Piloto integrado: registra el resultado informado por el juego al completar ocho parejas.' : isResultPilot(game.repo) ? 'Piloto de resultados de sesión: informe del juego sin guardado ni recompensas.' : integrated ? 'Piloto integrado aislado: el resultado no se comunica a OptiLab.' : 'Actividad externa: el resultado no se comunica a OptiLab.'} · {gym.topic}.</p>
         {integrated && <p><a className="external-game" href={game.juego_url} target="_blank" rel="noopener noreferrer">Abrir juego independiente ↗</a></p>}
         <a href={game.repositorio_url} target="_blank" rel="noopener noreferrer">Ver código original ↗</a>
         {practiced && <p>Práctica manual registrada el {new Date(practiced).toLocaleDateString('es-MX')}.</p>}
