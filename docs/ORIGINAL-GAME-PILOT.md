@@ -1,5 +1,8 @@
 # Piloto de juegos originales
 
+> Registro histórico del piloto de PR #21. El cierre a 28 juegos y la resolución
+> de los bloqueos están en [ORIGINAL-GAMES-EXPANSION.md](ORIGINAL-GAMES-EXPANSION.md).
+
 `ahorcado-simplex`, `ordena-simplex`, `rompecabezas-simplex` y `caza-el-pivote`
 usan `/jugar-original/:gameId`: completan los cinco juegos del Gimnasio 3 junto
 con Memorama.

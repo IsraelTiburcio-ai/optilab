@@ -1,11 +1,12 @@
 import {test,expect} from '@playwright/test';
-const ids=['ahorcado-simplex','ordena-simplex','rompecabezas-simplex','caza-el-pivote'];
+import catalog from '../../../catalogo_optimizacion_gimnasios_1_a_5.json' with {type:'json'};
+const ids=catalog.juegos.filter(g=>g.repo!=='memorama-simplex').map(g=>g.repo);
 const fixture='<!doctype html><html lang="es"><title>Fixture, no juego real</title><body><button>Partida de prueba</button></body></html>';
 test.beforeEach(async({context})=>{for(const id of ids)await context.route(`https://israeltiburcio-ai.github.io/${id}/`,r=>r.fulfill({contentType:'text/html',body:fixture}));});
 
-test('los cinco juegos de gimnasio3 integrados; otros23 conservan sus enlaces',async({page})=>{
+test('28 juegos integrados, Memorama conserva su ruta y no hay aperturas externas por defecto',async({page})=>{
   await page.goto('#/optidex');await expect(page.locator('.cartridge')).toHaveCount(28);
-  await expect(page.locator('.cartridge .play[target="_blank"]')).toHaveCount(23);
+  await expect(page.locator('.cartridge .play[target="_blank"]')).toHaveCount(0);
   await expect(page.locator('.cartridge .play[href="#/jugar/memorama-simplex"]')).toHaveCount(1);
   for(const id of ids){const link=page.locator(`.cartridge .play[href="#/jugar-original/${id}"]`);await expect(link).toHaveCount(1);expect(await link.getAttribute('target')).toBeNull();}
   const mem=page.locator('.cartridge').filter({hasText:'Memorama Simplex'});await mem.getByRole('button',{name:'Detalles',exact:true}).click();await expect(mem.getByText('al completar ocho parejas',{exact:false})).toBeVisible();
@@ -19,7 +20,7 @@ for(const id of ids)test(`${id}: sandbox opaco y mensajes sin resultados ni prog
   await expect(page.getByText('Este piloto no comunica resultados',{exact:false})).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('optilab-v1'))).toBe(before);await expect(page.locator('.game-result-panel,.external-observed')).toHaveCount(0);
 });
 test('rutas no permiten URLs arbitrarias ni habilitan otros juegos',async({page})=>{
-  for(const id of ['lp-factory','memorama-simplex','https%3A%2F%2Fevil.example']){await page.goto(`#/jugar-original/${id}?url=https://evil.example`);await expect(page.getByRole('heading',{name:'Este juego no está disponible en el piloto integrado'})).toBeVisible();await expect(page.locator('.original-player iframe')).toHaveCount(0);}
+  for(const id of ['not-in-catalog','memorama-simplex','https%3A%2F%2Fevil.example']){await page.goto(`#/jugar-original/${id}?url=https://evil.example`);await expect(page.getByRole('heading',{name:'Este juego no está disponible en el piloto integrado'})).toBeVisible();await expect(page.locator('.original-player iframe')).toHaveCount(0);}
 });
 test('fallo de red conserva fallback externo seguro sin afirmar carga útil',async({page})=>{
   await page.route('https://israeltiburcio-ai.github.io/ahorcado-simplex/',r=>r.abort());await page.goto('#/jugar-original/ahorcado-simplex');

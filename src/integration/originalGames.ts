@@ -1,9 +1,8 @@
 import {games,type Game} from '../data';
 
-const pilotIds=new Set(['ahorcado-simplex','ordena-simplex','rompecabezas-simplex','caza-el-pivote']);
 /** Public catalog only. Never consume a URL from route/query input. */
 export function embeddedOriginalGame(id:string):Game|null {
-  if(!pilotIds.has(id))return null;
+  if(id==='memorama-simplex')return null;
   const game=games.find(g=>g.repo===id);
   return game?.juego_url===`https://israeltiburcio-ai.github.io/${id}/`?game:null;
 }
