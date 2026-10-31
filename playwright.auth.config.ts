@@ -1,4 +1,6 @@
 import {defineConfig} from '@playwright/test';
+const emulator=process.env.AUTH_QA_EMULATOR_URL??'http://127.0.0.1:9099';
+if(!/^http:\/\/127\.0\.0\.1:(9099|9299)$/.test(emulator))throw new Error('Auth QA requires an explicitly allowed isolated loopback emulator.');
 
 export default defineConfig({
   testDir: './tests/auth', timeout: 60000, workers: 1,
@@ -15,7 +17,7 @@ export default defineConfig({
       VITE_FIREBASE_STORAGE_BUCKET: 'demo-optilab-auth.example',
       VITE_FIREBASE_MESSAGING_SENDER_ID: '123456789',
       VITE_FIREBASE_APP_ID: '1:123456789:web:demooptilabauth',
-      VITE_FIREBASE_AUTH_EMULATOR_URL: 'http://127.0.0.1:9099',
+      VITE_FIREBASE_AUTH_EMULATOR_URL: emulator,
     },
   },
 });

@@ -1,6 +1,7 @@
 # ADR-001 · Identidad privada, ámbitos académicos y catálogo docente separado
 
 Estado: propuesto para revisión en issue #3; reglas ejecutables solo en emulador. Fecha: 2026-10-23.
+Preparación productiva posterior, aún sin activación ni despliegue: [Fase 1 de #3/#4](../CLOUD-PRODUCTION-PHASE-1.md). Incluye gate separado, validación previa y pruebas de Rules/índices; no aprueba el bootstrap privilegiado ni permisos reales.
 Base: `main` `5df2258` (Auth publicada); Firebase informado por propietario: `optilab-cd829`, `(default)`, `northamerica-south1`, Spark, producción actualmente deny-all. No se consultaron ni escribieron documentos reales.
 
 ## Decisión y alternativas

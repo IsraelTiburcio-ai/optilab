@@ -162,6 +162,7 @@ service cloud.firestore {
         allow update: if owner(uid) && document == 'current' && syncHead(request.resource.data,uid)
           && request.resource.data.createdAt == resource.data.createdAt && resource.data.schemaVersion == 2
           && request.resource.data.revision == resource.data.revision + 1
+          && request.resource.data.operationId != resource.data.operationId
           && request.resource.data.epoch in [resource.data.epoch,resource.data.epoch+1];
         allow list,delete: if false;
       }
@@ -193,6 +194,7 @@ service cloud.firestore {
             && exact(request.resource.data,['schemaVersion','uid','epoch','kind','operationId','sourceHash','createdAt'])
             && request.resource.data.schemaVersion == 2 && request.resource.data.uid == uid
             && request.resource.data.epoch is int && epoch == string(request.resource.data.epoch) && uuid(request.resource.data.operationId)
+            && request.resource.data.operationId == getAfter(/databases/$(database)/documents/users/$(uid)/sync/current).data.operationId
             && request.resource.data.kind in ['edit','import','reset','restore'] && request.resource.data.createdAt == request.time
             && ((request.resource.data.kind == 'import' && request.resource.data.sourceHash.matches('^[0-9a-f]{64}$') && receiptId == 'i_'+request.resource.data.sourceHash)
               || (request.resource.data.kind != 'import' && receiptId == 'o_'+request.resource.data.operationId

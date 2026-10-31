@@ -28,6 +28,14 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+          # Phase 1 only prepares production sync. Activation requires a later
+          # owner-authorized workflow change after Rules/retention/rollout review.
+          VITE_PROGRESS_SYNC: disabled
+          VITE_PROGRESS_SYNC_RELEASE: ''
+          VITE_PROGRESS_SYNC_PROJECT_ID: ''
+          VITE_PROGRESS_SYNC_ORIGIN: ''
+          VITE_FIREBASE_AUTH_EMULATOR_URL: ''
+          VITE_FIRESTORE_EMULATOR_HOST: ''
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

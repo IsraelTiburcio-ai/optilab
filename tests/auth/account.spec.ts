@@ -1,7 +1,8 @@
 import {test, expect, type Page, type APIRequestContext} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-const emulator='http://127.0.0.1:9099';
+const emulator=process.env.AUTH_QA_EMULATOR_URL??'http://127.0.0.1:9099';
+if(!/^http:\/\/127\.0\.0\.1:(9099|9299)$/.test(emulator))throw new Error('Auth QA requires an explicitly allowed isolated loopback emulator.');
 const project='demo-optilab-auth';
 const email='entrenador-qa@example.test';
 const password='Solo-Pruebas-42!';
@@ -74,11 +75,11 @@ test('Google OAuth simulado por Auth Emulator conserva sesión y aventura local'
 
 test('error de red y almacenamiento restringido mantienen el modo invitado',async({page})=>{
   await account(page);const before=await page.evaluate(()=>localStorage.getItem('optilab-v1'));
-  await page.route('http://127.0.0.1:9099/identitytoolkit.googleapis.com/**',route=>route.abort());
+  await page.route(`${emulator}/identitytoolkit.googleapis.com/**`,route=>route.abort());
   await page.getByLabel('Correo electrónico',{exact:true}).fill(email);await page.getByLabel('Contraseña',{exact:true}).fill(password);await page.getByRole('button',{name:'Entrar a mi cuenta'}).click();
   await expect(page.getByRole('alert')).toContainText('Revisa tu conexión');
   expect(await page.evaluate(()=>localStorage.getItem('optilab-v1'))).toBe(before);
-  await page.unroute('http://127.0.0.1:9099/identitytoolkit.googleapis.com/**');
+  await page.unroute(`${emulator}/identitytoolkit.googleapis.com/**`);
   await page.addInitScript(()=>Object.defineProperty(window,'localStorage',{get(){throw new DOMException('blocked','SecurityError')}}));
   await page.reload();
   await expect(page.getByText('Este acceso es temporal',{exact:false})).toBeVisible();
