@@ -3,10 +3,10 @@ import AxeBuilder from '@axe-core/playwright';
 
 const production = process.env.VERIFY_PUBLIC === '1';
 const host = production ? 'https://israeltiburcio-ai.github.io/optilab/' : '';
-test.skip(!production && !process.env.MEMORAMA_DIR, 'Define MEMORAMA_DIR para candidatos locales o VERIFY_PUBLIC=1 para las URLs publicadas.');
+test.skip(!production && !process.env.MEMORAMA_DIR&&process.env.MEMORAMA_PUBLIC!=='1', 'Define MEMORAMA_DIR para candidatos, MEMORAMA_PUBLIC=1 para emisor público/host local o VERIFY_PUBLIC=1 para ambos públicos.');
 
 async function prepare(page: Page) {
-  if (!production) await page.route('https://israeltiburcio-ai.github.io/memorama-simplex/**', async route => {
+  if (!production&&process.env.MEMORAMA_PUBLIC!=='1') await page.route('https://israeltiburcio-ai.github.io/memorama-simplex/**', async route => {
     const url = new URL(route.request().url());
     const response = await page.request.get('http://127.0.0.1:5190/' + url.pathname.replace('/memorama-simplex/', '') + url.search);
     await route.fulfill({response});

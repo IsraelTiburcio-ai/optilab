@@ -3,9 +3,10 @@ import AxeBuilder from '@axe-core/playwright';
 
 const remote = 'https://israeltiburcio-ai.github.io/memorama-simplex/';
 const sizes = [[390,844],[820,1180],[1180,820],[1440,900]];
-test.skip(!process.env.MEMORAMA_DIR, 'Define MEMORAMA_DIR con el clon del juego para probar ambos cambios locales.');
+test.skip(!process.env.MEMORAMA_DIR&&process.env.MEMORAMA_PUBLIC!=='1', 'Define MEMORAMA_DIR para candidatos o MEMORAMA_PUBLIC=1 para el emisor publicado.');
 
 async function localGame(page: Page) {
+  if(process.env.MEMORAMA_PUBLIC==='1')return;
   // Keep the real remote origin in the browser; serve the candidate commit locally.
   await page.route('https://israeltiburcio-ai.github.io/memorama-simplex/**', async route => {
     const url = new URL(route.request().url());
