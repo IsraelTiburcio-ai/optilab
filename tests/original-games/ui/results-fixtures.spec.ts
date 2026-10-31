@@ -6,7 +6,7 @@ const fixture=(gameId:string)=>`<!doctype html><html lang="es"><title>Fixture de
 const p=new URLSearchParams(location.search);window.base={protocol:'${protocol}',version:1,gameId:'${gameId}',session:p.get('optilabSession')};
 window.addEventListener('message',e=>{if(e.source===parent&&e.data?.type==='host:init'&&e.data.session===window.base.session)parent.postMessage({...window.base,type:'game:ready'},p.get('optilabOrigin'));});
 </script></body></html>`;
-test.beforeEach(async({context})=>{for(const id of [...ids,'lp-factory'])await context.route(`https://israeltiburcio-ai.github.io/${id}/*`,r=>r.fulfill({contentType:'text/html',body:fixture(id)}));});
+test.beforeEach(async({context})=>{for(const id of [...ids,'solution-detective'])await context.route(`https://israeltiburcio-ai.github.io/${id}/*`,r=>r.fulfill({contentType:'text/html',body:fixture(id)}));});
 const metrics=(id:string)=>id==='ahorcado-simplex'?{reason:'completed',correct:3,total:3,attempts:20,errors:1,durationMs:1200}:{reason:'completed',correct:30,total:32,attempts:7,errors:2,durationMs:1200};
 async function channel(page:Page,id:string){
   await page.goto(`#/jugar-original/${id}`);await expect(page.getByText('Resultados de sesión: conector disponible.',{exact:true})).toBeVisible();
@@ -40,8 +40,8 @@ test('documento recargado y sesión anterior quedan retirados; nueva sesión no 
   await post(page,{...base,type:'game:ready'});await post(page,start);await post(page,end);await expect(page.locator('.original-session-result')).toHaveCount(0);
   await page.goto('#/mapa');const current=await channel(page,id);expect(current.base.session).not.toBe(base.session);await post(page,start);await post(page,end);await expect(page.locator('.original-session-result')).toHaveCount(0);
 });
-test('los otros25 no reciben sesión ni interpretan el contrato piloto',async({page})=>{
-  await page.goto('#/jugar-original/lp-factory');const node=page.locator('.original-player iframe');await expect(node).toHaveAttribute('src','https://israeltiburcio-ai.github.io/lp-factory/');await page.frameLocator('iframe').getByRole('button').waitFor();
-  const base={protocol,version:1,gameId:'ahorcado-simplex',session:crypto.randomUUID()},runId=crypto.randomUUID();for(const data of [{...base,type:'game:ready'},{...base,type:'game:started',runId},{...base,type:'game:completed',runId,result:metrics(ids[0])}])await post(page,data);
+test('un ID fuera del catálogo no monta iframe ni recibe sesión',async({page})=>{
+  await page.goto('#/jugar-original/unknown-game');await expect(page.locator('.original-player iframe')).toHaveCount(0);
+  const base={protocol,version:1,gameId:'ahorcado-simplex',session:crypto.randomUUID()},runId=crypto.randomUUID();for(const data of [{...base,type:'game:ready'},{...base,type:'game:started',runId},{...base,type:'game:completed',runId,result:metrics(ids[0])}])await page.evaluate(data=>window.dispatchEvent(new MessageEvent('message',{origin:'null',source:window,data})),data);
   await expect(page.locator('.original-session-result')).toHaveCount(0);await expect(page.getByText('Resultados de sesión:',{exact:false})).toHaveCount(0);
 });
