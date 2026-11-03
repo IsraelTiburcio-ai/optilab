@@ -24,6 +24,7 @@ jobs:
         env:
           # GitHub Pages has optilab.club configured; Vite must publish at root.
           OPTILAB_PAGES_TARGET: optilab.club
+          VITE_SYNC_PILOT: ''
           VITE_PROGRESS_SYNC: disabled
           VITE_PROGRESS_SYNC_RELEASE: ''
           VITE_PROGRESS_SYNC_PROJECT_ID: ''
