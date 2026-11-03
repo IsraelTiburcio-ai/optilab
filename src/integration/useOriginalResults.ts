@@ -1,7 +1,9 @@
+import {useAttempts} from '../attempts/local';
 import {useCallback,useEffect,useRef,useState,type RefObject} from 'react';
 import {isResultPilot,ORIGINAL_RESULTS_PROTOCOL,OriginalResultReceiver,type OriginalResult} from './originalResults';
 
 export function useOriginalResults(gameId:string,session:string,sourceUrl:string,frame:RefObject<HTMLIFrameElement|null>){
+  const attempts=useAttempts();
   const enabled=isResultPilot(gameId);
   const [status,setStatus]=useState<'waiting'|'connected'|'playing'|'ended'|'aborted'|'retired'>('waiting');
   const [report,setReport]=useState<{runId:string;result:OriginalResult}|null>(null);
@@ -18,13 +20,13 @@ export function useOriginalResults(gameId:string,session:string,sourceUrl:string
     const receive=(event:MessageEvent)=>{
       const node=frame.current;if(!active||!loads.current||!node)return;
       const message=receiver.accept(event,{window:node.contentWindow,sourceUrl:node.src,connected:node.isConnected});if(!message)return;
-      if(message.type==='game:ready'){ready=true;setStatus('connected');}
+      if(message.type==='game:ready'){attempts.record(gameId,'opened',session+':open');ready=true;setStatus('connected');}
       else if(message.type==='game:started'){setReport(null);setStatus('playing');}
       else if(message.type==='game:aborted'){setReport(null);setStatus('aborted');}
-      else{setReport({runId:message.runId,result:message.result});setStatus('ended');}
+      else{attempts.record(gameId,'reported',message.runId,{...message.result});setReport({runId:message.runId,result:message.result});setStatus('ended');}
     };
     window.addEventListener('message',receive);if(loads.current)load.current();const timer=setInterval(init,600);
     return ()=>{active=false;receiver.invalidate();load.current=()=>{};window.removeEventListener('message',receive);clearInterval(timer);};
-  },[gameId,session,sourceUrl,frame]);
+  },[gameId,session,sourceUrl,frame,attempts.scope]);
   return {enabled,status,report,onLoad:useCallback(()=>{loads.current++;load.current();},[])};
 }
