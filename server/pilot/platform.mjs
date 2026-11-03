@@ -5,7 +5,7 @@ export const sha256=text=>createHash('sha256').update(text).digest('hex');
 export async function inspectPlatform(get,candidateRules){
  const result={version:1,project,observedAt:new Date().toISOString(),rules:{status:'BLOCKED'},billing:{status:'BLOCKED'},services:{status:'BLOCKED'}};
  const requests=[
-  (async()=>{const release=await get(`https://firebaserules.googleapis.com/v1/projects/${project}/releases/firebase.firestore`);
+  (async()=>{const release=await get(`https://firebaserules.googleapis.com/v1/projects/${project}/releases/cloud.firestore`);
    if(!new RegExp(`^projects/${project}/rulesets/[^/]+$`).test(release.rulesetName))throw Error('Unexpected ruleset project');
    const ruleset=await get(`https://firebaserules.googleapis.com/v1/${release.rulesetName}`);
    const files=ruleset.source?.files;if(!Array.isArray(files)||files.length!==1||typeof files[0].content!=='string')throw Error('Cannot compare single Rules file');
