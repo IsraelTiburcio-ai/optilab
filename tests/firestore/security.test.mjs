@@ -1,3 +1,4 @@
+import {firestoreHost,firestorePort} from '../emulator-endpoints.mjs';
 import {before, after, beforeEach, test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -6,7 +7,7 @@ import {doc, collection, collectionGroup, getDoc, getDocs, setDoc, updateDoc, de
   query, limit, orderBy, where, serverTimestamp, Timestamp, writeBatch, setLogLevel} from 'firebase/firestore';
 
 // Fail BEFORE initialization: no discovery of Firebase config, .env, ADC or real database.
-if (process.env.FIRESTORE_EMULATOR_HOST !== '127.0.0.1:8085') {
+if (process.env.FIRESTORE_EMULATOR_HOST !== firestoreHost) {
   throw new Error('Firestore rules tests require the isolated emulator at 127.0.0.1:8085. Use npm run test:firestore.');
 }
 const projectId = 'demo-optilab-firestore';
@@ -30,7 +31,7 @@ const ref = (client,path) => doc(client,path);
 const put = (client,path,data) => setDoc(ref(client,path),data);
 const read = (client,path) => getDoc(ref(client,path));
 
-before(async()=>{env=await initializeTestEnvironment({projectId,firestore:{host:'127.0.0.1',port:8085,rules}});});
+before(async()=>{env=await initializeTestEnvironment({projectId,firestore:{host:'127.0.0.1',port:firestorePort,rules}});});
 after(async()=>{await env?.cleanup();});
 beforeEach(async()=>{
   await env.clearFirestore();
@@ -294,9 +295,9 @@ test('negative authorization assertion detects deliberately insecure rules (muta
   await crossAccount();
   const insecure="rules_version = '2'; service cloud.firestore { match /databases/{database}/documents { match /{p=**} { allow read, write: if true; } } }";
   try {
-    await initializeTestEnvironment({projectId,firestore:{host:'127.0.0.1',port:8085,rules:insecure}}).then(e=>e.cleanup());
+    await initializeTestEnvironment({projectId,firestore:{host:'127.0.0.1',port:firestorePort,rules:insecure}}).then(e=>e.cleanup());
     await assert.rejects(crossAccount,/Expected request to fail/);
   } finally {
-    await initializeTestEnvironment({projectId,firestore:{host:'127.0.0.1',port:8085,rules}}).then(e=>e.cleanup());
+    await initializeTestEnvironment({projectId,firestore:{host:'127.0.0.1',port:firestorePort,rules}}).then(e=>e.cleanup());
   }
 });

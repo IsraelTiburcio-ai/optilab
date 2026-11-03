@@ -138,7 +138,36 @@ service cloud.firestore {
         && d.revision == h.revision && d.operationId == h.operationId && h.updatedAt == request.time
         && h.schemaVersion == 2 && h.uid == uid && advancingHead(uid) && uuid(d.operationId) && fieldValue(key,d.value);
     }
+    function attemptNumber(value) { return value is int && value >= 0 && value <= 2147483647; }
+    function attemptResult(r) {
+      return r is map && r.keys().hasOnly(['reason','correct','total','attempts','errors','durationMs','timeouts','score','accuracy','matchedPairs','totalPairs','elapsedMs','completed'])
+        && r.get('reason','completed') in ['completed','time-limit'] && r.get('completed',true) == true
+        && attemptNumber(r.get('correct',0)) && attemptNumber(r.get('total',0))
+        && attemptNumber(r.get('attempts',0)) && attemptNumber(r.get('errors',0))
+        && attemptNumber(r.get('durationMs',0)) && attemptNumber(r.get('timeouts',0))
+        && attemptNumber(r.get('score',0)) && attemptNumber(r.get('accuracy',0))
+        && attemptNumber(r.get('matchedPairs',0)) && attemptNumber(r.get('totalPairs',0)) && attemptNumber(r.get('elapsedMs',0));
+    }
+    function reportedAttempt(d,uid,eventKey) {
+      return d.keys().hasAll(['version','id','activityId','kind','trust','observedAt','uid','serverReceivedAt'])
+        && d.keys().hasOnly(['version','id','activityId','kind','trust','observedAt','result','uid','serverReceivedAt'])
+        && d.version == 1 && d.uid == uid && d.activityId in games()
+        && d.id is string && d.id.matches('^[-A-Za-z0-9_:]{1,160}$')
+        && eventKey == d.activityId+'--'+d.id && d.observedAt is string && d.observedAt.size() <= 40
+        && d.observedAt.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T.*Z$')
+        && d.serverReceivedAt == request.time
+        && ((d.kind in ['opened','declared'] && d.trust == 'declaration' && !('result' in d))
+          || (d.kind == 'reported' && d.trust == 'client-report' && (!('result' in d) || attemptResult(d.result))));
+    }
     match /users/{uid} {
+      // Private, immutable client observations. No client elevation to validated.
+      match /reportedAttempts/{eventKey} {
+        allow get: if owner(uid) && request.auth.token.email_verified == true;
+        allow list: if owner(uid) && request.auth.token.email_verified == true && page(2000);
+        allow create: if owner(uid) && request.auth.token.email_verified == true && reportedAttempt(request.resource.data,uid,eventKey);
+        allow update,delete: if false;
+      }
+
       allow get: if owner(uid);
       allow create: if owner(uid) && exact(request.resource.data,['schemaVersion','uid','createdAt'])
         && request.resource.data.schemaVersion == 1 && request.resource.data.uid == uid
@@ -162,6 +191,7 @@ service cloud.firestore {
         allow update: if owner(uid) && document == 'current' && syncHead(request.resource.data,uid)
           && request.resource.data.createdAt == resource.data.createdAt && resource.data.schemaVersion == 2
           && request.resource.data.revision == resource.data.revision + 1
+          && request.resource.data.operationId != resource.data.operationId
           && request.resource.data.epoch in [resource.data.epoch,resource.data.epoch+1];
         allow list,delete: if false;
       }
@@ -193,6 +223,7 @@ service cloud.firestore {
             && exact(request.resource.data,['schemaVersion','uid','epoch','kind','operationId','sourceHash','createdAt'])
             && request.resource.data.schemaVersion == 2 && request.resource.data.uid == uid
             && request.resource.data.epoch is int && epoch == string(request.resource.data.epoch) && uuid(request.resource.data.operationId)
+            && request.resource.data.operationId == getAfter(/databases/$(database)/documents/users/$(uid)/sync/current).data.operationId
             && request.resource.data.kind in ['edit','import','reset','restore'] && request.resource.data.createdAt == request.time
             && ((request.resource.data.kind == 'import' && request.resource.data.sourceHash.matches('^[0-9a-f]{64}$') && receiptId == 'i_'+request.resource.data.sourceHash)
               || (request.resource.data.kind != 'import' && receiptId == 'o_'+request.resource.data.operationId

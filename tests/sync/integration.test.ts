@@ -1,3 +1,4 @@
+import {authHost,firestoreHost,authUrl,firestorePort} from '../emulator-endpoints.mjs';
 import {before,after,test} from 'node:test';
 import assert from 'node:assert/strict';
 import {initializeApp,deleteApp} from 'firebase/app';
@@ -8,7 +9,7 @@ import {ProgressEngine} from '../../src/progress/engine';
 import {blankSnapshot,emptyProgress,withEvolution,SyncConflict,type Operation} from '../../src/progress/model';
 import {games} from '../../src/data';
 
-if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8085'||process.env.FIREBASE_AUTH_EMULATOR_HOST!=='127.0.0.1:9099')
+if(process.env.FIRESTORE_EMULATOR_HOST!==firestoreHost||process.env.FIREBASE_AUTH_EMULATOR_HOST!==authHost)
   throw new Error('Sync integration requires BOTH isolated loopback emulators.');
 setLogLevel('silent');
 class MemoryStorage implements Storage {
@@ -17,8 +18,8 @@ class MemoryStorage implements Storage {
   setItem(k:string,v:string){this.data.set(k,v);}removeItem(k:string){this.data.delete(k);}
 }
 const apps=[0,1,2].map(i=>initializeApp({projectId:'demo-optilab-sync',apiKey:'fake-api-key',authDomain:'demo-optilab-sync.firebaseapp.com'},`sync-test-${i}`));
-const auths=apps.map(a=>{const auth=getAuth(a);connectAuthEmulator(auth,'http://127.0.0.1:9099',{disableWarnings:true});return auth;});
-const dbs=apps.map(a=>{const db=getFirestore(a);connectFirestoreEmulator(db,'127.0.0.1',8085);return db;});
+const auths=apps.map(a=>{const auth=getAuth(a);connectAuthEmulator(auth,authUrl,{disableWarnings:true});return auth;});
+const dbs=apps.map(a=>{const db=getFirestore(a);connectFirestoreEmulator(db,'127.0.0.1',firestorePort);return db;});
 let uid:string,other:string;
 const engines:ProgressEngine[]=[];
 const wait=async(check:()=>boolean)=>{const until=Date.now()+20000;while(!check()){if(Date.now()>until)throw new Error('Timed out waiting for sync condition');await new Promise(r=>setTimeout(r,25));}};

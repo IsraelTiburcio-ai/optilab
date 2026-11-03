@@ -1,3 +1,4 @@
+import {AttemptCloudControls} from './cloudContext';
 import {useEffect,useState,useRef,useSyncExternalStore} from 'react';
 import {useAuth} from '../auth/AuthProvider';
 import {empty,metrics,type Kind} from './model';
@@ -36,7 +37,7 @@ export function AttemptHistory(){
   const a=document.createElement('a');a.href=url;a.download='optilab-intentos-locales.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  }
  return <section className="paper attempt-history" aria-label="Historial local de intentos">
-  <h2>Historial local de intentos</h2>
+  <h2>Historial local de intentos</h2><AttemptCloudControls/>
   <p>{scope==='guest'?'Perfil invitado de este navegador':'Perfil de la cuenta actual en este navegador'}. Los informes del cliente no están validados. No se sincronizan ni se usan para rankings. En un dispositivo compartido otras personas con acceso al navegador podrían acceder al almacenamiento.</p>
   <label><input type="checkbox" checked={enabled} onChange={e=>storage.setConsent(scope,e.target.checked)}/> Guardar futuros intentos en este navegador</label>
   {error&&<p role="alert">{error}</p>}
