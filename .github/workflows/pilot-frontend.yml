@@ -1,0 +1,89 @@
+name: Private pilot frontend (manual, separate owner approval)
+on:
+  workflow_dispatch:
+    inputs:
+      approval_digest:
+        description: Exact digest of the separately approved private manifest
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  pilot:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: private-pilot-approval
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify protected environment before any private build
+        run: node scripts/pilot-check-environment.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Load separately approved operator receipts (never repository files)
+        env:
+          PRIVATE_MANIFEST: ${{ secrets.PILOT_MANIFEST_JSON }}
+          PLATFORM_RECEIPT: ${{ secrets.PILOT_PLATFORM_JSON }}
+          USAGE_RECEIPT: ${{ secrets.PILOT_USAGE_JSON }}
+        run: |
+          node --input-type=module <<'JS'
+          import {writeFileSync} from 'node:fs';
+          for (const [key,file] of Object.entries({PRIVATE_MANIFEST:'manifest',PLATFORM_RECEIPT:'platform',USAGE_RECEIPT:'usage'})) {
+            if (!process.env[key]) throw Error('Separate owner approval secrets missing');
+            const path=process.env.RUNNER_TEMP+'/pilot-'+file+'.json';
+            writeFileSync(path,process.env[key],{mode:0o600,flag:'wx'});
+          }
+          JS
+      - name: Verify approved SHA, Rules, billing, services and usage; prepare private build flags
+        run: node scripts/pilot-build-env.mjs
+        env:
+          PILOT_MANIFEST_FILE: ${{ runner.temp }}/pilot-manifest.json
+          PILOT_PLATFORM_FILE: ${{ runner.temp }}/pilot-platform.json
+          PILOT_USAGE_FILE: ${{ runner.temp }}/pilot-usage.json
+          PILOT_APPROVAL_DIGEST: ${{ inputs.approval_digest }}
+          PILOT_FRONTEND_SHA: ${{ github.sha }}
+      - name: Validate exact public Firebase target and build
+        run: |
+          node --input-type=module <<'JS'
+          const keys=['API_KEY','AUTH_DOMAIN','PROJECT_ID','STORAGE_BUCKET','MESSAGING_SENDER_ID','APP_ID'];
+          if(keys.some(k=>!process.env['VITE_FIREBASE_'+k]) || process.env.VITE_FIREBASE_PROJECT_ID!=='optilab-cd829' || process.env.VITE_FIREBASE_AUTH_DOMAIN!=='optilab-cd829.firebaseapp.com') throw Error('Public Firebase configuration mismatch');
+          JS
+          npm run build
+        env:
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - name: Recheck freshness immediately before publishing
+        run: node scripts/pilot-build-env.mjs
+        env:
+          PILOT_MANIFEST_FILE: ${{ runner.temp }}/pilot-manifest.json
+          PILOT_PLATFORM_FILE: ${{ runner.temp }}/pilot-platform.json
+          PILOT_USAGE_FILE: ${{ runner.temp }}/pilot-usage.json
+          PILOT_APPROVAL_DIGEST: ${{ inputs.approval_digest }}
+          PILOT_FRONTEND_SHA: ${{ github.sha }}
+      - name: Publish explicitly approved private frontend
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Remove private operator receipts
+        if: always()
+        run: rm -f "$RUNNER_TEMP/pilot-manifest.json" "$RUNNER_TEMP/pilot-platform.json" "$RUNNER_TEMP/pilot-usage.json"

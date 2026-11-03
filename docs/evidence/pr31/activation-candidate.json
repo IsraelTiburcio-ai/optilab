@@ -1,0 +1,53 @@
+{
+  "base": "f062b11412f46757e2798b7e701f05b80413e464",
+  "pilotEmulators": {
+    "command": "npm run test:pilot",
+    "status": "PASS",
+    "tests": 27,
+    "cases": [
+      "v2 private writes require nonanonymous owner, exact CAS and coherent receipt",
+      "forged receipt operation cannot poison a future ACK and rolls back its entire batch",
+      "a CAS update cannot reuse its previous operationId",
+      "two writers racing one revision have exactly one successful atomic commit",
+      "read budgets and field bounds are enforced by Rules, not merely the UI",
+      "headless or stale-epoch writes and receipts are rejected",
+      "new temporary-game reports cannot become gameRuns; native Memorama remains valid",
+      "production deploy config has no emulator/service settings and indexes stay collection-scoped and bounded",
+      "new Rules accept the maximum 122-write atomic import without relaxing data or receipt validation",
+      "proposed policy is dry-run only; modified, absent or overlong approval is rejected",
+      "fresh exact Rules/billing/service/consumption receipts required; unknown values never count as zero",
+      "read-only platform verifier follows exact ruleset and detects missing metadata without enabling any API",
+      "operator environment requires independent reviewers and no bypass",
+      "prepare remains paused; grants cap at pilot end and replay does not extend them; immutable window cannot be replaced",
+      "20 minute lease expires without operator heartbeat; pause cannot be undone by renew; bad telemetry pauses",
+      "extra unapproved active membership or disabled verified identity prevents reopening",
+      "CLI is offline by default and refuses execution of pending manifest; build requires exact approval SHA",
+      "ordinary Pages remains pinned OFF; pilot workflow is manual and never deploys Rules or indexes",
+      "operator CLI rehearses prepare/open/renew/pause against isolated emulator with a real private evidence file",
+      "effective admission: unknown, unverified, expired, revoked and other UID denied; own verified active allowed",
+      "pause affects direct SDK and all private subtrees, independent of frontend; validated results immutable",
+      "admission requires verified Auth, cap survives concurrent operators, erased UID cannot rejoin",
+      "UID export and deletion include nested backups/derived data; retain fence, protect B and guest, remove managed archives",
+      "shared UID references block erasure; inventory caps fail without claiming completeness; monitor pause is effective",
+      "cross-owner UID fields become review blockers, not deletion authority",
+      "offline queued writes cannot replay after administrative erasure fence",
+      "CLI dry-run is offline; production execution requires separate acknowledgement before SDK initialization"
+    ]
+  },
+  "build": "PASS",
+  "workflowStaticValidation": {
+    "tool": "actionlint 1.7.12 (official checksum verified)",
+    "files": [
+      ".github/workflows/pilot-frontend.yml",
+      ".github/workflows/deploy.yml"
+    ],
+    "status": "PASS"
+  },
+  "productionActivation": "NOT EXECUTED",
+  "productionRulesBillingServicesAudit": "BLOCKED: ADC/IAM metadata access unavailable",
+  "physicalMacIPhone": "NOT EXECUTED",
+  "publicIndexMatchesArtifact": {
+    "status": "PASS",
+    "sha256": "af2c25daca84a039e2a437a4b0911cc170d1f0d26f6c3b52da0afb5d320c044c"
+  }
+}

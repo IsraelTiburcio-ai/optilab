@@ -44,10 +44,11 @@ export async function eraseUid(db,uid,{planHash,directory,Timestamp}){
  return {deleted:plan.documents.length,managedArchivesDeleted:archives.length,retained:remaining.retained,
   externalCopies:'UNVERIFIED: other devices, downloads, OS backups and provider backups require operator receipts',authAccount:'retained; separate authorization required'};
 }
-export async function admit(db,auth,uid,{Timestamp,days=7,maximum=5}={}){
+export async function admit(db,auth,uid,{Timestamp,days=7,maximum=5,expiresAtLimit}={}){
  checkUid(uid);if(!Number.isInteger(days)||days<1||days>14)throw Error('Grant duration 1–14 days');
  const user=await auth.getUser(uid);if(!user.emailVerified||user.disabled)throw Error('Verified, enabled Auth account required');
- const now=Timestamp.now(),expiresAt=Timestamp.fromMillis(now.toMillis()+days*86400000);
+ const now=Timestamp.now(),expiresAt=Timestamp.fromMillis(Math.min(now.toMillis()+days*86400000,expiresAtLimit?.toMillis()??Infinity));
+ if(expiresAt.toMillis()<=now.toMillis())throw Error("Grant window expired");
  await db.runTransaction(async tx=>{
   // All grant changes contend on one document: cap survives concurrent operators.
   const lock=db.doc('syncPilotAudit/admissionLock'),lockSnap=await tx.get(lock);

@@ -16,6 +16,7 @@ if(target==='emulator'&&projectId==='demo-optilab-sync'){
  if(process.env.FIRESTORE_EMULATOR_HOST||process.env.FIREBASE_AUTH_EMULATOR_HOST||(options['--execute']&&process.env.OPTILAB_PILOT_OPERATOR_APPROVAL!=='private-pilot-approved-v1'))throw Error('Production requires separate operator authorization and no emulator overrides');
 }else throw Error('Explicit supported target/project required');
 const uid=options['--uid'],execute=options['--execute']===true;
+if(target==='production'&&execute&&command==='admit')throw Error('Direct production admission disabled; use the second-authorized pilot activation manifest');
 if(execute&&options['--confirm']!==(uid||command))throw Error('Explicit --confirm UID (or command for global action) required');
 if(!execute){console.log(JSON.stringify({mode:'DRY-RUN',command,target,projectId,uid:uid||null,network:false,writes:false}));process.exit(0);}
 if(['export','erase'].includes(command)&&!options['--archives'])throw Error('Explicit private --archives directory required');

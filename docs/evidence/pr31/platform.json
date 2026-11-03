@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "project": "optilab-cd829",
+  "observedAt": "2026-11-03T21:07:12.844Z",
+  "rules": {
+    "status": "BLOCKED"
+  },
+  "billing": {
+    "status": "BLOCKED"
+  },
+  "services": {
+    "status": "BLOCKED"
+  },
+  "reason": "ADC/IAM metadata access unavailable; verify with owner console. No APIs enabled."
+}

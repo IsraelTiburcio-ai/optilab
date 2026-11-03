@@ -35,7 +35,9 @@
     "test:pages-domain": "node scripts/test-pages-domain.mjs",
     "test:cloud-sprint": "node scripts/test-cloud-sprint.mjs",
     "test:pilot": "PILOT_QA=1 node scripts/test-cloud-sprint.mjs",
-    "pilot:admin": "node scripts/pilot-admin.mjs"
+    "pilot:admin": "node scripts/pilot-admin.mjs",
+    "pilot:activation": "node scripts/pilot-activation.mjs",
+    "pilot:platform": "node scripts/pilot-platform.mjs"
   },
   "dependencies": {
     "firebase": "12.19.0",
