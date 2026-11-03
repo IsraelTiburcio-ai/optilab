@@ -12,4 +12,4 @@ Separar el adaptador de almacenamiento y el validador confiable: en Firestore, U
 
 ## Evidencia
 
-PASS: build TypeScript/Vite; 6 tests de contrato (campos ausentes, dedupe/replay, confianza, métricas negativas, apertura distinta de resultado, recarga/corrupción). PASS: consentimiento, práctica declarada y recarga del historial en Chromium. WebKit se registra en la descripción de PR tras ejecución. Pendientes: matriz Auth A/B con emulador, límite de almacenamiento y prueba multi-tab de integración; no declarar producción certificada por estas pruebas locales.
+PASS: build TypeScript/Vite; 7 tests de contrato (campos ausentes, dedupe/replay, confianza, métricas negativas, apertura distinta de resultado, recarga/corrupción). PASS: 2/2 recorridos por motor en Chromium y WebKit: consentimiento/práctica/recarga y receptor Memorama con fixture, informe repetido y persistencia. Pendientes: matriz Auth A/B con emulador, límite de almacenamiento y prueba multi-tab de integración; no declarar producción certificada por estas pruebas locales.

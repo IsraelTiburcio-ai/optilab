@@ -77,7 +77,7 @@ function PlayerSession({retry}: {retry: () => void}) {
       clearTimeout(timeout);
     };
     // A fresh mounted session owns this listener; saves use the latest store callback.
-  }, [session, source, attempts.scope]);
+  }, [session, source, attempts.scope,attempts.ready]);
 
   const status = {loading: 'Abriendo el portal…', ready: 'Conectado · voltea una carta para iniciar', playing: 'Partida en curso', completed: 'Partida completada · resultado recibido', unavailable: 'No se pudo conectar con el juego'}[phase];
   const previous = state.gameResults.filter(r => r.gameId === GAME_ID).at(-1);

@@ -27,6 +27,6 @@ export function useOriginalResults(gameId:string,session:string,sourceUrl:string
     };
     window.addEventListener('message',receive);if(loads.current)load.current();const timer=setInterval(init,600);
     return ()=>{active=false;receiver.invalidate();load.current=()=>{};window.removeEventListener('message',receive);clearInterval(timer);};
-  },[gameId,session,sourceUrl,frame,attempts.scope]);
+  },[gameId,session,sourceUrl,frame,attempts.scope,attempts.ready]);
   return {enabled,status,report,onLoad:useCallback(()=>{loads.current++;load.current();},[])};
 }
