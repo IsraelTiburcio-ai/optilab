@@ -51,7 +51,7 @@ const keys=(v:object,expected:string[])=>Object.keys(v).sort().join(',')===[...e
 const integer=(v:unknown,max:number):v is number=>typeof v==='number'&&Number.isSafeInteger(v)&&v>=0&&v<=max;
 export function allowedResultsHost(origin:string){
   try{const u=new URL(origin);return u.origin===origin&&!u.username&&!u.password&&(
-    origin==='https://israeltiburcio-ai.github.io'||u.protocol==='http:'&&['127.0.0.1','localhost','[::1]'].includes(u.hostname));
+     ['https://israeltiburcio-ai.github.io','https://optilab.club'].includes(origin)||u.protocol==='http:'&&['127.0.0.1','localhost','[::1]'].includes(u.hostname));
   }catch{return false;}
 }
 export function originalResultSource(url:string,gameId:string,session:string,hostOrigin:string){
