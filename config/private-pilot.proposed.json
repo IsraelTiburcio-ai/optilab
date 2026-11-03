@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "project": "optilab-cd829",
+  "startAt": null,
+  "endAt": null,
+  "maxParticipants": 5,
+  "grantDays": 7,
+  "maxPilotDays": 14,
+  "retentionDaysAfterEnd": 14,
+  "leaseMinutes": 20,
+  "checkEveryMinutes": 15,
+  "receiptMaxAgeMinutes": 10,
+  "adultsOnly": true,
+  "fictitiousDataOnly": true,
+  "studentsAllowed": false,
+  "independentConsents": true,
+  "operators": {
+    "primary": "IsraelTiburcio-ai",
+    "backup": null
+  },
+  "participants": [],
+  "limits24h": {
+    "reads": 5000,
+    "writes": 1000,
+    "deletes": 1000,
+    "documents": 2000,
+    "largestAccount": 500
+  },
+  "exports": {
+    "directory": null,
+    "encryptionVerified": false,
+    "removeManagedAndExternalCopies": true
+  },
+  "authDeletion": "pilot-created-only-after-uid-erasure-and-confirmation",
+  "approvedServicesSha256": null,
+  "authorization": null,
+  "frontendSha": null
+}

@@ -1,5 +1,9 @@
 # Private pilot candidate — not activated
 
+Activation preparation now lives in [PILOT-ACTIVATION.md](PILOT-ACTIVATION.md).
+It adds an independently authorized manual release and short operating leases;
+legacy production `pilot-admin admit` is disabled in favor of that approved manifest.
+
 PR #30 is live at merge `70eedd02fdcebcab8fbdcb3359ac98e841dfedc4`.
 Pages: https://github.com/IsraelTiburcio-ai/optilab/actions/runs/41617652768 (success, same SHA).
 Public evidence: [JSON](evidence/pr30/public-smoke.json), reproducible with `node scripts/smoke-pr30-public.mjs`.
@@ -52,8 +56,8 @@ npm run pilot:admin -- pause --target emulator --project demo-optilab-sync --exe
 Production execution additionally requires `OPTILAB_PILOT_OPERATOR_APPROVAL=private-pilot-approved-v1`,
 explicit production project/target, operator ADC IAM and a **new owner authorization**.
 This environment variable is an operator acknowledgement, not a security credential.
-No command enables global reads/writes. Initial activation needs a reviewed administrative change
-following approval; tooling only admits (maximum five verified accounts for seven days), monitors,
+The legacy admin CLI never enables global reads/writes. The separate activation CLI and manual
+frontend workflow require a second owner authorization; this legacy tooling only admits (maximum five verified accounts for seven days), monitors,
 exports, erases, or pauses. No service-account key files, tokens or raw data printed to console.
 
 `monitor` counts all stored documents, pauses writes above 2,000 total or 500/account,
