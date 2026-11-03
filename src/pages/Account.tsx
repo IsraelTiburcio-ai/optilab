@@ -1,3 +1,4 @@
+import {AttemptHistory} from '../attempts/local';
 import {useEffect, useRef, useState,useSyncExternalStore, type FormEvent} from 'react';
 import {Link} from 'react-router-dom';
 import {ArrowRight, Check, KeyRound, LogOut, Mail, Shield} from 'lucide-react';
@@ -101,5 +102,6 @@ export default function Account() {
       </>}
       <Link className="account-guest-link" to="/mapa">{auth.user ? 'Explorar el mapa' : 'Continuar como invitado'} <ArrowRight size={16}/></Link>
     </section></div>
+    <AttemptHistory key={auth.user?.uid??'guest'}/>
   </section>;
 }

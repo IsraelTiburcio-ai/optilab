@@ -1,3 +1,4 @@
+import {useAttempts} from '../attempts/local';
 import {iframeLoadGate} from '../integration/iframeLoadGate';
 import {useEffect, useRef, useState} from 'react';
 import {Link, useParams} from 'react-router-dom';
@@ -17,6 +18,7 @@ export default function GamePlayer() {
 }
 
 function PlayerSession({retry}: {retry: () => void}) {
+  const attempts=useAttempts();
   const {state, saveGameResult} = useProgress();
   const save = useRef(saveGameResult);
   save.current = saveGameResult;
@@ -46,7 +48,7 @@ function PlayerSession({retry}: {retry: () => void}) {
       const message = parseMessage(event.data, session);
       if (!message) return;
       if (message.type === 'game:ready') {
-        if (!ready) { ready = true; setPhase('ready'); }
+        if (!ready) { attempts.record(GAME_ID,'opened',session+':open'); ready = true; setPhase('ready'); }
         return;
       }
       if (!ready) return;
@@ -61,6 +63,7 @@ function PlayerSession({retry}: {retry: () => void}) {
       if (message.type === 'game:completed' && message.runId === activeRun && !recorded.has(message.runId)) {
         const completed: SavedGameResult = {...message.result, gameId: GAME_ID, runId: message.runId, date: new Date().toISOString()};
         recorded.add(message.runId);
+        attempts.record(GAME_ID,'reported',message.runId,{...message.result});
         save.current(completed);
         setResult(completed);
         setPhase('completed');
@@ -77,7 +80,7 @@ function PlayerSession({retry}: {retry: () => void}) {
       clearTimeout(timeout);
     };
     // A fresh mounted session owns this listener; saves use the latest store callback.
-  }, [session, source, loadGate]);
+  }, [session, source, loadGate, attempts.scope, attempts.ready]);
 
   const status = {loading: 'Abriendo el portal…', ready: 'Conectado · voltea una carta para iniciar', playing: 'Partida en curso', completed: 'Partida completada · resultado recibido', unavailable: 'No se pudo conectar con el juego'}[phase];
   const previous = state.gameResults.filter(r => r.gameId === GAME_ID).at(-1);

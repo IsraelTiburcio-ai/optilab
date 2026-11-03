@@ -1,3 +1,4 @@
+import {authEmulator} from './tests/auth/emulator';
 import {defineConfig} from '@playwright/test';
 
 export default defineConfig({
@@ -15,7 +16,7 @@ export default defineConfig({
       VITE_FIREBASE_STORAGE_BUCKET: 'demo-optilab-auth.example',
       VITE_FIREBASE_MESSAGING_SENDER_ID: '123456789',
       VITE_FIREBASE_APP_ID: '1:123456789:web:demooptilabauth',
-      VITE_FIREBASE_AUTH_EMULATOR_URL: 'http://127.0.0.1:9099',
+      VITE_FIREBASE_AUTH_EMULATOR_URL: authEmulator,
     },
   },
 });

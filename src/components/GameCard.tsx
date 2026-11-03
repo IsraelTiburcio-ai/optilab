@@ -1,3 +1,4 @@
+import {useAttempts} from '../attempts/local';
 import {useState, type CSSProperties} from 'react';
 import {Link} from 'react-router-dom';
 import {ArrowRight, ArrowUpRight, Check} from 'lucide-react';
@@ -9,6 +10,7 @@ import {isResultPilot} from '../integration/originalResults';
 import {SimplexCover} from './SimplexCover';
 
 export function GameCard({game, index = 0}: {game: Game; index?: number}) {
+  const attempts=useAttempts();
   const {state, toggle} = useProgress();
   const [details, setDetails] = useState(false);
   const gym = gyms[game.gimnasio - 1];
@@ -39,7 +41,7 @@ export function GameCard({game, index = 0}: {game: Game; index?: number}) {
         {practiced && <p>Práctica manual registrada el {new Date(practiced).toLocaleDateString('es-MX')}.</p>}
         {game.repo === 'mapa-produccion' && <p className="notice">Correspondencia académica pendiente de revisión con la profesora. No se utiliza en el diagnóstico ni en rutas recomendadas.</p>}
       </div>}
-      <button className="practice-toggle" aria-pressed={!!practiced} onClick={() => toggle(game.repo)}><span>{practiced ? <Check size={14}/> : null}</span>{practiced ? 'Practicado · desmarcar' : 'Marcar como practicado'}</button>
+      <button className="practice-toggle" aria-pressed={!!practiced} onClick={() => (practiced?undefined:attempts.record(game.repo,'declared',crypto.randomUUID()),toggle(game.repo))}><span>{practiced ? <Check size={14}/> : null}</span>{practiced ? 'Practicado · desmarcar' : 'Marcar como practicado'}</button>
     </div>
   </article>;
 }
