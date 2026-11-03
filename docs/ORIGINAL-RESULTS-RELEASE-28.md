@@ -1,4 +1,4 @@
-# Release de telemetría 28/28 — emisores publicados, OptiLab pendiente de merge
+# Release de telemetría 28/28 — aceptación de los dos contratos
 
 ## Resultado
 
@@ -9,8 +9,30 @@
   juego) responden HTTP 200, con tipos HTML/JavaScript correctos y contenido
   byte a byte idéntico al archivo de su commit. No se aceptó una página de error
   con código 200 ni una versión anterior como evidencia.
-- 28/28 smoke PASS: emisores públicos contra OptiLab candidato local, sin
-  despliegue de OptiLab. Las partidas independientes también usan URLs públicas.
+- PR #24 fusionada mediante squash `8aa4d2265ee28e85370530d9288a81b590ebc489`;
+  [Pages PASS](https://github.com/IsraelTiburcio-ai/optilab/actions/runs/41206519046).
+  OptiLab y los 28 juegos están publicados. El smoke funcional público pasa
+  28/28 en Chromium y WebKit.
+- **28/28 aceptación PASS en Chromium y WebKit**, aplicando el contrato legacy
+  de Memorama y el contrato temporal de los otros 27. No hay bloqueo por la
+  persistencia local esperada de Memorama.
+
+## Criterio de aceptación corregido
+
+El release conserva **dos contratos distintos**. Exigir ausencia absoluta de
+`gameResults` a los 28 juegos era un criterio incorrecto: contradice el contrato
+legacy intencional de Memorama y las expectativas explícitas de
+`tests/pilot.spec.ts` y `tests/pilot-public.spec.ts`.
+
+| Alcance | Resultado esperado para aceptación |
+| --- | --- |
+| Memorama Simplex, protocolo `optilab-game` | Guarda exactamente su resultado legacy en `optilab-v1.gameResults`: `completed`, `matchedPairs`, `totalPairs`, `attempts`, `errors`, `elapsedMs`, `accuracy`, más `gameId`, `runId` y `date`. El payload coincide con la partida nativa; duplicados del mismo `runId` no añaden entradas. Una nueva partida válida tiene otro `runId`. El historial local persiste al salir y recargar, como exige el contrato existente. |
+| Otros 27 juegos, protocolo `optilab-original-results` | El informe vive solo en la sesión montada del reproductor. Desaparece al salir y no reaparece al volver; no crea entradas en `gameResults` ni otros resultados persistidos. |
+| Los 28 juegos | La telemetría no cambia prácticas manuales, diagnósticos, insignias, evolución ni recompensas; tampoco genera nuevas escrituras Firebase. Las visitas de navegación se distinguen de la práctica y de las finalizaciones. |
+
+La excepción de persistencia de Memorama es **esperada y no constituye un
+bloqueo**. Este criterio no modifica su protocolo, persistencia, emisor ni
+reproductor, y no amplía el alcance Cloud de la telemetría.
 
 ## Emisores
 
@@ -53,7 +75,7 @@ Los otros workflows suben la raíz completa; OptiQuest usa Pages legacy desde
 `main` y su workflow administrado también pasó. Se excluyeron los `.DS_Store`
 locales ajenos. No se alteraron contenido académico ni mecánicas durante release.
 
-## QA público y regresiones
+## QA previo al despliegue y regresiones
 
 | Comprobación | Chromium | WebKit |
 | --- | --- | --- |
@@ -80,5 +102,58 @@ de los SHAs publicados para planificar controles, sin sustituir recursos web.
 Memorama usa `MEMORAMA_PUBLIC=1` con el host local; Ahorcado/Ordena usan
 `RESULT_PILOT_PUBLIC=1`.
 
-No hay bloqueos de emisores públicos. Issue #6 permanece abierto. OptiLab
-requiere revisión de su única PR antes de cualquier merge o despliegue.
+## Revalidación de aceptación en OptiLab público
+
+Comprobaciones reejecutadas contra
+`https://israeltiburcio-ai.github.io/optilab/`, sobre el squash publicado de
+PR #24. Los recorridos de partida real usan emisores públicos sin interceptar
+sus recursos:
+
+| Comprobación afectada | Chromium | WebKit |
+| --- | --- | --- |
+| Otros 27: carga, partidas completas/repetidas, informe nativo, abandono, aislamiento y modo independiente | 61/61 PASS | 61/61 PASS |
+| Memorama: regresiones arena/piloto/aventura, `pilot-public.spec.ts` y comprobación estricta del contrato legacy | 36/36 PASS | 36/36 PASS |
+| Aceptación de ambos contratos | **28/28 PASS** | **28/28 PASS** |
+
+En Memorama se completaron dos partidas reales: la primera con un fallo
+intencional (8 parejas, 9 intentos, 1 error, 89 %) y la segunda perfecta. Cada
+registro coincide exactamente con su payload nativo más `gameId`, `runId` y
+`date`; no se añaden otros campos. Reenviar la finalización dos veces no cambia
+el registro ni su fecha; repetir una partida crea una segunda entrada con otro
+`runId`, y reenviar el resultado anterior no crea una tercera. Al salir y
+recargar se conserva el historial legacy. El resto del estado de progreso se
+comparó íntegramente antes y después: prácticas, diagnósticos, insignias,
+evolución, recompensas y preferencias permanecen iguales.
+
+Para los otros 27, las comprobaciones adicionales de aceptación verifican
+`gameResults: []`, prácticas y diagnósticos vacíos e insignias sin cambios en
+contextos limpios. Tras cada informe completo se abandona la ruta y se vuelve
+al mismo juego: el informe desaparece y no se recupera de almacenamiento. Las
+comparaciones de progreso de las suites también permanecen iguales.
+
+La observación de red de ambas suites no registró llamadas a los endpoints de
+Firestore, Identity Toolkit, Secure Token, Firebase Realtime Database o Cloud
+Functions durante estos recorridos de invitado; no hubo nuevas escrituras
+Firebase por telemetría. La carga del iframe auxiliar de Auth en producción no
+es una escritura de resultados. Los selectores del QA se limitaron al iframe
+del juego cuando ese iframe auxiliar estaba presente; no se alteró el DOM ni
+se bloquearon solicitudes para obtener el PASS.
+
+Las suites existentes se ejecutaron con una configuración temporal que usa
+la URL base del host público y añade verificaciones de red, salida de la
+sesión y payload legacy exacto. Los opt-in usados fueron
+`RESULT_EXPANSION_PUBLIC=1`, `RESULT_PILOT_PUBLIC=1`, `MEMORAMA_PUBLIC=1` y
+`VERIFY_PUBLIC=1`; los fixtures locales de contenido quedaron desactivados.
+El caso negativo de handshake simula expresamente un puente indisponible y
+después comprueba la reconexión con el emisor real.
+Las 36 comprobaciones de Memorama incluyen las 31 regresiones existentes,
+los cuatro escenarios de `tests/pilot-public.spec.ts` y la comprobación estricta
+adicional de payload, deduplicación y estado. La corrección versionada contiene
+solo documentación y el criterio de aceptación; no modifica código, tests
+existentes, emisores, reproductores ni persistencia.
+
+## Estado de los alcances Cloud
+
+Los issues #6 y #7 permanecen abiertos por sus alcances Cloud. La aceptación de
+este release no certifica resultados Cloud, calificaciones, asignaciones ni
+recompensas y no modifica esos subsistemas.

@@ -3,11 +3,20 @@
 Esta rama parte de `1c7ab1da37b568cbcc222cb0309faf1ff5ef13b3`. Se completaron
 los **25 emisores adicionales locales**: los diecisiete previos se conservan y
 los ocho restantes están implementados y verificados. Con Memorama, Ahorcado y
-Ordena ya publicados, el total es **28/28 PASS local**. El receptor genérico
+Ordena ya publicados, el total inicial fue **28/28 PASS local**. El receptor genérico
 admite 27 IDs; Memorama conserva su protocolo independiente y su integración.
-Los 25 emisores adicionales están publicados y verificados. OptiLab sigue como
-candidato local/rama de PR, pendiente de aprobación, merge y despliegue. Los
-SHAs y workflows publicados están en [el registro de release](ORIGINAL-RESULTS-RELEASE-28.md).
+Los 25 emisores adicionales están publicados y verificados. PR #24 está
+fusionada mediante squash `8aa4d2265ee28e85370530d9288a81b590ebc489` y Pages
+está publicado. Los SHAs, workflows y el criterio de aceptación de ambos
+contratos están en [el registro de release](ORIGINAL-RESULTS-RELEASE-28.md):
+Memorama conserva su resultado legacy persistido y deduplicado por `runId`;
+los informes de los otros 27 juegos son exclusivamente temporales. Esa
+persistencia esperada de Memorama no bloquea la aceptación 28/28.
+La revalidación contra OptiLab público termina en **28/28 aceptación PASS en
+Chromium y WebKit**: 61/61 comprobaciones de los 27 informes temporales y 36/36
+del contrato legacy/regresión Memorama por motor, sin nuevas escrituras Firebase
+por telemetría en los recorridos instrumentados. #6 y #7 siguen abiertos por
+sus alcances Cloud.
 
 | ID | `correct` / `total` | `score` | `durationMs` | Intentos y errores |
 | --- | --- | --- | --- | --- |
