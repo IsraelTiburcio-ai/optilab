@@ -10,3 +10,5 @@
 .attempt-actions button{min-height:44px;padding:8px 12px}
 .attempt-alert{position:relative;z-index:5;padding:16px;background:#f4e1d6;color:#783e2b;overflow-wrap:anywhere}
 .attempt-alert a{text-decoration:underline}
+
+.attempt-history input[type=file]{max-width:100%;min-width:0}.attempt-history button{max-width:100%;overflow-wrap:anywhere}

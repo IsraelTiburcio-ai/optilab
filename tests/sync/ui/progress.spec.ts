@@ -1,8 +1,9 @@
+import {authHost,firestoreHost,authUrl,firestorePort,syncBase} from '../../emulator-endpoints.mjs';
 import {test,expect,type Page} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 const emptyProgress=()=>({practiced:{},visited:[],badges:[],results:[],gameResults:[],nickname:'Entrenador OptiLab',
   route:[],avatarId:null,companionId:null,evolutionMilestones:[],evolutionCelebratedStage:1});
-if(process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8085'||process.env.FIREBASE_AUTH_EMULATOR_HOST!=='127.0.0.1:9099')
+if(process.env.FIRESTORE_EMULATOR_HOST!==firestoreHost||process.env.FIREBASE_AUTH_EMULATOR_HOST!==authHost)
   throw new Error('UI sync tests require BOTH local emulators, never production.');
 const password='fixture-password';
 const panel=(p:Page)=>p.getByRole('region',{name:'Sincronización de progreso'});
@@ -65,7 +66,7 @@ test('consent, cancel, import, recoverable backup, reload, and A logout B isolat
   await expect(secondTab.locator('#nickname')).toHaveValue('Privado A');
 });
 test('two browser clients converge; offline preference conflicts require review and survive reload',async({browser})=>{
-  const ca=await browser.newContext({baseURL:'http://127.0.0.1:5195/optilab/'}),cb=await browser.newContext({baseURL:'http://127.0.0.1:5195/optilab/'});
+  const ca=await browser.newContext({baseURL:syncBase}),cb=await browser.newContext({baseURL:syncBase});
   try {
     const a=await ca.newPage(),b=await cb.newPage(),email=`devices-${crypto.randomUUID()}@example.test`;
     await register(a,email);await panel(a).getByRole('button',{name:'Conservar progreso remoto',exact:true}).click();
@@ -90,7 +91,7 @@ test('two browser clients converge; offline preference conflicts require review 
   } finally {await ca.close();await cb.close();}
 });
 test('offline practice unmark persists; reset prevents an old device from resurrecting the adventure',async({browser})=>{
-  const ca=await browser.newContext({baseURL:'http://127.0.0.1:5195/optilab/'}),cb=await browser.newContext({baseURL:'http://127.0.0.1:5195/optilab/'});
+  const ca=await browser.newContext({baseURL:syncBase}),cb=await browser.newContext({baseURL:syncBase});
   try {
     const a=await ca.newPage(),b=await cb.newPage(),email=`reset-${crypto.randomUUID()}@example.test`;
     await register(a,email);await panel(a).getByRole('button',{name:'Conservar progreso remoto',exact:true}).click();
@@ -125,7 +126,7 @@ test('backup export and explicit restore work in the UI without changing guest l
 });
 test('real local Memorama survives remote profile updates and arena; result syncs once to another client',async({browser})=>{
   test.skip(!process.env.MEMORAMA_DIR,'Set MEMORAMA_DIR to pinned game fixture 7a58545; CI supplies it.');
-  const ca=await browser.newContext({baseURL:'http://127.0.0.1:5195/optilab/'}),cb=await browser.newContext({baseURL:'http://127.0.0.1:5195/optilab/'});
+  const ca=await browser.newContext({baseURL:syncBase}),cb=await browser.newContext({baseURL:syncBase});
   try {
     const a=await ca.newPage(),b=await cb.newPage(),email=`game-${crypto.randomUUID()}@example.test`;
     await a.route('https://israeltiburcio-ai.github.io/memorama-simplex/**',async route=>{

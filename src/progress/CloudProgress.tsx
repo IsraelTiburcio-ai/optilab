@@ -1,3 +1,4 @@
+import CloudAttempts from '../attempts/CloudAttempts';
 import {useEffect, useState, useSyncExternalStore, type ReactNode} from 'react';
 import {ProgressContext} from '../store';
 import {games, gyms, gymGames} from '../data';
@@ -6,13 +7,13 @@ import {isCompanionId} from '../data/companions';
 import {savedResults} from '../integration/protocol';
 import {evolutionProgress, type UnlockStage} from '../lib/evolutionRules';
 import {ProgressEngine} from './engine';
-import {createEmulatorTransport} from './transport';
+import {createProgressTransport} from './transport';
 import {withEvolution, type Progress} from './model';
 import {accountStorage} from './storage';
 
 export default function CloudProgress({uid,children}:{uid:string;children:ReactNode}) {
   const [local]=useState(accountStorage);
-  const [engine]=useState(()=>new ProgressEngine(uid,local.storage,createEmulatorTransport(uid),600,local.durable));
+  const [engine]=useState(()=>new ProgressEngine(uid,local.storage,createProgressTransport(uid),600,local.durable));
   const view=useSyncExternalStore(engine.subscribe,engine.getSnapshot);
   useEffect(()=>{
     engine.start();engine.setOnline(navigator.onLine);
@@ -42,5 +43,5 @@ export default function CloudProgress({uid,children}:{uid:string;children:ReactN
       return stage===v.evolutionCelebratedStage+1&&stage<=unlocked?{...v,evolutionCelebratedStage:stage}:v;
     }),
     reset:()=>{void engine.reset().catch(()=>engine.reportError('No se reinició la aventura. Revisa el respaldo, almacenamiento o nuevos cambios y reintenta.'));},
-  }}>{!local.durable&&<p role="alert">El navegador bloquea el almacenamiento: esta copia es temporal. Exporta tus cambios antes de cerrar; importación y reinicio están bloqueados.</p>}{children}</ProgressContext.Provider>;
+  }}>{!local.durable&&<p role="alert">El navegador bloquea el almacenamiento: esta copia es temporal. Exporta tus cambios antes de cerrar; importación y reinicio están bloqueados.</p>}<CloudAttempts key={uid} uid={uid}>{children}</CloudAttempts></ProgressContext.Provider>;
 }
