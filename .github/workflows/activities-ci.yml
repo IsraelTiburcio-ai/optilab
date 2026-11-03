@@ -28,7 +28,7 @@ jobs:
         env:
           DOMAIN_BROWSER: ${{ matrix.browser }}
       - run: npm run test:activities:security
-      - run: node --import tsx --test src/attempts/model.test.ts
+      - run: node --import tsx --test src/attempts/model.test.ts tests/iframe-load-gate.test.ts
       - run: npm run test:original-results:security
       # Deterministic fixtures only; live providers remain an explicit local opt-in.
       - run: npm run test:activities -- player.spec.ts --reporter=dot
