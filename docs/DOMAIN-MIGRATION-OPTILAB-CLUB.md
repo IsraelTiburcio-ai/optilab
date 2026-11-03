@@ -8,14 +8,25 @@ Sync.
 
 ## Estado verificado
 
-GitHub Pages informa `cname: optilab.club`, `https_enforced: false` y URL
-canónica HTTP. `https://optilab.club/` falló al establecer TLS; el host antiguo
-`https://israeltiburcio-ai.github.io/optilab/` responde 301 a
-`http://optilab.club/`. El dominio y certificado aún no están listos para
-publicación segura. No se intentó activar HTTPS ni modificar DNS.
+GitHub Pages informa `cname: optilab.club`, `https_enforced: true`; DNS apex
+resuelve a los cuatro IPv4 de GitHub Pages **y además** a `15.197.148.33` y
+`3.33.130.190`. `curl` con resolución normal falla TLS con `unrecognized name`
+porque algunas conexiones van a esos dos destinos ajenos a Pages. Forzando una
+conexión al GitHub Pages IPv4 `185.199.108.153`, HTTPS responde 200 y certificado
+válido. La página servida todavía apunta su JS a `/optilab/assets/...` (404 bajo
+root) y `/CNAME` aún responde 404: el root build/CNAME de esta PR no se ha
+desplegado. El URL antiguo redirige a `http://optilab.club/`. No se intentó
+modificar DNS/Pages settings ni publicar.
 
-Puerta pública: certificado TLS válido, `https_enforced: true` en Pages y HTTPS
-200 antes de cutover. La preparación local no satisface esta puerta.
+Puerta pública: GoDaddy debe retirar los dos A records ajenos
+(`15.197.148.33`, `3.33.130.190`) y conservar solo los cuatro A recomendados
+de GitHub Pages (y los AAAA de GitHub si están configurados); comprobar también
+que `www` solo sea el CNAME recomendado si se usa. Esperar propagación y probar
+varias resoluciones; luego confirmar HTTPS 200 con certificado válido y
+`https_enforced:true`. El API muestra Enforce HTTPS activo, pero eso no arregla
+respuestas DNS inconsistentes. No puedo editar GoDaddy. La PR host contiene el
+build root/CNAME, pero hasta su publicación el HTML actual tiene prefijo de
+asset legacy y no es funcional en `/`.
 
 ## Cambios host-only en esta PR
 
@@ -89,17 +100,22 @@ retirar el custom domain de Pages, no solo revertir el bundle.
 
 ## Publicación manual requerida
 
-1. El propietario confirma DNS apex/`www` según la guía GitHub Pages vigente,
-   espera certificado válido y activa Enforce HTTPS. Bloqueo presente: API
-   devuelve `https_enforced=false`; HTTPS falla y el redirect observado es HTTP.
-2. Revisar/mergear los 28 PRs de puentes; validar sus checks y el allowlist exacto
-   antes de cambiar el host activo.
-3. Revisar y autorizar esta PR. Solo un push/merge autorizado a `main` inicia el
+1. El propietario elimina los dos A records de GoDaddy que no son GitHub Pages,
+   verifica la propagación y confirma que las respuestas son solo los A/AAAA
+   recomendados por GitHub. Pages indica `https_enforced:true`, pero la ruta
+   normal hoy falla TLS por esos registros extra. Probar HTTPS normal desde más
+   de una resolución/operador.
+2. Añadir manualmente `optilab.club` a Firebase Auth Authorized domains y revisar
+   OAuth/redirect; sin ese paso el login/verificación puede fallar.
+3. Revisar/mergear los 28 PRs de puentes; validar sus checks y dejar que cada
+   Pages deployment publique el bridge allowlist dual. No desplegar juegos antes.
+4. Revisar y autorizar esta PR. Solo un push/merge autorizado a `main` inicia el
    workflow Pages actual; no se ejecutó ese despliegue en esta preparación.
-4. Tras el deployment, validar HTTP/HTTPS, CNAME, bundles root, hash routes,
+5. Tras el deployment autorizado, validar HTTP/HTTPS, CNAME, bundles root,
+   hash routes,
    invitado, Auth con cuentas permitidas, los 28 handshakes/resultados y el
    sandbox. No usar datos de alumnos para el primer smoke.
-5. Revisar por separado #26/Sync gates; esta migración no los activa.
+6. Revisar por separado #26/Sync gates; esta migración no los activa.
 
 ## Rollback
 
@@ -115,10 +131,11 @@ Rules, datos o journals como rollback web.
 
 Unit de base Vite/auth callback/original result source, build legacy y build root,
 smoke de raíz/HashRouter/assets e integración Chromium/WebKit se ejecutan en CI
-y local. El endpoint público TLS no responde en esta revisión, así que no se
-certifica aún el dominio ni Auth real. Sin los 28 merges puente tampoco se puede
-declarar telemetría integrada en el nuevo host. Las PRs de allowlist están
-abiertas y no se han fusionado ni publicado.
+y local. El HTTPS normal no es consistente: algunos A llevan a TLS
+`unrecognized name`; fijando cualquiera de los cuatro A GitHub, TLS responde
+200. No se certifica aún la resolución pública del dominio ni Auth real. Sin
+los 28 merges puente tampoco se puede declarar telemetría integrada en el nuevo
+host. Las PRs de allowlist están abiertas y no se han fusionado ni publicado.
 
 En esta preparación pasaron: `pages-base` 3/3, default legacy build, root build
 y smoke de HashRouter/assets 1/1 por motor, contrato original results 14/14,
@@ -129,5 +146,7 @@ el bridge de cada juego desde su rama PR; el HTML/data/gameplay vinieron de sus
 URLs Pages públicas. Los otros 27 pasaron **61/61 por motor** y Memorama
 **9/9 por motor**: `host:init`, origen/source y resultados, partidas/replay,
 abandono, independencia, almacenamiento legacy de Memorama y cero requests
-Firebase por estos recorridos. El TLS público sigue fallando, así que este smoke
-valida candidate build + allowlists candidate, no disponibilidad real del dominio.
+Firebase por estos recorridos. En este momento el artefacto publicado aún usa
+`/optilab/assets` bajo el root custom; el host root de la PR y los allowlists son
+candidatos solamente. Estos resultados no certifican el dominio público hasta
+corregir DNS, fusionar dependencias autorizadas y desplegar bajo aprobación.
