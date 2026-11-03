@@ -33,7 +33,9 @@
     "test:original-results:security": "node --import tsx --test --test-reporter=spec tests/original-games/results.test.ts",
     "test:pages-base": "node --import tsx --test --test-reporter=spec tests/deployment/pages-base.test.mjs",
     "test:pages-domain": "node scripts/test-pages-domain.mjs",
-    "test:cloud-sprint": "node scripts/test-cloud-sprint.mjs"
+    "test:cloud-sprint": "node scripts/test-cloud-sprint.mjs",
+    "test:pilot": "PILOT_QA=1 node scripts/test-cloud-sprint.mjs",
+    "pilot:admin": "node scripts/pilot-admin.mjs"
   },
   "dependencies": {
     "firebase": "12.19.0",

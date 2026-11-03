@@ -7,7 +7,7 @@ import type {FirebaseSettings} from '../../src/auth/config';
 import {readFileSync} from 'node:fs';
 
 const auth:Extract<FirebaseSettings,{status:'ready'}>={status:'ready',emulatorUrl:null,config:{projectId:'optilab-cd829',authDomain:'optilab-cd829.firebaseapp.com',apiKey:'synthetic-only',appId:'1:123:web:qa',messagingSenderId:'123',storageBucket:'optilab-cd829.firebasestorage.app'}};
-const env={PROD:true,DEV:false,BASE_URL:'/',VITE_PROGRESS_SYNC:'production',VITE_PROGRESS_SYNC_RELEASE:'private-progress-and-attempts-v1',VITE_PROGRESS_SYNC_PROJECT_ID:'optilab-cd829',VITE_PROGRESS_SYNC_ORIGIN:productionSyncTarget.origin};
+const env={VITE_SYNC_PILOT:'private-admission-v1',PROD:true,DEV:false,BASE_URL:'/',VITE_PROGRESS_SYNC:'production',VITE_PROGRESS_SYNC_RELEASE:'private-progress-and-attempts-v1',VITE_PROGRESS_SYNC_PROJECT_ID:'optilab-cd829',VITE_PROGRESS_SYNC_ORIGIN:productionSyncTarget.origin};
 test('production is a separate explicit opt-in, disabled by missing/partial flags',()=>{
   assert.equal(productionSyncAllowed(env,auth,productionSyncTarget.origin),true);
   assert.equal(progressSyncMode(env,auth,productionSyncTarget.origin),'production');
@@ -32,6 +32,6 @@ test('production factories reject disabled configuration before locating any app
 });
 test('deployment and template pin production sync OFF independently of repository/owner env variables',()=>{
   const workflow=readFileSync(new URL('../../.github/workflows/deploy.yml',import.meta.url),'utf8');
-  assert.match(workflow,/VITE_PROGRESS_SYNC: disabled/);for(const key of ['RELEASE','PROJECT_ID','ORIGIN'])assert.match(workflow,new RegExp(`VITE_PROGRESS_SYNC_${key}: ''`));
+  assert.match(workflow,/VITE_PROGRESS_SYNC: disabled/);assert.match(workflow,/VITE_SYNC_PILOT: ''/);for(const key of ['RELEASE','PROJECT_ID','ORIGIN'])assert.match(workflow,new RegExp(`VITE_PROGRESS_SYNC_${key}: ''`));
   const template=readFileSync(new URL('../../.env.sync-production.example',import.meta.url),'utf8');assert.match(template,/^VITE_PROGRESS_SYNC=disabled$/m);assert.doesNotMatch(template,/VITE_PROGRESS_SYNC=production/);
 });

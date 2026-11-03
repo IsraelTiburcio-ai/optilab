@@ -1,0 +1,391 @@
+{
+  "merge": "70eedd02fdcebcab8fbdcb3359ac98e841dfedc4",
+  "started": "2026-11-03T10:16:15.297Z",
+  "results": [
+    {
+      "browser": "Chromium",
+      "status": "PASS",
+      "games": [
+        {
+          "id": "OptiQuest1",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "system-lab",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "SystemScope",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "complexity-lab",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "or-mission",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "model-match",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "lp-factory",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "constraint-dash",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "feasible-drop",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "solution-detective",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "planificador-produccion",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "mapa-produccion",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "claves-planeacion-produccion",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "memorama-simplex",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "rompecabezas-simplex",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "ahorcado-simplex",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "ordena-simplex",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "caza-el-pivote",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "espejo-dual",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "balanza-dual",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "domino-holguras",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "mercado-recursos-dual",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "semaforo-sensibilidad",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "desviacion-express",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "torre-prioridades",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "rompecabezas-metas",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "ruta-de-metas",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "candado-simplex",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        }
+      ],
+      "checks": {
+        "frontend": "PASS",
+        "authFormsAndClientValidation": "PASS",
+        "consentRequired": "PASS",
+        "memoramaResultSaved": "PASS",
+        "mobileOverflow": "PASS",
+        "reloadPersistence": "PASS",
+        "export": "PASS",
+        "noFirestoreRequests": "PASS",
+        "syncDisabledAndModulesAbsent": "PASS"
+      },
+      "firestoreRequests": [],
+      "consoleErrors": [
+        "Blocked autofocusing on a <button> element in a cross-origin subframe."
+      ],
+      "syncModules": [],
+      "realLogin": "MANUAL REQUIRED: no real credentials used",
+      "entries": 30
+    },
+    {
+      "browser": "WebKit",
+      "status": "PASS",
+      "games": [
+        {
+          "id": "OptiQuest1",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "system-lab",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "SystemScope",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "complexity-lab",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "or-mission",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "model-match",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "lp-factory",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "constraint-dash",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "feasible-drop",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "solution-detective",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "planificador-produccion",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "mapa-produccion",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "claves-planeacion-produccion",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "memorama-simplex",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "rompecabezas-simplex",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "ahorcado-simplex",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "ordena-simplex",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "caza-el-pivote",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "espejo-dual",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "balanza-dual",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "domino-holguras",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "mercado-recursos-dual",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "semaforo-sensibilidad",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "desviacion-express",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "torre-prioridades",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "rompecabezas-metas",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "ruta-de-metas",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        },
+        {
+          "id": "candado-simplex",
+          "open": "PASS",
+          "handshake": "PASS",
+          "documentStatus": 200
+        }
+      ],
+      "checks": {
+        "frontend": "PASS",
+        "authFormsAndClientValidation": "PASS",
+        "consentRequired": "PASS",
+        "memoramaResultSaved": "PASS",
+        "mobileOverflow": "PASS",
+        "reloadPersistence": "PASS",
+        "export": "PASS",
+        "noFirestoreRequests": "PASS",
+        "syncDisabledAndModulesAbsent": "PASS"
+      },
+      "firestoreRequests": [],
+      "consoleErrors": [
+        "Blocked autofocusing on a form control in a cross-origin subframe."
+      ],
+      "syncModules": [],
+      "realLogin": "MANUAL REQUIRED: no real credentials used",
+      "entries": 30
+    }
+  ],
+  "finished": "2026-11-03T10:16:55.632Z"
+}

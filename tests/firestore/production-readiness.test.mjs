@@ -4,12 +4,12 @@ import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';imp
 import {initializeTestEnvironment,assertFails,assertSucceeds} from '@firebase/rules-unit-testing';
 import {doc,collection,collectionGroup,getDoc,getDocs,setDoc,query,limit,serverTimestamp,Timestamp,writeBatch,setLogLevel} from 'firebase/firestore';
 if(process.env.FIRESTORE_EMULATOR_HOST!==firestoreHost)throw new Error('Production readiness tests require the isolated loopback emulator, never a real project.');
-const rules=readFileSync(new URL('../../firestore.rules',import.meta.url),'utf8');let env,uid,foreign;
+const rules=readFileSync(new URL(process.env.PILOT_QA==='1'?'../../firestore.pilot.rules':'../../firestore.rules',import.meta.url),'utf8');let env,uid,foreign;
 setLogLevel('silent');
 before(async()=>{env=await initializeTestEnvironment({projectId:'demo-optilab-production-qa',firestore:{host:'127.0.0.1',port:firestorePort,rules}});});
 after(async()=>{await env?.cleanup();});
-beforeEach(()=>{uid='qa-'+randomUUID();foreign='qa-'+randomUUID();});
-const db=(user=uid,claims={})=>env.authenticatedContext(user,claims).firestore();
+beforeEach(async()=>{uid='qa-'+randomUUID();foreign='qa-'+randomUUID();if(process.env.PILOT_QA==='1')await env.withSecurityRulesDisabled(async context=>{const db=context.firestore(),now=Timestamp.now(),expiresAt=Timestamp.fromMillis(Date.now()+3600000);await setDoc(doc(db,'syncPilotControl/current'),{version:1,readsEnabled:true,writesEnabled:true,expiresAt,updatedAt:now});await setDoc(doc(db,`syncPilotMembers/${uid}`),{version:1,uid,status:'active',expiresAt,updatedAt:now});});});
+const db=(user=uid,claims={})=>env.authenticatedContext(user,{...(process.env.PILOT_QA==='1'?{email_verified:true}:{}),...claims}).firestore();
 const head=(operationId=randomUUID(),revision=1,epoch=1)=>({schemaVersion:2,uid,epoch,revision,operationId,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
 const field=(operationId,value='QA',revision=1,epoch=1)=>({schemaVersion:2,uid,epoch,revision,operationId,value});
 function batch(client,{receipt={},key='nickname',value='QA',operationId=randomUUID(),revision=1,epoch=1,receiptId='o_'+operationId,writeHead=true,writeField=true}={}){
@@ -63,7 +63,7 @@ test('new temporary-game reports cannot become gameRuns; native Memorama remains
 });
 test('production deploy config has no emulator/service settings and indexes stay collection-scoped and bounded',()=>{
   const config=JSON.parse(readFileSync(new URL('../../firebase.production.json',import.meta.url)));
-  assert.deepEqual(config,{firestore:{rules:'firestore.rules',indexes:'firestore.indexes.json'}});
+  assert.deepEqual(config,{firestore:{rules:'firestore.pilot.rules',indexes:'firestore.indexes.json'}});
   const indexes=JSON.parse(readFileSync(new URL('../../firestore.indexes.json',import.meta.url)));
   for(const group of ['sync','fields','receipts','gameRuns','diagnostics'])assert.ok(indexes.fieldOverrides.some(f=>f.collectionGroup===group&&f.fieldPath==='*'&&f.indexes.length===0));
   for(const group of ['gameRuns','diagnostics'])assert.deepEqual(indexes.fieldOverrides.find(f=>f.collectionGroup===group&&f.fieldPath==='date').indexes,[{order:'DESCENDING',queryScope:'COLLECTION'}]);
