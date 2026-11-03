@@ -1,3 +1,4 @@
+import {iframeLoadGate} from '../integration/iframeLoadGate';
 import {useEffect, useRef, useState} from 'react';
 import {Link, useParams} from 'react-router-dom';
 import {ArrowUpRight, RotateCcw, Shield} from 'lucide-react';
@@ -20,6 +21,7 @@ function PlayerSession({retry}: {retry: () => void}) {
   const save = useRef(saveGameResult);
   save.current = saveGameResult;
   const frame = useRef<HTMLIFrameElement>(null);
+  const [loadGate] = useState(iframeLoadGate);
   const [session] = useState(() => crypto.randomUUID());
   const [phase, setPhase] = useState<'loading'|'ready'|'playing'|'completed'|'unavailable'>('loading');
   const [result, setResult] = useState<SavedGameResult | null>(null);
@@ -34,9 +36,9 @@ function PlayerSession({retry}: {retry: () => void}) {
     let activeRun: string | null = null;
     const retired = new Set<string>();
     const recorded = new Set(state.gameResults.map(r => r.runId));
-    const init = () => frame.current?.contentWindow?.postMessage({
+    const init = () => { if (!loadGate.isLoaded()) return; frame.current?.contentWindow?.postMessage({
       protocol: PROTOCOL, version: 1, gameId: GAME_ID, session, type: 'host:init',
-    }, GAME_ORIGIN);
+    }, GAME_ORIGIN); };
     const receive = (event: MessageEvent) => {
       // Origin alone cannot distinguish repositories hosted on GitHub Pages.
       if (event.origin !== GAME_ORIGIN || !frame.current ||
@@ -67,14 +69,15 @@ function PlayerSession({retry}: {retry: () => void}) {
     window.addEventListener('message', receive);
     const interval = window.setInterval(() => { if (!ready) init(); }, 600);
     const timeout = window.setTimeout(() => { if (!ready) { setPhase('unavailable'); setShowFrame(false); } }, 15000);
-    init();
+    const disconnect = loadGate.connect(init);
     return () => {
+      disconnect();
       window.removeEventListener('message', receive);
       clearInterval(interval);
       clearTimeout(timeout);
     };
     // A fresh mounted session owns this listener; saves use the latest store callback.
-  }, [session, source]);
+  }, [session, source, loadGate]);
 
   const status = {loading: 'Abriendo el portal…', ready: 'Conectado · voltea una carta para iniciar', playing: 'Partida en curso', completed: 'Partida completada · resultado recibido', unavailable: 'No se pudo conectar con el juego'}[phase];
   const previous = state.gameResults.filter(r => r.gameId === GAME_ID).at(-1);
@@ -87,7 +90,7 @@ function PlayerSession({retry}: {retry: () => void}) {
         <button className="text-button" onClick={retry}><RotateCcw size={14}/> Reconectar</button></div>
     }>
     <div className={`player-frame-shell ${phase === 'loading' ? 'is-loading' : ''}`}>
-      {showFrame && <iframe ref={frame} src={source} title="Memorama Simplex · juego integrado" referrerPolicy="strict-origin-when-cross-origin"
+      {showFrame && <iframe ref={frame} src={source} title="Memorama Simplex · juego integrado" referrerPolicy="strict-origin-when-cross-origin" onLoad={() => loadGate.onLoad()}
         onError={() => {setPhase('unavailable'); setShowFrame(false);}} allow="autoplay 'none'; camera 'none'; microphone 'none'; geolocation 'none'"/>}
       {phase === 'loading' && <div className="player-loading"><Mascot id={3}/><p>Preparando el tablero de la fortaleza…</p></div>}
       {phase === 'unavailable' && <section className="player-fallback"><h2>El portal necesita otro camino</h2><p>La conexión no está disponible. Puedes reintentar o jugar en el sitio independiente. Abrirlo no registra una victoria en OptiLab.</p><a className="button primary" href={GAME_URL} target="_blank" rel="noopener noreferrer">Jugar en otra pestaña <ArrowUpRight size={18}/></a><button className="button" onClick={retry}>Reintentar conexión</button></section>}
