@@ -6,3 +6,5 @@ test('client cannot elevate trust',()=>assert.throws(()=>append(empty(),{...even
 test('reject negative metrics, unknown activities and versions',()=>{for(const e of [{...event,result:{durationMs:-1}},{...event,activityId:'evil'},{...event,version:2}])assert.throws(()=>append(empty(),e as Attempt));});
 test('opening is never completion; no inferred score',()=>{const l=append(empty(),{...event,kind:'opened',trust:'declaration',result:undefined});assert.equal(metrics(l).find(x=>x.activityId==='system-lab')?.reported,0);});
 test('corrupt history fails closed; reload retains replay fences',()=>{assert.throws(()=>decode('{'));const l=decode(JSON.stringify(append(empty(),event)));assert.equal(append(l,event),l);});
+
+test('preserve native Memorama fields without renaming duration',()=>{const l=append(empty(),{...event,activityId:'memorama-simplex',result:{completed:true,matchedPairs:8,totalPairs:8,attempts:8,errors:0,elapsedMs:1234,accuracy:100}});assert.equal(l.entries[0].result?.elapsedMs,1234);assert.equal(l.entries[0].result?.durationMs,undefined);});

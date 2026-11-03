@@ -9,7 +9,7 @@ export function append(ledger:Ledger,event:Attempt):Ledger {
  if(event.version!==1||!ids.includes(event.activityId)||!['opened','declared','reported'].includes(event.kind)||!/^[-\w:]{1,160}$/.test(event.id)||!Number.isFinite(Date.parse(event.observedAt)))throw Error('Intento inválido');
  if(event.trust!==(event.kind==='reported'?'client-report':'declaration'))throw Error('Confianza no autorizada');
  if(event.kind!=='reported'&&event.result!==undefined)throw Error('Resultado no autorizado');
- if(event.result){for(const [k,v] of Object.entries(event.result)){if(!['reason','correct','total','attempts','errors','durationMs','timeouts','score','accuracy','matchedPairs','completed'].includes(k)||!(typeof v==='boolean'||typeof v==='string'&&['completed','time-limit'].includes(v)||typeof v==='number'&&Number.isSafeInteger(v)&&v>=0))throw Error('Métrica inválida');}}
+ if(event.result){for(const [k,v] of Object.entries(event.result)){if(!['reason','correct','total','attempts','errors','durationMs','timeouts','score','accuracy','matchedPairs','totalPairs','elapsedMs','completed'].includes(k)||!(typeof v==='boolean'||typeof v==='string'&&['completed','time-limit'].includes(v)||typeof v==='number'&&Number.isSafeInteger(v)&&v>=0))throw Error('Métrica inválida');}}
  if(ledger.entries.some(x=>x.id===event.id&&x.activityId===event.activityId))return ledger;
  if(ledger.entries.length>=2000)throw Error('Historial lleno: exporta antes de continuar');
  return {version:1,entries:[...ledger.entries,structuredClone(event)]};
