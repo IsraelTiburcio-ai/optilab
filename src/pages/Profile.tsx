@@ -6,6 +6,7 @@ import {getAvatar} from '../data/avatars';
 import {getCompanionForm} from '../data/companions';
 import {getBadgeAsset, specialBadges} from '../data/badges';
 import {useProgress} from '../store';
+import {syncMode} from '../progress/config';
 import {Badge as BadgeSymbol} from '../Art';
 import {AssetImage} from '../components/AssetImage';
 import {AvatarPortrait} from '../components/AvatarPortrait';
@@ -90,7 +91,7 @@ export default function Profile() {
       {state.route.length ? <ol>{state.route.map(id => <li key={id}>{games.find(g => g.repo === id)?.nombre}{state.practiced[id] ? ' · Practicado' : ''}</li>)}</ol> : <p>Traza una ruta y guarda aquí tus próximas misiones.</p>}
       <Link className="button" to="/entrenar">Mi entrenamiento</Link>
     </section></div>
-    <section className="local-note"><Shield/><p>{sync?'Perfil aislado por cuenta. Sincronización solo con los emuladores; consulta el estado y los respaldos arriba.':'Esta aventura se guarda únicamente en este navegador. No se sincroniza entre dispositivos y puede perderse al borrar los datos del sitio.'}</p></section>
+    <section className="local-note"><Shield/><p>{sync?syncMode==='production'?'Perfil privado aislado por cuenta. Consulta el estado de sincronización y los respaldos arriba.':'Perfil aislado por cuenta. Sincronización solo con los emuladores; consulta el estado y los respaldos arriba.':'Esta aventura se guarda únicamente en este navegador. No se sincroniza entre dispositivos y puede perderse al borrar los datos del sitio.'}</p></section>
     {confirm ? <div className="reset-confirm" role="alert"><p>{sync?'¿Reiniciar esta aventura de cuenta? Se guardará un respaldo y se creará una generación nueva. La historia Cloud anterior permanece; no es eliminación definitiva.':'¿Borrar toda tu aventura local, apodo, entrenador, compañero, evoluciones, ruta y resultados? No se puede deshacer.'}</p>
       <button className="button danger" onClick={() => {reset(); setConfirm(false);}}>{sync?'Sí, reiniciar aventura':'Sí, borrar progreso'}</button><button className="button" onClick={() => setConfirm(false)}>Cancelar</button>
     </div> : <button className="text-button" onClick={() => setConfirm(true)}>{sync?'Reiniciar aventura de cuenta':'Reiniciar progreso local'}</button>}

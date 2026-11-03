@@ -6,6 +6,9 @@ import type {Firestore} from 'firebase/firestore';
 test('transport rejects production project before constructing references or any request',()=>{
   assert.throws(()=>firestoreTransport({app:{options:{projectId:'optilab-cd829'}}} as Firestore,'a',()=>true),/Solo se admite/);
 });
+test('transport rejects UID path injection before constructing any Firestore reference',()=>{
+  for(const uid of ['', 'a/b', 'x'.repeat(129)])assert.throws(()=>firestoreTransport({app:{options:{projectId:'demo-optilab-sync'}}} as Firestore,uid,()=>true),/UID incompatible/);
+});
 for(const name of ['FIRESTORE_EMULATOR_HOST','FIREBASE_AUTH_EMULATOR_HOST'])test(`launcher rejects inherited ${name}`,()=>{
   const result=spawnSync(process.execPath,['scripts/test-sync.mjs'],{encoding:'utf8',env:{...process.env,[name]:'production.invalid:443'}});
   assert.notEqual(result.status,0);assert.match(result.stderr,/without overrides or inherited emulator hosts/);

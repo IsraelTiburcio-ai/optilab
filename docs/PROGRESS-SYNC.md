@@ -1,5 +1,10 @@
 # Progreso Cloud #4 · implementación exclusiva en emuladores
 
+**Adenda de preparación:** [Cloud Fase 1](CLOUD-PRODUCTION-PHASE-1.md) introduce
+configuración/factory productivos separados y desactivados por defecto. El
+workflow sigue forzado OFF y el texto siguiente conserva la evidencia histórica
+de la entrega emulada; no implica activación productiva.
+
 Implementación desde `adc8b17`, fusionada por PR #14 en `7ab4e83` con autorización posterior del propietario; Pages estático publicado correctamente. **Sync sigue exclusivamente en emuladores**, no se publicaron reglas/índices ni se tocó Firebase Console, documentos reales, configuración Auth, Blaze o Functions. [Reporte de consolidación/QA](QA-CLOUD-PROGRESS-RELEASE.md) · [ADR-002 y matriz](architecture/ADR-002-progress-sync.md). #4 permanece abierto para su puerta productiva.
 
 ## Ejecutar y revisar

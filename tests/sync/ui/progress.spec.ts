@@ -64,8 +64,8 @@ test('consent, cancel, import, recoverable backup, reload, and A logout B isolat
   await secondTab.reload();
   await expect(secondTab.locator('#nickname')).toHaveValue('Privado A');
 });
-test('two browser clients converge; offline preference conflicts require review and survive reload',async({browser})=>{
-  const ca=await browser.newContext({baseURL:'http://127.0.0.1:5195/optilab/'}),cb=await browser.newContext({baseURL:'http://127.0.0.1:5195/optilab/'});
+test('two browser clients converge; offline preference conflicts require review and survive reload',async({browser,baseURL})=>{
+  const ca=await browser.newContext({baseURL}),cb=await browser.newContext({baseURL});
   try {
     const a=await ca.newPage(),b=await cb.newPage(),email=`devices-${crypto.randomUUID()}@example.test`;
     await register(a,email);await panel(a).getByRole('button',{name:'Conservar progreso remoto',exact:true}).click();
@@ -89,8 +89,8 @@ test('two browser clients converge; offline preference conflicts require review 
     await expect(a.locator('#nickname')).toHaveValue('Online B saved');
   } finally {await ca.close();await cb.close();}
 });
-test('offline practice unmark persists; reset prevents an old device from resurrecting the adventure',async({browser})=>{
-  const ca=await browser.newContext({baseURL:'http://127.0.0.1:5195/optilab/'}),cb=await browser.newContext({baseURL:'http://127.0.0.1:5195/optilab/'});
+test('offline practice unmark persists; reset prevents an old device from resurrecting the adventure',async({browser,baseURL})=>{
+  const ca=await browser.newContext({baseURL}),cb=await browser.newContext({baseURL});
   try {
     const a=await ca.newPage(),b=await cb.newPage(),email=`reset-${crypto.randomUUID()}@example.test`;
     await register(a,email);await panel(a).getByRole('button',{name:'Conservar progreso remoto',exact:true}).click();
@@ -123,9 +123,27 @@ test('backup export and explicit restore work in the UI without changing guest l
   await panel(page).getByRole('button',{name:'Confirmar restauración en mi cuenta',exact:true}).click();await synced(page);
   await expect(page.locator('#nickname')).toHaveValue('Recuperable');
 });
-test('real local Memorama survives remote profile updates and arena; result syncs once to another client',async({browser})=>{
+test('temporary report contract fixtures never enqueue Cloud writes or gameResults in an accepted account',async({page,context})=>{
+  await register(page,`temporary-${crypto.randomUUID()}@example.test`);
+  await panel(page).getByRole('button',{name:'Conservar progreso remoto',exact:true}).click();
+  await page.goto('#/aventura');await page.locator('#nickname').fill('Cuenta sin telemetría nueva');await page.locator('#nickname').press('Tab');await synced(page);
+  const snapshot=()=>page.evaluate(()=>{const key=Object.keys(localStorage).find(k=>k.startsWith('optilab-sync:v2:')&&k.endsWith(':cache'))!;return JSON.parse(localStorage.getItem(key)!).snapshot;});
+  const before=await snapshot(),writes:string[]=[];
+  page.on('request',r=>{if(/documents:commit|Firestore\/Write\/|\/Commit\//.test(r.url()))writes.push(r.url());});
+  for(const [id,result] of [['ahorcado-simplex',{reason:'completed',correct:3,total:3,attempts:24,errors:1,durationMs:1000}],['system-lab',{reason:'completed',correct:8,total:8,score:800}]] as const){
+    await context.route(`https://israeltiburcio-ai.github.io/${id}/**`,route=>route.fulfill({contentType:'text/html',body:`<!doctype html><button id="finish">Fixture de contrato; no juego real</button><script>
+      const p=new URLSearchParams(location.search),base={protocol:'optilab-original-results',version:1,gameId:${JSON.stringify(id)},session:p.get('optilabSession')};
+      addEventListener('message',e=>{if(e.source===parent&&e.data?.type==='host:init')parent.postMessage({...base,type:'game:ready'},p.get('optilabOrigin'));});
+      document.querySelector('button').onclick=()=>{const runId=crypto.randomUUID();parent.postMessage({...base,type:'game:started',runId},p.get('optilabOrigin'));parent.postMessage({...base,type:'game:completed',runId,result:${JSON.stringify(result)}},p.get('optilabOrigin'));};</script>`}));
+    await page.goto(`#/jugar-original/${id}`);await expect(page.getByText('Resultados de sesión: conector disponible.',{exact:true})).toBeVisible();await page.frameLocator('.original-player iframe').locator('#finish').click();await expect(page.locator('.original-session-result')).toBeVisible();
+    await synced(page);expect(await snapshot()).toEqual(before);expect((await snapshot()).runs).toEqual({});
+    await page.goto('#/mapa');await expect(page.locator('.original-session-result')).toHaveCount(0);await page.goto(`#/jugar-original/${id}`);await expect(page.getByText('Resultados de sesión: conector disponible.',{exact:true})).toBeVisible();await expect(page.locator('.original-session-result')).toHaveCount(0);
+  }
+  expect(writes).toEqual([]);expect(await snapshot()).toEqual(before);
+});
+test('real local Memorama survives remote profile updates and arena; result syncs once to another client',async({browser,baseURL})=>{
   test.skip(!process.env.MEMORAMA_DIR,'Set MEMORAMA_DIR to pinned game fixture 7a58545; CI supplies it.');
-  const ca=await browser.newContext({baseURL:'http://127.0.0.1:5195/optilab/'}),cb=await browser.newContext({baseURL:'http://127.0.0.1:5195/optilab/'});
+  const ca=await browser.newContext({baseURL}),cb=await browser.newContext({baseURL});
   try {
     const a=await ca.newPage(),b=await cb.newPage(),email=`game-${crypto.randomUUID()}@example.test`;
     await a.route('https://israeltiburcio-ai.github.io/memorama-simplex/**',async route=>{

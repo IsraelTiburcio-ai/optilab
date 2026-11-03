@@ -1,10 +1,11 @@
 # ADR-002 · Sincronización privada v2, consentimiento y generaciones
 
 Estado: implementación emulada propuesta para revisión en issue #4. Base: `adc8b174d5a7a4c32eeb2256570d99717806f90e`. No autoriza producción, merge, reglas/índices, Blaze ni servicios nuevos. Complementa [ADR-001](ADR-001-firestore-security.md); contratos v1 siguen explícitos y no se convierten silenciosamente.
+Adenda de preparación, base `8aa4d22`: [Fase 1 productiva](../CLOUD-PRODUCTION-PHASE-1.md). Las garantías siguientes se conservan; se prepara otro factory con gates acumulativos y workflow forzado OFF, sin activar producción.
 
 ## Contexto y decisión
 
-El perfil legado es del navegador, no tiene UID confiable. Auth por sí solo no prueba propiedad de `optilab-v1`. El store original sigue funcionando cuando la integración está deshabilitada (incluida toda compilación de producción). Solo en el modo emulado explícito, una cuenta abre su propia instancia `CloudProgress`, con key UID y copia/journal separados; al salir se desmonta esa instancia y vuelve invitado. AuthProvider no migra ni reinicia datos.
+El perfil legado es del navegador, no tiene UID confiable. Auth por sí solo no prueba propiedad de `optilab-v1`. El store original sigue funcionando cuando la integración está deshabilitada, como exige el workflow de esta fase. La cuenta abre su propia instancia `CloudProgress`, con key UID y copia/journal separados, solo en el modo emulado explícito o tras una futura activación productiva autorizada del factory separado; al salir se desmonta esa instancia y vuelve invitado. AuthProvider no migra ni reinicia datos.
 
 Se descartan dos alternativas: last-write-wins del perfil completo perdería campos independientes; una unión de mapas de práctica resucitaría elementos desmarcados. También se descarta un CRDT basado en reloj de cliente: no es una fuente confiable para resolver preferencias ni intención de borrado.
 
@@ -95,6 +96,6 @@ No se añade service worker: una pestaña abierta sigue trabajando offline; reca
 
 ## Puerta de producción
 
-Requisitos acumulativos del factory: DEV, origen loopback, flag literal emulator, proyecto exacto demo-optilab-sync, Auth Emulator 127.0.0.1:9099 y Firestore 127.0.0.1:8085. Factory revalida antes de inicializar; transporte rechaza proyectos distintos. Producción no se activa cambiando variables: requerirá PR/permiso independiente para abrir un modo real, reglas e integración revisadas. No hay deploy Firebase ni permisos de escritura en CI.
+Requisitos acumulativos del factory de emuladores: DEV, origen loopback, flag literal emulator, proyecto exacto demo-optilab-sync, Auth Emulator 127.0.0.1:9099 y Firestore 127.0.0.1:8085. Se mantienen intactos. La adenda prepara un factory productivo distinto para el proyecto/origen exactos, build PROD y flags explícitos sin endpoints emulados. El workflow conserva valores OFF forzados: activar exige otra PR/permiso, políticas, reglas e índices revisados y QA autorizado. Ninguna variable de repositorio por sí sola activa esta fase. No hay deploy Firebase ni permisos de escritura en CI.
 
 Pruebas, instrucciones, presupuesto y publicación/rollback: [PROGRESS-SYNC.md](../PROGRESS-SYNC.md). Dispositivos físicos y producción no se declaran probados por contextos automatizados.

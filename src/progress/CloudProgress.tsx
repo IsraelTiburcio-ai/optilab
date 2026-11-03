@@ -6,13 +6,13 @@ import {isCompanionId} from '../data/companions';
 import {savedResults} from '../integration/protocol';
 import {evolutionProgress, type UnlockStage} from '../lib/evolutionRules';
 import {ProgressEngine} from './engine';
-import {createEmulatorTransport} from './transport';
+import {createProgressTransport} from './transport';
 import {withEvolution, type Progress} from './model';
 import {accountStorage} from './storage';
 
 export default function CloudProgress({uid,children}:{uid:string;children:ReactNode}) {
   const [local]=useState(accountStorage);
-  const [engine]=useState(()=>new ProgressEngine(uid,local.storage,createEmulatorTransport(uid),600,local.durable));
+  const [engine]=useState(()=>new ProgressEngine(uid,local.storage,createProgressTransport(uid),600,local.durable));
   const view=useSyncExternalStore(engine.subscribe,engine.getSnapshot);
   useEffect(()=>{
     engine.start();engine.setOnline(navigator.onLine);

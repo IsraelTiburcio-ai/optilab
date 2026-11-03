@@ -1,6 +1,7 @@
 import {useState, type ChangeEvent} from 'react';
 import {useProgress} from '../store';
 import type {Backup} from './engine';
+import {syncMode} from './config';
 
 const labels={local:'Progreso local',pending:'Sincronización pendiente',syncing:'Sincronizando',synced:'Sincronizado',
   offline:'Sin conexión',conflict:'Conflicto',error:'Error recuperable'};
@@ -25,9 +26,9 @@ export default function SyncPanel() {
     try {setRestore(JSON.parse(await selected.text()));setReview(true);}catch{setError('Archivo JSON inválido.');}
   };
   return <section className="sync-panel paper" aria-label="Sincronización de progreso">
-    <h2>Tu aventura en Cloud · emulador</h2>
+    <h2>Tu aventura en Cloud · {syncMode==='production'?'cuenta privada':'emulador'}</h2>
     <p role="status"><strong>{labels[view.status]}</strong> · {view.pending} operaciones pendientes</p>
-    <p>Entorno local de pruebas. No está conectado con Firestore de producción. Este perfil pertenece solo a tu cuenta.</p>
+    <p>{syncMode==='production'?'Sincronización privada de tu cuenta. Importar el progreso de este navegador requiere tu decisión.':'Entorno local de pruebas. No está conectado con Firestore de producción. Este perfil pertenece solo a tu cuenta.'}</p>
     {view.decision!=='accepted'&&<div>
       <p>El progreso anterior de este navegador no se importará al iniciar sesión. Puedes unirlo a esta cuenta, usar solo lo remoto o cancelar.</p>
       <p>Usar la cuenta activa la sincronización de sus propios cambios pendientes; no importa el invitado. Cancelar pausa el envío y conserva esos cambios locales.</p>

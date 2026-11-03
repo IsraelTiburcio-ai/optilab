@@ -6,6 +6,8 @@ import {connectFirestoreEmulator, getFirestore, memoryLocalCache, initializeFire
 import {authSettings} from '../auth/config';
 import {logoutBlocked} from '../auth/sessionSignals';
 import {syncAllowed} from './config';
+import {productionSyncAllowed,productionSyncTarget} from './productionConfig';
+import {validateSyncOperation} from './validation';
 import {blankSnapshot, reconcile, type Field, type Snapshot, type Operation} from './model';
 
 export interface Transport {
@@ -33,11 +35,16 @@ function fieldFromWire(key:string,data:Record<string,unknown>):Field {
 /** Also used by integration tests, which supply actual Auth Emulator users. */
 export function firestoreTransport(db:Firestore,uid:string,sessionValid:()=>boolean):Transport {
   if(db.app.options.projectId!=='demo-optilab-sync')throw new Error('Solo se admite el proyecto demo-optilab-sync.');
+  return privateProgressTransport(db,uid,sessionValid);
+}
+function privateProgressTransport(db:Firestore,uid:string,sessionValid:()=>boolean):Transport {
+  if(!uid||uid.length>128||uid.includes('/'))throw new Error('UID incompatible con el path privado.');
   let latest=blankSnapshot();
   const head=doc(db,`users/${uid}/sync/current`);
   const path=(epoch:number,name:string,id?:string)=>`users/${uid}/epochs/${epoch}/${name}${id?`/${id}`:''}`;
   return {
     watch(next,error) {
+      if(!sessionValid())throw new Error('La sesión cambió antes de abrir el progreso.');
       let alive=true,epoch=-1,children:(()=>void)[]=[],ready=new Set<string>(),sequence=0;
       const emit=()=>{if(alive&&sessionValid()&&ready.size===3){latest.confirmed=true;next(structuredClone(latest));}};
       const fail=(e:unknown)=>{if(alive&&sessionValid())error(e);};
@@ -83,6 +90,7 @@ export function firestoreTransport(db:Firestore,uid:string,sessionValid:()=>bool
     },
     async commit(op) {
       if(!sessionValid())throw new Error('La sesión cambió; no se enviaron estos cambios.');
+      validateSyncOperation(op);
       let observedRevision=-1;
       for(let retry=0;;retry++) {
       try {return await runTransaction(db,async tx=>{
@@ -143,6 +151,22 @@ export function firestoreTransport(db:Firestore,uid:string,sessionValid:()=>bool
       }
     },
   };
+}
+let productionDb:Firestore|undefined;
+export function createProductionTransport(uid:string):Transport {
+  if(!productionSyncAllowed(import.meta.env??{},authSettings,typeof location==='undefined'?'':location.origin))
+    throw new Error('Sincronización productiva desactivada o configuración incompatible.');
+  const app=getApp('optilab-accounts'),auth=getAuth(app);
+  if(app.options.projectId!==productionSyncTarget.projectId||app.options.authDomain!=='optilab-cd829.firebaseapp.com'||auth.emulatorConfig)
+    throw new Error('La instancia Firebase no coincide con el destino productivo aprobado.');
+  if(auth.currentUser?.uid!==uid||auth.currentUser.isAnonymous||logoutBlocked(uid))throw new Error('La identidad cambió antes de abrir el progreso.');
+  // No persistent SDK cache: the existing journal/backups stay partitioned by UID.
+  productionDb??=initializeFirestore(app,{localCache:memoryLocalCache()});
+  return privateProgressTransport(productionDb,uid,()=>auth.currentUser?.uid===uid&&!auth.currentUser.isAnonymous&&!logoutBlocked(uid));
+}
+export function createProgressTransport(uid:string):Transport {
+  if(syncAllowed(import.meta.env??{},authSettings,typeof location==='undefined'?'':location.hostname))return createEmulatorTransport(uid);
+  return createProductionTransport(uid); // Revalidates every production gate before SDK access.
 }
 let emulatorDb:Firestore|undefined;
 export function createEmulatorTransport(uid:string):Transport {
