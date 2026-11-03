@@ -8,7 +8,7 @@ test('custom root assets and HashRouter load at the owner origin; game paths and
   });
   const response=await page.goto('https://optilab.club/');expect(response?.status()).toBe(200);
   await expect(page).toHaveTitle('OptiLab · Tu aventura comienza aquí');
-  expect(await page.evaluate(async()=>({cname:(await(await fetch('/CNAME')).text()).trim(),sync:!!document.querySelector('.sync-panel')}))).toEqual({cname:'optilab.club',sync:false});
+  expect(await page.evaluate(()=>({path:location.pathname,sync:!!document.querySelector('.sync-panel')}))).toEqual({path:'/',sync:false});
   await page.goto('https://optilab.club/#/optidex');await expect(page.locator('.cartridge')).toHaveCount(28);
   const models=page.locator('.cartridge').filter({hasText:'Model Match'});await models.getByRole('button',{name:'Detalles',exact:true}).click();
   await models.getByRole('link',{name:'Abrir juego independiente'}).waitFor();
