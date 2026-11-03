@@ -34,9 +34,12 @@ function PlayerSession({retry}: {retry: () => void}) {
     let activeRun: string | null = null;
     const retired = new Set<string>();
     const recorded = new Set(state.gameResults.map(r => r.runId));
-    const init = () => frame.current?.contentWindow?.postMessage({
+    let documentLoaded = false;
+    const loaded = () => { documentLoaded = true; init(); };
+    const node = frame.current;
+    const init = () => { if (!documentLoaded) return; frame.current?.contentWindow?.postMessage({
       protocol: PROTOCOL, version: 1, gameId: GAME_ID, session, type: 'host:init',
-    }, GAME_ORIGIN);
+    }, GAME_ORIGIN); };
     const receive = (event: MessageEvent) => {
       // Origin alone cannot distinguish repositories hosted on GitHub Pages.
       if (event.origin !== GAME_ORIGIN || !frame.current ||
@@ -67,8 +70,9 @@ function PlayerSession({retry}: {retry: () => void}) {
     window.addEventListener('message', receive);
     const interval = window.setInterval(() => { if (!ready) init(); }, 600);
     const timeout = window.setTimeout(() => { if (!ready) { setPhase('unavailable'); setShowFrame(false); } }, 15000);
-    init();
+    node?.addEventListener('load', loaded);
     return () => {
+      node?.removeEventListener('load', loaded);
       window.removeEventListener('message', receive);
       clearInterval(interval);
       clearTimeout(timeout);
