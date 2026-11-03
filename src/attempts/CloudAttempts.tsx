@@ -19,9 +19,15 @@ export default function CloudAttempts({uid,children}:{uid:string;children:ReactN
  useEffect(()=>{
   alive.current=true;engine.start();engine.setOnline(navigator.onLine);
   try{if(localStorage.getItem(decision)==='accepted')engine.activate();}catch{setError('No se pudo leer el consentimiento de intentos.');}
-  const stop=local.subscribe(()=>engine.changed());const online=()=>engine.setOnline(navigator.onLine);
-  addEventListener('online',online);addEventListener('offline',online);
-  return()=>{alive.current=false;stop();engine.dispose();removeEventListener('online',online);removeEventListener('offline',online);};
+  const stop=local.subscribe(()=>{
+   if(!valid())return;
+   try{if(localStorage.getItem(decision)!=='accepted'){engine.pause();return;}}catch{engine.pause();setError('No se pudo comprobar el consentimiento; envío pausado.');return;}
+   engine.changed();
+  });
+  const decisionChanged=(event:StorageEvent)=>{if(event.key!==decision||!valid())return;if(event.newValue==='accepted')engine.activate();else engine.pause();};
+  const online=()=>engine.setOnline(navigator.onLine);
+  addEventListener('storage',decisionChanged);addEventListener('online',online);addEventListener('offline',online);
+  return()=>{alive.current=false;stop();engine.dispose();removeEventListener('storage',decisionChanged);removeEventListener('online',online);removeEventListener('offline',online);};
  },[engine,decision]);
  const run=async(action:()=>Promise<void>)=>{setError('');try{await action();}catch(e){setError(e instanceof Error?e.message:'No se guardó el cambio. Conserva los respaldos.');}};
  const activate=async(guest:boolean)=>run(async()=>{

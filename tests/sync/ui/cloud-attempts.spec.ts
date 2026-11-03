@@ -30,3 +30,7 @@ test('two device contexts: explicit guest imports, offline recovery, backup rest
  }finally{await ca.close();await cb.close();}
 });
 const pageCheckbox=(p:Page)=>p.getByLabel('Guardar futuros intentos en este navegador');
+test('pausing consent in one tab pauses the same UID in a peer tab',async({page,context,request,baseURL})=>{
+ await register(page,`pause-${crypto.randomUUID()}@example.test`,request);await attempts(page).getByRole('button',{name:'Sincronizar historial de esta cuenta',exact:true}).click();await synced(page);
+ const peer=await context.newPage();await peer.goto(baseURL+'#/cuenta');await synced(peer);await attempts(page).getByRole('button',{name:'Pausar envío de intentos'}).click();await expect(attempts(peer).getByRole('status')).toContainText('paused');await practice(peer,0);await peer.goto('#/cuenta');await expect(attempts(peer).getByRole('status')).toContainText('paused');await expect(entries(peer)).toHaveCount(1);await peer.close();
+});
