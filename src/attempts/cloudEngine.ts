@@ -7,6 +7,7 @@ export class AttemptCloudEngine {
  private stop:(()=>void)|undefined;private remote:Ledger=empty();private listeners=new Set<()=>void>();
  private view:AttemptCloudView={status:'paused',error:'',pending:0,ready:false};
  constructor(private repository:AttemptRepository,private transport:AttemptTransport,private valid:()=>boolean){}
+ private canSync(){return this.active&&this.accepted&&this.online&&this.ready&&this.valid();}
  getSnapshot=()=>this.view;
  subscribe=(f:()=>void)=>{this.listeners.add(f);return()=>{this.listeners.delete(f);};};
  private publish(p:Partial<AttemptCloudView>){this.view={...this.view,...p,ready:this.ready};this.listeners.forEach(f=>f());}
@@ -26,19 +27,19 @@ export class AttemptCloudEngine {
  }
  private problem(e:unknown){if(!this.active||!this.valid())return;this.stop?.();this.stop=undefined;if(!(e instanceof AttemptConflict))this.ready=false;this.publish({status:e instanceof AttemptConflict?'conflict':'error',error:e instanceof Error?e.message:'Error recuperable. La copia local se conserva.'});}
  changed(){if(this.active&&this.accepted)void this.flush();}
- retry(){this.publish({error:''});if(!this.stop)this.connect();else void this.flush();}
+ retry(){if(!this.active||!this.accepted||!this.valid())return;this.publish({error:''});if(!this.stop)this.connect();else void this.flush();}
  private async flush(){
   this.requested=true;if(this.busy)return;this.busy=true;
   try{while(this.requested){this.requested=false;
-   if(!this.active||!this.accepted||!this.online||!this.ready||!this.valid())return;
-   const local=await this.repository.read();if(!this.valid()||!this.active)return;
+   if(!this.canSync())return;
+   const local=await this.repository.read();if(!this.canSync())return;
    try{mergeLedgers(local,this.remote);}catch(e){await this.repository.backup(local,'conflicto-local');await this.repository.backup(this.remote,'conflicto-remoto');throw e;}
-   await this.repository.merge(this.remote);if(!this.valid()||!this.active)return;
-   const merged=await this.repository.read();const remoteIds=new Set(this.remote.entries.map(attemptId));const pending=merged.entries.filter(e=>!remoteIds.has(attemptId(e)));
+   await this.repository.merge(this.remote);if(!this.canSync())return;
+   const merged=await this.repository.read();if(!this.canSync())return;const remoteIds=new Set(this.remote.entries.map(attemptId));const pending=merged.entries.filter(e=>!remoteIds.has(attemptId(e)));
    this.publish({status:pending.length?'syncing':'synced',pending:pending.length,error:''});
    for(let i=0;i<pending.length;i++){
-    if(!this.active||!this.accepted||!this.online||!this.ready||!this.valid())return;
-    await this.transport.put(pending[i]);if(!this.valid()||!this.active)return;
+    if(!this.canSync())return;
+    await this.transport.put(pending[i]);if(!this.canSync())return;
     this.remote=mergeLedgers(this.remote,{version:1,entries:[pending[i]]});this.publish({pending:pending.length-i-1});
    }
    this.publish({status:'synced',error:'',pending:0});
@@ -47,7 +48,7 @@ export class AttemptCloudEngine {
  async keepRemote(){
   if(!this.active||!this.valid()||!this.ready)throw Error('Espera a que el remoto esté disponible.');
   await this.repository.backup(await this.repository.read(),'antes-de-elegir-remoto');
-  if(!this.valid()||!this.active)return;
+  if(!this.canSync())return;
   await this.repository.merge(this.remote,true);this.retry();
  }
 }
