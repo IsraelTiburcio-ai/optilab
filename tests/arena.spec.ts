@@ -2,7 +2,7 @@ import {test, expect, type FrameLocator, type Page} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 const production = process.env.VERIFY_PUBLIC === '1';
-const host = production ? 'https://israeltiburcio-ai.github.io/optilab/' : '';
+const host = production ? (process.env.OPTI_PUBLIC_HOST??'https://israeltiburcio-ai.github.io/optilab/') : '';
 test.skip(!production && !process.env.MEMORAMA_DIR&&process.env.MEMORAMA_PUBLIC!=='1', 'Define MEMORAMA_DIR para candidatos, MEMORAMA_PUBLIC=1 para emisor público/host local o VERIFY_PUBLIC=1 para ambos públicos.');
 
 async function prepare(page: Page) {

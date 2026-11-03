@@ -1,7 +1,7 @@
 import {test, expect, type Page, type FrameLocator} from '@playwright/test';
 
 test.skip(process.env.VERIFY_PUBLIC !== '1', 'Opt-in: verifica sitios publicados, sin interceptar sus recursos.');
-const host = 'https://israeltiburcio-ai.github.io/optilab/';
+const host = process.env.OPTI_PUBLIC_HOST??'https://israeltiburcio-ai.github.io/optilab/';
 const game = 'https://israeltiburcio-ai.github.io/memorama-simplex/';
 
 async function pairs(surface: Page | FrameLocator) {

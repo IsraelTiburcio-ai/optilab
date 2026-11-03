@@ -9,10 +9,15 @@ const source={},frame={window:source,sourceUrl:url,connected:true};
 const event=(data:unknown)=>({origin:'null',source,data});
 test('only configured pilot IDs and explicit HTTPS/loopback parent origins get session URLs',()=>{
   assert.equal(isResultPilot('memorama-simplex'),false);assert.equal(isResultPilot('unknown-game'),false);
-  for(const origin of ['https://israeltiburcio-ai.github.io','http://127.0.0.1:5189','http://localhost:5173'])assert.ok(allowedResultsHost(origin));
-  for(const origin of ['null','https://evil.example','https://israeltiburcio-ai.github.io.evil.example','http://evil.example','https://israeltiburcio-ai.github.io/path','https://user@israeltiburcio-ai.github.io'])assert.equal(allowedResultsHost(origin),false);
+  for(const origin of ['https://israeltiburcio-ai.github.io','https://optilab.club','http://127.0.0.1:5189','http://localhost:5173'])assert.ok(allowedResultsHost(origin));
+  for(const origin of ['null','https://evil.example','https://optilab.club.evil.example','https://israeltiburcio-ai.github.io.evil.example','http://evil.example','https://optilab.club/path','https://user@optilab.club','https://israeltiburcio-ai.github.io/path','https://user@israeltiburcio-ai.github.io'])assert.equal(allowedResultsHost(origin),false);
   assert.equal(new URL(url).searchParams.get('optilabSession'),session);assert.equal(new URL(url).searchParams.size,2);
   assert.equal(originalResultSource('https://israeltiburcio-ai.github.io/unknown-game/','unknown-game',session,'http://127.0.0.1:5189'),'https://israeltiburcio-ai.github.io/unknown-game/');
+});
+test('OptiLab custom-domain session source preserves each published game origin',()=>{
+  const id='model-match',session=randomUUID(),gameUrl=`https://israeltiburcio-ai.github.io/${id}/`,source=originalResultSource(gameUrl,id,session,'https://optilab.club');
+  const url=new URL(source);assert.equal(url.origin+url.pathname,gameUrl);assert.equal(url.searchParams.get('optilabSession'),session);assert.equal(url.searchParams.get('optilabOrigin'),'https://optilab.club');
+  for(const origin of ['https://optilab.club.evil.example','https://optilab.club/path','https://user@optilab.club','http://optilab.club'])assert.equal(originalResultSource(gameUrl,id,session,origin),gameUrl);
 });
 test('gym 5 games expose only their native fields and exact totals',()=>{
   const samples={

@@ -1,3 +1,4 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-export default defineConfig({ plugins: [react()], base: '/optilab/' });
+import {pagesBase} from './scripts/pages-base.mjs';
+export default defineConfig({plugins:[react()],base:pagesBase(process.env.OPTILAB_PAGES_TARGET)});

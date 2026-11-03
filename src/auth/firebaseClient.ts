@@ -7,6 +7,7 @@ import {
 } from 'firebase/auth';
 import type {AuthClient, AccountUser} from './types';
 import type {FirebaseSettings} from './config';
+import {accountActionUrl} from '../deployment/accountActionUrl';
 
 const accountUser = (user: User | null): AccountUser | null => user ? {
   uid: user.uid, email: user.email, displayName: user.displayName, emailVerified: user.emailVerified,
@@ -33,7 +34,7 @@ export function initializeAuthClient(settings: Extract<FirebaseSettings, {status
       await setPersistence(auth, browserLocalPersistence);
     }
     catch { await setPersistence(auth, inMemoryPersistence); persistence = 'memory'; }
-    const actionSettings = () => ({url: new URL(`${import.meta.env.BASE_URL}#/cuenta`, window.location.origin).href});
+    const actionSettings = () => ({url: accountActionUrl(import.meta.env.BASE_URL,window.location.origin)});
     const requireUser = () => {
       if (!auth.currentUser) throw Object.assign(new Error('Session required'), {code: 'auth/no-current-user'});
       return auth.currentUser;
