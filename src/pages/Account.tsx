@@ -48,7 +48,7 @@ export default function Account() {
     else void run(() => auth.login(email.trim(), password), 'Sesión iniciada. Tu progreso sigue siendo local en esta fase.');
   }
 
-  return <section className="account-page"><AttemptHistory key={auth.user?.uid??'guest'}/>
+  return <section className="account-page">
     <header className="page-title"><span className="eyebrow">TU PASE A LA AVENTURA</span><h1>Tu cuenta OptiLab</h1>
       <p>Una identidad para tu aventura. Elige cómo entrar o sigue explorando como invitado.</p></header>
     {academicEnabled&&invitation.context&&<p role="status">Tienes una invitación académica en memoria. Después de entrar o registrarte, vuelve a <Link to="/unirse">continuar la inscripción</Link>. Si recargas, reabre el enlace original.</p>}
@@ -102,5 +102,6 @@ export default function Account() {
       </>}
       <Link className="account-guest-link" to="/mapa">{auth.user ? 'Explorar el mapa' : 'Continuar como invitado'} <ArrowRight size={16}/></Link>
     </section></div>
+    <AttemptHistory key={auth.user?.uid??'guest'}/>
   </section>;
 }
