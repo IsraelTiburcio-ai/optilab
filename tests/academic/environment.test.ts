@@ -22,9 +22,12 @@ for(const [name,patch] of Object.entries({
   assert.notEqual(child.status,0);assert.match(child.stderr,/ACADEMIC_ENV_REJECTED/);assert.doesNotMatch(child.stdout+child.stderr,/SENSITIVE_DO_NOT_PRINT/);
   if(Object.values(patch).every(v=>v!==undefined))assert.throws(()=>academicEnvironment({...valid,...patch}),/ACADEMIC_ENV_REJECTED/);
 });
-test('academic repository cannot address progress, Auth identities, histories, or arbitrary collections',()=>{
-  for(const path of ['users/a/sync/current','users/a/epochs/1/fields/nickname','users/a/progress/current','users/a',
-    'staff/a','courses/c/terms/t/groups/g/activityAttempts/run','courses/c/../../users/a/sync/current'])assert.throws(()=>academicPath(path));
+test('academic repository can address only the exact progress records read by groupProgress',()=>{
+  for(const path of ['users/a/sync/current','users/a/epochs/1/fields/practice--system-lab','users/a/epochs/1/gameRuns/run-1',
+    'users/a/epochs/1/diagnostics/diag-1','users/a/reportedAttempts/system-lab--event-1'])assert.equal(academicPath(path),path);
+  for(const path of ['users/a/progress/current','users/a','users/a/sync/other','users/a/epochs/1/secret/x','users/a/reportedAttempts',
+    'users/a/reportedAttempts/system-lab--event-1/extra','staff/a','courses/c/terms/t/groups/g/activityAttempts/run',
+    'courses/c/../../users/a/sync/current'])assert.throws(()=>academicPath(path));
 });
 test('unavailable emulators stop startup before loading privileged SDK or credential discovery',()=>{
   const env={...process.env,...valid};delete env.NODE_TEST_CONTEXT;

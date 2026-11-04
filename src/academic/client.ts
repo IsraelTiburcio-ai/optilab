@@ -45,6 +45,13 @@ function compatible(operation:keyof Api,input:unknown,result:unknown):boolean {
   if(operation==='groupEnrollmentLink')return data.link===null||!!data.link&&typeof data.link==='object'&&Number.isInteger((data.link as {revision:number}).revision);
   if(operation==='getAcademicProfile')return Number.isSafeInteger(data.revision)&&validProfile(data.profile);
   if(operation==='requestStatus')return ['pending','approved','rejected'].includes(String(data.status))&&['active','revoked','none'].includes(String(data.membershipStatus))&&typeof data.accessAllowed==='boolean'&&typeof data.requestId==='string'&&typeof data.invitationState==='string';
+  if(operation==='groupProgress'){
+    const period=data.period as Record<string,unknown>|undefined,activities=data.activities as Record<string,unknown>|undefined;
+    return !!period&&Number.isInteger(period.days)&&(period.from===null||typeof period.from==='string')&&typeof period.to==='string'&&
+      Number.isInteger(data.studentsTotal)&&Number.isInteger(data.studentsActive)&&!!activities&&
+      ['opened','declared','reported','completed','validated'].every(key=>Number.isInteger(activities[key]))&&
+      Array.isArray(data.gyms)&&Array.isArray(data.students)&&typeof data.truncated==='boolean';
+  }
   if(['roster','groupRequests','groupInvitations','myScopes'].includes(operation)){
     if(!Array.isArray(data.items)||!(data.nextCursor===null||typeof data.nextCursor==='string'))return false;
     if(operation==='myScopes'){

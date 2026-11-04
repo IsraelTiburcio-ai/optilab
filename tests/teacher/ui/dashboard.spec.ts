@@ -11,7 +11,7 @@ test('dashboard: Mis grupos se organiza por curso/periodo sin IDs ni contadores 
   await friendly(fixture);await login(page,fixture,'teacherBoth');const directory=page.locator('.teacher-directory');await expect(directory.getByRole('heading',{name:'Mis grupos',exact:true})).toBeVisible();
   await expect(directory.getByRole('heading',{name:'Optimización de prueba',exact:true})).toBeVisible();await expect(directory.getByRole('heading',{name:'Semestre de prueba',exact:true})).toBeVisible();await expect(directory.locator('.teacher-group-card')).toHaveCount(2);
   const text=await directory.innerText();expect([fixture.f.courseId,fixture.f.termId,fixture.f.groups.a,fixture.f.groups.b,fixture.f.actors.teacherBoth.uid].some(id=>text.includes(id))).toBe(false);
-  const button=directory.getByRole('button',{name:'Administrar grupo Grupo A'});await button.focus();await page.keyboard.press('Enter');await expect(page.getByText('Synthetic studentA',{exact:true})).toBeVisible();
+  const button=directory.getByRole('button',{name:'Administrar grupo Grupo A'});await button.focus();await page.keyboard.press('Enter');await expect(page.locator('.teacher-workspace')).toBeVisible();await page.getByRole('navigation',{name:'Secciones del panel'}).getByRole('button',{name:'Alumnos',exact:true}).click();await expect(page.getByText('Synthetic studentA',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'← Mis grupos',exact:true}).click();
   if(process.env.DASHBOARD_CAPTURE==='1')await directory.screenshot({path:'docs/qa/teacher-dashboard-ux/mis-grupos.png'});
 });

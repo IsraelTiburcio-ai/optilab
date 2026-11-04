@@ -14,6 +14,18 @@ export interface Invitation {inviteId:string;status:'active'|'revoked';revision:
 export interface MutationResult {outcome:string;commandId:string;operation:string;replayed:boolean;tokenAvailable?:boolean;token?:string;inviteId?:string;requestId?:string;termId?:string;groupId?:string;version?:number}
 export interface PlayerIdentity {revision:number;gamertag:string;avatarId:string;companionId:string;updatedAt:string}
 export interface EnrollmentLink {revision:number;status:'active'|'expired'|'revoked';expiresAt:string}
+export interface GroupProgressGym {gymId:number;title:string;totalGames:number;opened:number;practiced:number;reported:number;completed:number}
+export interface GroupProgressStudent {
+  uid:string;name:string;email:string|null;emailVerified:boolean;gamertag:string|null;
+  lastActivityAt:string|null;opened:number;declared:number;reported:number;validated:number;
+  practicedGames:number;completedGames:number;gyms:Array<{gymId:number;opened:number;declared:number;reported:number;completed:number}>;
+}
+export interface GroupProgress {
+  scope:Scope;period:{days:number;from:string|null;to:string};generatedAt:string;
+  studentsTotal:number;studentsActive:number;
+  activities:{opened:number;declared:number;reported:number;completed:number;validated:number};
+  gyms:GroupProgressGym[];students:GroupProgressStudent[];truncated:boolean;
+}
 type Command={idempotencyKey:string};type CAS={expectedVersion:number};
 type InviteFields={expiresInSeconds:number;maxUses:number;maxPending:number};
 export interface Api {
@@ -32,6 +44,7 @@ export interface Api {
   roster:{input:Scope&{limit?:number;cursor?:string};output:Page<Member>};
   groupRequests:{input:Scope&{limit?:number;cursor?:string;status?:Request['status']};output:Page<Request>};
   groupInvitations:{input:Scope&{limit?:number;cursor?:string};output:Page<Invitation>};
+  groupProgress:{input:Scope&{periodDays?:number};output:GroupProgress};
   createInvitation:{input:Scope&Command&InviteFields;output:MutationResult};
   reissueInvitation:{input:Scope&Command&InviteFields&CAS&{inviteId:string};output:MutationResult};
   revokeInvitation:{input:Scope&Command&CAS&{inviteId:string};output:MutationResult};
@@ -42,4 +55,4 @@ export interface Api {
   createTerm:{input:Command&{courseId:string;title:string};output:MutationResult};
   createGroup:{input:Command&{courseId:string;termId:string;title:string};output:MutationResult};
 }
-export type CommandName=Exclude<keyof Api,'myScopes'|'roster'|'groupRequests'|'groupInvitations'|'getAcademicProfile'|'requestStatus'|'getPlayerIdentity'|'gamertagAvailability'|'groupEnrollmentLink'>;
+export type CommandName=Exclude<keyof Api,'myScopes'|'roster'|'groupRequests'|'groupInvitations'|'groupProgress'|'getAcademicProfile'|'requestStatus'|'getPlayerIdentity'|'gamertagAvailability'|'groupEnrollmentLink'>;

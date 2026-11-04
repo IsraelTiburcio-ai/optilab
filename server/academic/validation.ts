@@ -3,7 +3,7 @@ import type {Data,Input,Operation,Scope} from './contracts';
 import {normalizeGamertag} from './playerModel';
 const shapes:Record<Operation,string[]>={
   myScopes:['kind','limit','cursor','courseId'],roster:['courseId','termId','groupId','limit','cursor'],
-  requestStatus:['courseId','termId','groupId','requestId','inviteId'],groupInvitations:['courseId','termId','groupId','limit','cursor'],
+  requestStatus:['courseId','termId','groupId','requestId','inviteId'],groupInvitations:['courseId','termId','groupId','limit','cursor'],groupProgress:['courseId','termId','groupId','periodDays'],
   membershipEvents:['courseId','termId','groupId','limit','cursor'],groupRequests:['courseId','termId','groupId','limit','cursor','status'],
   createInvitation:['courseId','termId','groupId','idempotencyKey','expiresInSeconds','maxUses','maxPending'],
   reissueInvitation:['courseId','termId','groupId','inviteId','expectedVersion','idempotencyKey','expiresInSeconds','maxUses','maxPending'],
@@ -30,7 +30,7 @@ export function parseInput(name:string,value:unknown,maxTtl:number):{operation:O
   if(!Object.hasOwn(shapes,name))throw new ApiError(404,'NOT_FOUND','Operación no disponible.');
   const operation=name as Operation,keys=shapes[operation];
   if(!isRecord(value)||Object.keys(value).some(k=>!keys.includes(k)))throw invalid();
-  const optional=['limit','cursor','kind','status',...(operation==='myScopes'?['courseId']:[]),...(operation==='requestStatus'?['requestId','inviteId']:[])];
+  const optional=['limit','cursor','kind','status','periodDays',...(operation==='myScopes'?['courseId']:[]),...(operation==='requestStatus'?['requestId','inviteId']:[])];
   for(const key of keys)if(!optional.includes(key)&&!Object.hasOwn(value,key))throw invalid();
   for(const key of ['courseId','termId','groupId','destinationGroupId','inviteId','requestId'])if(key in value&&!identifier(value[key]))throw invalid();
   for(const key of ['uid','cursor'])if(key in value&&!identifier(value[key],128))throw invalid();
@@ -39,6 +39,7 @@ export function parseInput(name:string,value:unknown,maxTtl:number):{operation:O
   if('expectedProfileVersion' in value&&!integer(value.expectedProfileVersion,0,2147483646))throw invalid();
   if('gamertag' in value)try{normalizeGamertag(value.gamertag);}catch{throw invalid();}
   if('expiresInSeconds' in value&&!integer(value.expiresInSeconds,1,maxTtl))throw invalid();
+  if('periodDays' in value&&!integer(value.periodDays,0,365))throw invalid();
   if('maxUses' in value&&!integer(value.maxUses,1,100))throw invalid();
   if('maxPending' in value&&!integer(value.maxPending,1,100))throw invalid();
   if('limit' in value&&!integer(value.limit,1,operation==='myScopes'?20:50))throw invalid();
