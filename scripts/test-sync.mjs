@@ -5,5 +5,5 @@ const browser=process.env.SYNC_BROWSER??'chromium';
 if(!['chromium','webkit'].includes(browser))throw new Error('SYNC_BROWSER must be chromium or webkit.');
 const result=spawnSync('npx',['--yes','firebase-tools@15.0.0','emulators:exec','--only','auth,firestore',
   '--project','demo-optilab-sync','--config','firebase.sync-emulator.json',
-  `npm run test:sync:core && npm run test:sync:ui -- --browser ${browser}`],{stdio:'inherit',env:{...process.env,GCLOUD_PROJECT:'demo-optilab-sync',GOOGLE_CLOUD_PROJECT:'demo-optilab-sync'}});
+  `npm run test:sync:core && npm run test:sync:ui -- --browser ${browser} && node --import tsx --test --test-concurrency=1 tests/single-operator/*.test.mjs`],{stdio:'inherit',env:{...process.env,GCLOUD_PROJECT:'demo-optilab-sync',GOOGLE_CLOUD_PROJECT:'demo-optilab-sync'}});
 process.exit(result.status??1);

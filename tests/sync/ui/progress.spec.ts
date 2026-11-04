@@ -36,6 +36,7 @@ test('consent, cancel, import, recoverable backup, reload, and A logout B isolat
   expect(await page.evaluate(()=>localStorage.getItem('optilab-v1'))).toBe(raw);
   await panel(page).getByRole('button',{name:'Cancelar importación',exact:true}).click();
   await expect(panel(page).getByRole('status')).toContainText('Progreso local');
+  await expect(page.getByRole('region',{name:'Historial local de intentos'})).toContainText('consentimiento independiente');
   await panel(page).getByRole('button',{name:'Importar progreso del navegador',exact:true}).click();await synced(page);
   for(const [width,height] of [[390,844],[820,1180],[1180,820],[1440,900]]) {
     await page.setViewportSize({width,height});
@@ -44,6 +45,7 @@ test('consent, cancel, import, recoverable backup, reload, and A logout B isolat
   const audit=await new AxeBuilder({page}).include('.sync-panel').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
   expect(audit.violations.map(v=>v.id)).toEqual([]);
   await page.goto('#/aventura');await expect(page.locator('#nickname')).toHaveValue('Invitado fixture');
+  await expect(page.locator('.local-note')).toContainText('emuladores locales');
   await page.reload();await synced(page);await expect(page.locator('#nickname')).toHaveValue('Invitado fixture');
   await page.locator('#nickname').fill('Privado A');await page.locator('#nickname').press('Tab');await synced(page);
   await expect(panel(page).getByText(/Respaldos de esta cuenta/)).toBeVisible();

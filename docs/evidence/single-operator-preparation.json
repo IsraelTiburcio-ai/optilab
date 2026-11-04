@@ -1,0 +1,69 @@
+{
+  "base": "cb6d3d3f905792e57d6c0176938376ddebca8211",
+  "mode": "single-operator-test",
+  "status": "PREPARATION_ONLY",
+  "executionImplemented": false,
+  "productionWrites": false,
+  "productionStateRevalidated": false,
+  "productionAndPhysicalIphone": "NOT_RUN",
+  "tests": {
+    "singleOperatorPureAndEmulator": {
+      "pass": 19,
+      "fail": 0
+    },
+    "syncCoreIncludingPrivacyCopy": {
+      "pass": 52,
+      "fail": 0
+    },
+    "chromiumUIEmulatorOn": {
+      "pass": 7,
+      "fail": 0
+    },
+    "webkitUIEmulatorOn": {
+      "pass": 7,
+      "fail": 0
+    },
+    "originalPilot": {
+      "pass": 44,
+      "fail": 0
+    },
+    "chromiumProductionBuildOff": {
+      "pass": 1,
+      "fail": 0
+    },
+    "webkitProductionBuildOff": {
+      "pass": 1,
+      "fail": 0
+    }
+  },
+  "totalPassed": 131,
+  "build": "PASS (TypeScript + Vite, Node 22)",
+  "productionOnCopy": "unit-tested only; no live production Sync",
+  "ruleSourcesSha256": {
+    "firestore.rules": "ee7fec34e49971a847bc3e6882196fb3fed64ffe42da39f9b7802ba9cef1cf62",
+    "firestore.pilot.rules": "048501565c5dc3f1eb8270a9db74c275b23c288705bd92aec6c215383ed4787e"
+  },
+  "unchangedProtectedFiles": [
+    "server/pilot/activation.mjs",
+    "server/pilot/environment.mjs",
+    "scripts/pilot-activation.mjs",
+    "scripts/pilot-build-env.mjs",
+    ".github/workflows/pilot-frontend.yml",
+    ".github/workflows/deploy.yml",
+    "firestore.rules",
+    "firestore.pilot.rules",
+    "firestore.indexes.json",
+    "firebase.production.json",
+    "src/progress/productionConfig.ts",
+    "package.json",
+    "package-lock.json"
+  ],
+  "limitations": [
+    "Generated Rules deny private user routes for other UIDs; live source/consumer impact must be reviewed before deployment",
+    "Academic courses policy preserved byte-for-byte",
+    "Quotas are proposed operational thresholds, not hard per-UID rate limits",
+    "No individual publisher or production control writer; original pilot workflow rejects this manifest",
+    "Encryption/adult/fictitious-data flags are attestations, not independent verification"
+  ],
+  "activeRulesComparison": "Six additional mock-GET tests distinguish versioned files from an exact approved active source; no real production reads. Generation remains NOT_PERFORMED until the separate comparison gate runs."
+}

@@ -1,5 +1,7 @@
 import {AttemptCloudControls} from './cloudContext';
-import {useEffect,useState,useRef,useSyncExternalStore} from 'react';
+import {AttemptCloudContext} from './cloudContext';
+import {attemptStorageNotice} from '../progress/privacyCopy';
+import {useContext,useEffect,useState,useRef,useSyncExternalStore} from 'react';
 import {useAuth} from '../auth/AuthProvider';
 import {empty,metrics,type Kind} from './model';
 import * as storage from './storage';
@@ -26,6 +28,7 @@ export function AttemptAlerts(){
 
 export function AttemptHistory(){
  const {scope,ready}=useAttempts();
+  const cloud=useContext(AttemptCloudContext);
  const [,refresh]=useState(0);
  useEffect(()=>storage.subscribe(()=>refresh(n=>n+1)),[scope]);
  let enabled=false,ledger=empty(),error='';
@@ -38,7 +41,7 @@ export function AttemptHistory(){
  }
  return <section className="paper attempt-history" aria-label="Historial local de intentos">
   <h2>Historial local de intentos</h2><AttemptCloudControls/>
-  <p>{scope==='guest'?'Perfil invitado de este navegador':'Perfil de la cuenta actual en este navegador'}. Los informes del cliente no están validados. No se sincronizan ni se usan para rankings. En un dispositivo compartido otras personas con acceso al navegador podrían acceder al almacenamiento.</p>
+  <p>{scope==='guest'?'Perfil invitado de este navegador':'Perfil de la cuenta actual en este navegador'}. Los informes del cliente no están validados. {attemptStorageNotice(!!cloud)} En un dispositivo compartido otras personas con acceso al navegador podrían acceder al almacenamiento.</p>
   <label><input type="checkbox" checked={enabled} onChange={e=>storage.setConsent(scope,e.target.checked)}/> Guardar futuros intentos en este navegador</label>
   {error&&<p role="alert">{error}</p>}
   <div className="attempt-actions"><button onClick={download}>Exportar historial</button><button onClick={()=>refresh(n=>n+1)}>Actualizar</button></div>

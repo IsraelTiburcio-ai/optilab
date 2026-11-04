@@ -4,7 +4,7 @@ import {defineConfig} from '@playwright/test';
 export default defineConfig({
   testDir:'./tests/sync/ui',timeout:60000,workers:1,reporter:'list',outputDir:'sync-qa-results',
   use:{baseURL:`http://127.0.0.1:${port}/optilab/`,browserName:'chromium',reducedMotion:'reduce'},
-  webServer:[{command:`npm run dev -- --port ${port} --strictPort`,url:`http://127.0.0.1:${port}/optilab/`,reuseExistingServer:false,
+  webServer:[{command:`npm run dev -- --host 127.0.0.1 --port ${port} --strictPort`,url:`http://127.0.0.1:${port}/optilab/`,reuseExistingServer:false,
     env:{VITE_FIREBASE_API_KEY:'demo-emulator-only-key',VITE_FIREBASE_AUTH_DOMAIN:'demo-optilab-sync.firebaseapp.com',
       VITE_FIREBASE_PROJECT_ID:'demo-optilab-sync',VITE_FIREBASE_STORAGE_BUCKET:'demo-optilab-sync.example',
       VITE_FIREBASE_MESSAGING_SENDER_ID:'123456789',VITE_FIREBASE_APP_ID:'1:123456789:web:demooptilabsync',
