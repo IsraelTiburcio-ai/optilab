@@ -12,7 +12,8 @@
     "syncCoreWithBaseRules": {"pass": 54, "fail": 0},
     "twoClientUiChromium": {"pass": 1, "fail": 0},
     "twoClientUiWebKit": {"pass": 1, "fail": 0},
-    "productionGate": {"pass": 1, "fail": 0}
+    "productionGate": {"pass": 1, "fail": 0},
+    "pagesWorkflowsAndGuard": {"pass": 5, "fail": 0}
   },
   "build": "PASS (TypeScript + Vite, Node 22)",
   "coverage": [
@@ -22,6 +23,7 @@
     "supervised renew, total pause and explicit recover",
     "two-client Memorama result, duplicate rejection and canonical export",
     "journal preserved across pause; clients reloaded for recovery",
+    "Pages ON refused after a newer completed deployment; shared non-canceling Pages mutex",
     "partial failure pauses; original two-reviewer pilot untouched"
   ],
   "limitations": [

@@ -149,6 +149,17 @@ this repository has been executed.
    retention maximum and external-copy receipts. A Rules rollback is a separate
    reviewed operation, never automatic.
 
+### Pages ordering guarantee
+
+`deploy.yml` and the single-operator workflow share the same `pages` group and
+neither cancels an in-progress run. A push therefore queues behind an OFF/ON
+recovery instead of canceling it. The ON build job has no Pages environment; it
+checks the latest completed Pages deployment before uploading the artifact, so a
+completed OFF newer than the receipt blocks a stale ON. If an OFF is queued behind
+ON, it runs after ON and wins. GitHub may replace a pending run when a newer run
+enters the same concurrency group; do not dispatch ON while an OFF is pending. The
+Firestore control pause remains the primary safety mechanism.
+
 ## Proposed operations for that later review — not commands to run now
 
 Before publishing Rules, rerun the tests below against the exact candidate.
@@ -178,14 +189,22 @@ operational controls, not server-enforced rate quotas. Spark's free quotas and
 metrics lag affect the whole project. Stop on unknown/exhausted usage; never
 enable Blaze to continue. Do not use paid TTL/PITR/managed backups/restores.
 
-**Pause this mode by setting both flags false on its separate control** or removing
-that control; the server then denies new progress requests. Original
-`pilot:activation pause` and `pilot:admin monitor/pause` target `syncPilotControl`
-and **do not pause this mode**. The existing monitor's inventory may be reused only
-as explicitly approved read evidence; its automatic pause is not applicable.
-No background quota monitor or single-operator pause executor is installed here.
-If operational control fails, close clients, stop renewal and let the lease expire;
-cached/offline data is not remotely purged. Do not claim instantaneous revocation.
+**Pause this mode with the single-operator executor:**
+`npm run single:session -- pause --target production --execute --confirm pause:pause`
+with `SINGLE_OPERATOR_EXECUTION_APPROVAL=pause-approved`. It sets both flags false
+on `singleOperatorTestControl/current`; the server then denies new progress requests.
+This is distinct from the original two-reviewer pilot: `pilot:activation pause` and
+`pilot:admin monitor/pause` target `syncPilotControl` and **do not pause this mode**.
+
+There is no background monitor or paid scheduler. The named operator records
+project-wide Console usage before opening and every five minutes; the ten-minute
+lease and fixed end are the fail-closed limits, not a daemon. If administrative
+pause fails, stop clients, stop renewals, keep the restrictive candidate paused,
+publish frontend OFF after authorization, and let the lease expire (at most ten
+minutes). Retry pause from the backup operator; never enable APIs or billing to
+recover and never claim instantaneous revocation; cached/offline data is not
+remotely purged. After `recover` or frontend OFF, reload both clients: the local
+journal is preserved and the Firestore listener is recreated.
 
 Recovery: preserve local queues, export privately, keep the restrictive candidate
 paused and publish frontend OFF after authorization. Do not restore the broader
@@ -219,15 +238,17 @@ CLOUD_QA_ISOLATED=1 GCLOUD_PROJECT=demo-optilab-sync \
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8185 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9199 \
 npm run test:sync:core
 npm run test:sync:production
+npm run test:pages-base
 npm run build
 ```
 
 Local evidence for this branch: **18/18** pure single-operator tests, **5/5**
 execution emulator tests, **54/54** sync core tests, **1/1 Chromium and 1/1 WebKit**
-two-client UI rehearsals, **1/1** production gate and **build PASS**. The UI
-rehearsal completed a real Memorama result on two clients, exercised duplicate
-rejection, total pause, journal preservation, recovery with reload and canonical
-export. These are emulator results, not production or physical iPhone evidence.
+two-client UI rehearsals, **1/1** production gate, **5/5** Pages workflow/guard
+tests and **build PASS**. The UI rehearsal completed a real Memorama result on two
+clients, exercised duplicate rejection, total pause, journal preservation, recovery
+with reload and canonical export. These are emulator results, not production or
+physical iPhone evidence.
 
 Tests compile and execute generated Rules against real emulator RPCs: separate
 clients and existing engines, consent, deduplication, backup/restore, wrong UID,

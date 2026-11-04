@@ -18,19 +18,20 @@ on:
         type: string
 permissions:
   contents: read
+  deployments: read
   pages: write
   id-token: write
+# Same Pages mutex as deploy.yml. Never cancel a manual OFF recovery. ON is
+# refused if a Pages deployment newer than the receipt exists; an ordinary OFF
+# queued behind ON runs after it and wins.
 concurrency:
   group: pages
   cancel-in-progress: false
 jobs:
-  release:
+  build:
     if: github.ref == 'refs/heads/main' && github.actor == github.repository_owner
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     env:
       SINGLE_OPERATOR_EXPECTED_SHA: ${{ inputs.expected_sha }}
       SINGLE_OPERATOR_DIGEST: ${{ inputs.window_digest }}
@@ -76,12 +77,27 @@ jobs:
         run: |
           export SINGLE_OPERATOR_MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
           node scripts/single-operator-build.mjs --action "$RELEASE_ACTION" --manifest "$RUNNER_TEMP/single-session.json" --approval "$RUNNER_TEMP/single-approval.json" --receipt "$RUNNER_TEMP/single-receipt.json" --stamp dist/sync-release.json
+      - name: Refuse ON after a newer Pages deployment
+        if: inputs.action == 'on'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/deployments?environment=github-pages&per_page=1" > "$RUNNER_TEMP/latest-pages.json"
+          node scripts/single-operator-pages-guard.mjs --latest "$RUNNER_TEMP/latest-pages.json" --receipt "$RUNNER_TEMP/single-receipt.json"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
-      - name: Publish exact owner-approved artifact
-        id: deployment
-        uses: actions/deploy-pages@v4
       - name: Remove private files
         if: always()
         run: rm -f "$RUNNER_TEMP/single-session.json" "$RUNNER_TEMP/single-approval.json" "$RUNNER_TEMP/single-receipt.json"
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish exact owner-approved artifact
+        id: deployment
+        uses: actions/deploy-pages@v4
