@@ -8,6 +8,7 @@ import {currentEnrollmentLink} from './enrollmentLinks';
 import {invitation,request,publicInvite,publicRequest,scoped,roster,millis,details} from './models';
 import {ApiError,denied,conflict} from './errors';
 import {groupProgress} from './progress';
+import {activityWorkspace,publishedGroupActivities,publishedActivity} from './activities';
 export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Actor,operation:Operation,input:Input):Promise<Data> {
   if(operation==='getAcademicProfile')return ownProfile(repo,actor.uid);
   if(operation==='getPlayerIdentity')return ownPlayer(repo,actor.uid);
@@ -53,6 +54,9 @@ export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Ac
     return {items:result,nextCursor:rows.length===input.limit?rows.at(-1)!.id:null};
   }
   const s=scopeOf(input),root=groupPath(s);
+  if(operation==='activityWorkspace')return activityWorkspace(repo,policy,actor,input);
+  if(operation==='publishedGroupActivities')return publishedGroupActivities(repo,actor,input);
+  if(operation==='publishedActivity')return publishedActivity(repo,actor,input);
   if(operation==='groupProgress')return groupProgress(repo,policy,actor,input);
   if(operation==='groupEnrollmentLink'){await policy.group(repo,actor.uid,s,'manageInvitations');return currentEnrollmentLink(repo,s);}
   if(operation==='requestStatus') {

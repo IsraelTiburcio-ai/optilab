@@ -11,7 +11,7 @@ export interface Member {uid:string;label:string;labelSource:'self-chosen';statu
 export interface Request {requestId:string;inviteId:string;uid:string;label:string;status:'pending'|'approved'|'rejected';revision:number;createdAt:string;academicProfile?:AcademicProfile|null;membershipStatus?:'active'|'revoked'|'none'}
 export interface RequestStatus extends Request {membershipStatus:'active'|'revoked'|'none';accessAllowed:boolean;invitationState:'active'|'expired'|'revoked'|'exhausted'|'unavailable'}
 export interface Invitation {inviteId:string;status:'active'|'revoked';revision:number;expiresAt:string;maxUses:number;acceptedCount:number;pendingCount:number;maxPending:number}
-export interface MutationResult {outcome:string;commandId:string;operation:string;replayed:boolean;tokenAvailable?:boolean;token?:string;inviteId?:string;requestId?:string;termId?:string;groupId?:string;version?:number}
+export interface MutationResult {outcome:string;commandId:string;operation:string;replayed:boolean;tokenAvailable?:boolean;token?:string;inviteId?:string;requestId?:string;termId?:string;groupId?:string;version?:number;activityId?:string;status?:string;revision?:number;placementRevision?:number;count?:number;gymId?:number}
 export interface PlayerIdentity {revision:number;gamertag:string;avatarId:string;companionId:string;updatedAt:string}
 export interface EnrollmentLink {revision:number;status:'active'|'expired'|'revoked';expiresAt:string}
 export interface GroupProgressGym {gymId:number;title:string;totalGames:number;opened:number;practiced:number;reported:number;completed:number}
@@ -20,6 +20,26 @@ export interface GroupProgressStudent {
   lastActivityAt:string|null;opened:number;declared:number;reported:number;validated:number;
   practicedGames:number;completedGames:number;gyms:Array<{gymId:number;opened:number;declared:number;reported:number;completed:number}>;
 }
+
+export type ActivityProvider='wordwall'|'learningapps';
+export interface ActivityTelemetry {opened:boolean;completed:boolean;accuracy:boolean;errors:boolean;elapsedMs:boolean;evidence:'none'|'client-reported'|'provider-measured'|'server-validated'}
+export interface ActivityDefinition {
+  schemaVersion:1;courseId:string;activityId:string;provider:ActivityProvider;resourceId:string;sourceUrl:string;embedUrl:string;
+  title:string;description:string;instructions:string;groupIds:string[];telemetry:ActivityTelemetry;
+  status:'draft'|'published'|'archived';revision:number;publishedRevision:number|null;
+  createdBy:string;createdAt:string;updatedAt:string;publishedAt:string|null;
+}
+export interface ActivityAssignment {
+  schemaVersion:1;courseId:string;termId:string;groupId:string;activityId:string;gymId:number;
+  status:'draft'|'published'|'hidden'|'archived';displayOrder:number;revision:number;definitionRevision:number;
+  createdBy:string;updatedAt:string;publishedAt:string|null;
+}
+export interface ActivityPlacement {schemaVersion:1;courseId:string;termId:string;groupId:string;gymId:number;orderedActivityIds:string[];revision:number;updatedBy:string|null;updatedAt:string|null}
+export interface ActivityWorkspace {definitions:ActivityDefinition[];assignments:ActivityAssignment[];placements:ActivityPlacement[]}
+export interface PublishedActivity {activityId:string;provider:ActivityProvider;sourceUrl:string;embedUrl:string;title:string;description:string;instructions:string;
+  telemetry:ActivityTelemetry;gymId:number;revision:number}
+export interface PublishedActivities {gyms:Array<{gymId:number;activities:PublishedActivity[]}>}
+
 export interface GroupProgress {
   scope:Scope;period:{days:number;from:string|null;to:string};generatedAt:string;
   studentsTotal:number;studentsActive:number;
@@ -54,5 +74,13 @@ export interface Api {
   transferMembership:{input:Scope&Command&CAS&{uid:string;destinationGroupId:string};output:MutationResult};
   createTerm:{input:Command&{courseId:string;title:string};output:MutationResult};
   createGroup:{input:Command&{courseId:string;termId:string;title:string};output:MutationResult};
+  activityWorkspace:{input:Scope;output:ActivityWorkspace};
+  publishedGroupActivities:{input:Scope;output:PublishedActivities};
+  publishedActivity:{input:Scope&{activityId:string};output:PublishedActivity};
+  saveActivityDraft:{input:Scope&Command&{groupIds:string[];activityId?:string;expectedVersion?:number;provider:ActivityProvider;resourceId:string;sourceUrl:string;embedUrl:string;title:string;description:string;instructions:string;gymId:number};output:MutationResult};
+  publishActivities:{input:Scope&Command&{groupIds:string[];activityId:string;expectedVersion:number};output:MutationResult};
+  reorderActivities:{input:Scope&Command&{gymId:number;orderedActivityIds:string[];expectedVersion:number};output:MutationResult};
+  moveActivity:{input:Scope&Command&{activityId:string;gymId:number;expectedVersion:number};output:MutationResult};
+  setActivityStatus:{input:Scope&Command&{activityId:string;status:'hidden'|'archived';expectedVersion:number};output:MutationResult};
 }
-export type CommandName=Exclude<keyof Api,'myScopes'|'roster'|'groupRequests'|'groupInvitations'|'groupProgress'|'getAcademicProfile'|'requestStatus'|'getPlayerIdentity'|'gamertagAvailability'|'groupEnrollmentLink'>;
+export type CommandName=Exclude<keyof Api,'myScopes'|'roster'|'groupRequests'|'groupInvitations'|'groupProgress'|'getAcademicProfile'|'requestStatus'|'getPlayerIdentity'|'gamertagAvailability'|'groupEnrollmentLink'|'activityWorkspace'|'publishedGroupActivities'|'publishedActivity'>;

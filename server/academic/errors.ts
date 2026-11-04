@@ -9,6 +9,7 @@ export function publicError(error:unknown):ApiError {
   if(error instanceof ApiError)return error;
   const code=error&&typeof error==='object'&&'code' in error?error.code:null;
   if(code===8||code==='resource-exhausted')return new ApiError(429,'QUOTA_EXHAUSTED','Cuota agotada. Conserva la solicitud y reintenta más tarde.');
+  if(code===3&&/Transaction is invalid or closed/i.test(String((error as {details?:unknown;message?:unknown}).details??(error as {message?:unknown}).message??'')))return conflict();
   if(code===10||code==='aborted')return conflict();
   return new ApiError(503,'SERVICE_UNAVAILABLE','No se confirmó la operación; reintenta con la misma clave.');
 }

@@ -24,10 +24,13 @@ for(const [name,patch] of Object.entries({
 });
 test('academic repository can address only the exact progress records read by groupProgress',()=>{
   for(const path of ['users/a/sync/current','users/a/epochs/1/fields/practice--system-lab','users/a/epochs/1/gameRuns/run-1',
-    'users/a/epochs/1/diagnostics/diag-1','users/a/reportedAttempts/system-lab--event-1'])assert.equal(academicPath(path),path);
+    'users/a/epochs/1/diagnostics/diag-1','users/a/reportedAttempts/system-lab--event-1',
+    'courses/c/activities/a_0123456789abcdef0123456789abcdef','courses/c/activities/a_0123456789abcdef0123456789abcdef/revisions/1',
+    'courses/c/terms/t/groups/g/groupActivities/a_0123456789abcdef0123456789abcdef','courses/c/terms/t/groups/g/activityPlacements/3'])assert.equal(academicPath(path),path);
   for(const path of ['users/a/progress/current','users/a','users/a/sync/other','users/a/epochs/1/secret/x','users/a/reportedAttempts',
     'users/a/reportedAttempts/system-lab--event-1/extra','staff/a','courses/c/terms/t/groups/g/activityAttempts/run',
-    'courses/c/../../users/a/sync/current'])assert.throws(()=>academicPath(path));
+    'courses/c/../../users/a/sync/current','courses/c/terms/t/groups/g/publishedActivities/a_0123456789abcdef0123456789abcdef',
+    'courses/c/activities/a_0123456789abcdef0123456789abcdef/revisions/1/extra'])assert.throws(()=>academicPath(path));
 });
 test('unavailable emulators stop startup before loading privileged SDK or credential discovery',()=>{
   const env={...process.env,...valid};delete env.NODE_TEST_CONTEXT;

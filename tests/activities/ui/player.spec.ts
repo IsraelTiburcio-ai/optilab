@@ -72,4 +72,3 @@ test('rutas no son un proxy de URL ni conceden acceso docente o actividades priv
   await page.goto('#/actividad/private-group-activity?courseId=other&role=teacher&url=https://evil.example');await expect(page.getByRole('heading',{name:'Esta actividad no está disponible'})).toBeVisible();await expect(page.locator('.external-frame-shell iframe')).toHaveCount(0);
   await page.goto('#/docente');await expect(page.getByRole('heading',{name:'Te saliste del sendero'})).toBeVisible();expect(requests.length).toBe(0);
 });
-test.skip('asignación privada/revocada por grupo: pendiente de contrato confiable #5/#6, no implementado en este catálogo público',()=>{});
