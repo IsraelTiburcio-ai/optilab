@@ -15,6 +15,13 @@ jobs:
       TEACHER_BROWSER: ${{ matrix.browser }}
     steps:
       - uses: actions/checkout@v4
+      - name: Read-only pinned Memorama QA fixture
+        uses: actions/checkout@v4
+        with:
+          repository: IsraelTiburcio-ai/memorama-simplex
+          ref: 7a58545df7d3a657e85c2a87091f3277cdae97c0
+          path: .qa-memorama
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -43,6 +50,8 @@ jobs:
       - run: npx playwright install --with-deps ${{ matrix.browser }}
       - run: npm run test:sync:production
       - run: npm run test:teacher
+        env:
+          MEMORAMA_DIR: ${{ github.workspace }}/.qa-memorama
       - name: Existing adventure, trainers and evolution regression
         if: matrix.browser == 'chromium'
         run: npx playwright test tests/adventure.spec.ts tests/evolution-rules.spec.ts tests/companions.spec.ts tests/personalization.spec.ts --workers=2

@@ -49,15 +49,17 @@ export const test=base.extend<{fixture:Fixture},{backend:Worker}>({
     const routeAcademic=async(route:Route)=>{
       const request=route.request(),op=new URL(request.url()).pathname.split('/').at(-1)!;
       if(fault.offline){await route.abort();return;}
-      if(fault.forbidden===op){fault.forbidden='';await route.fulfill({status:403,contentType:'application/json',body:'{"error":{"code":"FORBIDDEN"}}'});return;}
-      if(fault.rate===op){fault.rate='';await route.fulfill({status:429,contentType:'application/json',body:'{"error":{"code":"RATE_LIMIT"}}'});return;}
+      const cors={...(request.headers().origin?{'access-control-allow-origin':request.headers().origin}:{})};
+      if(fault.forbidden===op){fault.forbidden='';await route.fulfill({status:403,contentType:'application/json',headers:cors,body:'{"error":{"code":"FORBIDDEN"}}'});return;}
+      if(fault.rate===op){fault.rate='';await route.fulfill({status:429,contentType:'application/json',headers:cors,body:'{"error":{"code":"RATE_LIMIT"}}'});return;}
       if(!['myScopes','roster','groupRequests','groupInvitations'].includes(op))commands.push(op);
       try{
-        const response=await route.fetch({url:backend.base+new URL(request.url()).pathname,headers:{...request.headers(),host:new URL(backend.base).host}});
-        if(fault.legacy&&op==='myScopes'){const body=await response.json();for(const row of body.items)delete row.capabilities;await route.fulfill({response,json:body});return;}
+        const response=await route.fetch({url:backend.base+new URL(request.url()).pathname,headers:{...request.headers(),host:new URL(backend.base).host,origin:'http://127.0.0.1:5195'}});
+        const responseHeaders={...response.headers(),...(request.headers().origin?{'access-control-allow-origin':request.headers().origin}:{})};
+        if(fault.legacy&&op==='myScopes'){const body=await response.json();for(const row of body.items)delete row.capabilities;await route.fulfill({response,headers:responseHeaders,json:body});return;}
         if(fault.lost===op){fault.lost='';await route.abort();return;}
         if(fault.hold===op){fault.hold='';waitingResolve();await gate;}
-        await route.fulfill({response});
+        await route.fulfill({response,headers:responseHeaders});
       }catch{/* A session switch can cancel a held browser request. */}
     };
     const attach=async(target:BrowserContext)=>{await target.route('http://127.0.0.1:5200/**',routeAcademic);await target.route(/https:\/\/[^/]*(firestore|identitytoolkit|securetoken)[^/]*googleapis\.com/,r=>r.abort());};
@@ -76,6 +78,7 @@ export async function login(page:Page,fixture:Fixture,actor:keyof Fixtures['acto
 export async function manage(page:Page,groupId:string){
   if(await page.locator('.teacher-workspace').count())await page.getByRole('button',{name:'← Mis grupos',exact:true}).click();
   const card=page.locator(`.teacher-group-card[data-group-id="${groupId}"]`);await expect(card).toBeVisible();await card.getByRole('button').click();await expect(page.locator('.teacher-workspace')).toBeVisible();
+  await page.getByRole('navigation',{name:'Secciones del panel'}).getByRole('button',{name:'Alumnos',exact:true}).click();await expect(page.getByRole('heading',{name:'Alumnos',exact:true})).toBeVisible();
 }
 export async function ready(page:Page) {
   if(!await page.locator('.teacher-workspace').count()){
@@ -83,6 +86,8 @@ export async function ready(page:Page) {
     const a=page.locator('.teacher-group-card[data-group-id="fixture-a"]');await (await a.count()?a:page.locator('.teacher-group-card').first()).getByRole('button').click();
   }
   await expect(page.locator('.teacher-workspace')).toBeVisible();await expect(page.getByText('Comprobando tus grupos autorizados…')).toHaveCount(0);
+  await page.getByRole('navigation',{name:'Secciones del panel'}).getByRole('button',{name:'Alumnos',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Alumnos',exact:true})).toBeVisible();
 }
 export async function tab(page:Page,name:string){
   if(name==='Solicitudes'){const history=page.locator('details.teacher-history');if(!await history.evaluate((n:HTMLDetailsElement)=>n.open))await history.locator('summary').click();return;}
@@ -90,3 +95,58 @@ export async function tab(page:Page,name:string){
   await page.getByRole('navigation',{name:'Secciones del panel'}).getByRole('button',{name,exact:true}).click();
 }
 export async function confirm(page:Page){await page.getByRole('dialog').getByRole('button',{name:'Confirmar',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);}
+
+export async function loginExisting(page:Page,fixture:Fixture,actor:keyof Fixtures['actors']) {
+  await page.goto('#/cuenta');await page.getByLabel('Correo electrónico',{exact:true}).fill(fixture.f.actors[actor].email);
+  await page.locator('#account-password').fill(password);await page.getByRole('button',{name:'Entrar a mi cuenta',exact:true}).click();
+  await expect(page.getByText('SESIÓN INICIADA',{exact:true})).toBeVisible();
+}
+export async function createStudentIdentity(fixture:Fixture,actor:'studentB'|'studentC',fullName:string,gamertag:string) {
+  const response=await fixture.call(actor,'savePlayerIdentity',{idempotencyKey:crypto.randomUUID(),expectedVersion:0,expectedProfileVersion:0,
+    fullName,gamertag,avatarId:'avatar-02',companionId:'piv',shareGameIdentity:true});
+  if(response.status!==200)throw new Error(`SYNTHETIC_IDENTITY_FAILED_${response.status}`);
+}
+export async function acceptCloud(page:Page) {
+  const progress=page.getByRole('region',{name:'Sincronización de progreso'}),attempts=page.getByRole('region',{name:'Sincronización de intentos'});
+  await progress.getByRole('button',{name:'Conservar progreso remoto',exact:true}).click();
+  await expect(progress.getByRole('status')).toContainText('Sincronizado',{timeout:20000});
+  await attempts.getByRole('button',{name:'Sincronizar historial de esta cuenta',exact:true}).click();
+  await expect(attempts.getByRole('status')).toContainText('synced',{timeout:20000});
+}
+
+export type DashboardActor='studentA'|'studentB'|'studentC';
+export interface DashboardProgressEntry {actor:DashboardActor;activityId:string;gymId:number;ageDays?:number}
+export const dashboardProgressEntries:DashboardProgressEntry[]=[
+  {actor:'studentA',activityId:'system-lab',gymId:1},
+  {actor:'studentB',activityId:'model-match',gymId:2},
+];
+/** Additive operator boundary: approve pending synthetic students through the real API. */
+export async function approvePendingStudents(fixture:Fixture,actors:Array<'studentB'|'studentC'>=['studentB']) {
+  const pending=(await fixture.call('teacherA','groupRequests',{...fixture.scope(),status:'pending',limit:50})).body.items as Array<{uid:string;requestId:string;revision:number}>;
+  for(const actor of actors){
+    const uid=fixture.f.actors[actor].uid,request=pending.find(row=>row.uid===uid);
+    if(!request)throw new Error('SYNTHETIC_PENDING_REQUEST_NOT_FOUND');
+    const response=await fixture.call('teacherA','approveMembership',{...fixture.scope(),requestId:request.requestId,expectedVersion:request.revision,idempotencyKey:crypto.randomUUID()});
+    if(response.status!==200)throw new Error('SYNTHETIC_APPROVAL_FAILED');
+  }
+}
+/** Additive operator boundary: write real v2 progress/practice and attempt documents. */
+export async function seedDashboardProgress(fixture:Fixture,entries:DashboardProgressEntry[]=dashboardProgressEntries,{ageDays=1}:{ageDays?:number}={}) {
+  const batch=fixture.sdk.db.batch(),byActor=new Map<DashboardActor,DashboardProgressEntry[]>();
+  for(const entry of entries)byActor.set(entry.actor,[...(byActor.get(entry.actor)??[]),entry]);
+  for(const [actor,rows] of byActor){
+    const uid=fixture.f.actors[actor].uid,root=`users/${uid}`;
+    const timestamps=rows.map(entry=>Date.now()-(entry.ageDays??ageDays)*86_400_000),latest=Math.max(...timestamps);
+    batch.set(fixture.sdk.db.doc(`${root}/sync/current`),{schemaVersion:2,uid,epoch:1,revision:1,operationId:crypto.randomUUID(),createdAt:fixture.sdk.timestamp(latest),updatedAt:fixture.sdk.timestamp(latest)});
+    rows.forEach((entry,index)=>{
+      const observed=timestamps[index];
+      batch.set(fixture.sdk.db.doc(`${root}/epochs/1/fields/practice--${entry.activityId}`),{schemaVersion:2,uid,epoch:1,revision:1,operationId:crypto.randomUUID(),value:fixture.sdk.timestamp(observed)});
+      for(const kind of ['opened','declared','reported'] as const){
+        const id=crypto.randomUUID();
+        batch.set(fixture.sdk.db.doc(`${root}/reportedAttempts/${entry.activityId}--${id}`),{version:1,id,activityId:entry.activityId,kind,
+          trust:kind==='reported'?'client-report':'declaration',observedAt:new Date(observed).toISOString(),...(kind==='reported'?{result:{completed:true}}:{}),uid,serverReceivedAt:fixture.sdk.timestamp(observed)});
+      }
+    });
+  }
+  await batch.commit();
+}

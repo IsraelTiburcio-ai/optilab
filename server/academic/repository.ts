@@ -17,7 +17,7 @@ export function academicPath(path:string):string {
     `courses/${c}/terms/${c}`,`courses/${c}/terms/${c}/groups/${c}`,
     `courses/${c}/terms/${c}/groups/${c}/(?:staff|members|administration|membershipDetails|invitations|membershipRequests|roster|membershipEvents)/${id}`,
     `courses/${c}/terms/${c}/groups/${c}/settings/current`,`courses/${c}/terms/${c}/groups/${c}/enrollmentLink/current`,
-    `users/${id}/(?:enrollments|teachingScopes)/${id}`,`academicOperations/${id}`,`academicAudit/${id}`,`academicProfiles/${id}`,`playerIdentities/${id}`,`gamertagReservations/${id}`];
+    `users/${id}/(?:enrollments|teachingScopes)/${id}`,`users/${id}/sync/current`,`users/${id}/epochs/${id}/(?:fields|diagnostics|gameRuns)/${id}`,`users/${id}/reportedAttempts/${id}`,`academicOperations/${id}`,`academicAudit/${id}`,`academicProfiles/${id}`,`playerIdentities/${id}`,`gamertagReservations/${id}`];
   if(!allowed.some(pattern=>new RegExp(`^${pattern}$`).test(path)))throw new Error('INVALID_REPOSITORY_PATH');return path;
 }
 export class AcademicTransaction {
