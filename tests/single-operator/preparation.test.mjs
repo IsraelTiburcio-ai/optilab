@@ -22,7 +22,7 @@ test('reject malformed target, duration, additional identities, scope, consent a
   for(const patch of [{project:'other'},{mode:'private-pilot-v1'},{origin:'http://optilab.club'},{uid:['a','b']},{uid:'a/b'},{participants:['a','b']},
     {endAt:'not-a-date'},{endAt:new Date(Date.parse(m.startAt)+7200001).toISOString()},{frontendSha:null},{frontendSha:['b'.repeat(40)]},
     {adultAttested:false},{fictitiousDataOnly:false},{studentsAllowed:true},{independentConsents:false},{leaseMinutes:20},
-    {risksAcknowledged:false},{authorization:{scope:'private-pilot-v1'}},{expectedActiveRulesSha256:'c'.repeat(64)},
+    {risksAcknowledged:false},{authorization:{scope:'private-pilot-v1'}},{expectedActiveRulesSha256:'ecf30f94'},{expectedActiveRulesSha256:['c'.repeat(64)]},
     {limits24h:{reads:0,writes:1,deletes:1,documents:1,largestAccount:1}},{exports:{directory:'relative',encryptionVerified:true,removeExternalCopies:true}}])
     assert.throws(()=>validateSession({...m,...patch}));
 });

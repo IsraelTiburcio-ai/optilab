@@ -15,7 +15,8 @@ acknowledging risks and merging this PR do not authorize a production operation.
 
 Copy `config/single-operator-test.proposed.json` **outside every Git checkout**.
 The owner must fill the exact UID, operator, approved frontend SHA, UTC dates,
-baseline Rules hash and privacy decisions. Never commit that filled file.
+active release source hash (not the versioned `firestore.rules` hash) and privacy
+decisions. Never commit that filled file.
 
 ```sh
 # LOCAL ONLY; use a private, verified encrypted location, not a repository.
@@ -51,9 +52,21 @@ adult/fictitious-data attestations are owner decisions, not verified by the tool
 
 ## Whole-project Rules impact — approval blocker
 
-The tool accepts only the reviewed base and pilot source hashes. If either file
-changes, generation stops for review. The expected active base hash is a binding
-for a **future live comparison**, not proof that production currently matches it.
+The tool pins the reviewed **versioned files** (`reviewedSources.base/pilot`); a
+changed file still blocks generation. Their hashes are distinct from
+`expectedActiveRulesSha256`, the full hash of a separately reviewed active release.
+Preparation records `activeRulesVerification: NOT_PERFORMED`. It never equates a
+repository file with production or treats a hash prefix as an approved source.
+
+`verifyActiveRules` requires a separately supplied owner comparison approval that
+binds the frontend/session, versioned base, candidate and exact active source,
+including an explicit impact review. With an injected live GET adapter it reads
+`releases/cloud.firestore`, follows its project-checked ruleset, compares source
+bytes without normalization, and rereads the release to reject concurrent changes.
+Missing/inaccessible/invalid metadata, changed content, missing approval or stale
+comparison all block. There is no default network/ADC adapter or CLI execution
+option. Comparison PASS alone never authorizes production; the future execution
+procedure must call this gate again immediately before a separately approved change.
 
 Deploying the candidate replaces the database-wide ruleset. All other UIDs lose
 access to `users/{uid}`, including enrollments. Existing academic `courses/...`

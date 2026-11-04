@@ -8,7 +8,7 @@
   "productionAndPhysicalIphone": "NOT_RUN",
   "tests": {
     "singleOperatorPureAndEmulator": {
-      "pass": 13,
+      "pass": 19,
       "fail": 0
     },
     "syncCoreIncludingPrivacyCopy": {
@@ -36,7 +36,7 @@
       "fail": 0
     }
   },
-  "totalPassed": 125,
+  "totalPassed": 131,
   "build": "PASS (TypeScript + Vite, Node 22)",
   "productionOnCopy": "unit-tested only; no live production Sync",
   "ruleSourcesSha256": {
@@ -64,5 +64,6 @@
     "Quotas are proposed operational thresholds, not hard per-UID rate limits",
     "No individual publisher or production control writer; original pilot workflow rejects this manifest",
     "Encryption/adult/fictitious-data flags are attestations, not independent verification"
-  ]
+  ],
+  "activeRulesComparison": "Six additional mock-GET tests distinguish versioned files from an exact approved active source; no real production reads. Generation remains NOT_PERFORMED until the separate comparison gate runs."
 }
