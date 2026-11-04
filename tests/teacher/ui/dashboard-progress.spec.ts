@@ -12,7 +12,7 @@ test('resumen: teacherA ve dos alumnos y conteos reales del periodo',async({page
   await prepared(fixture);
   const progress=(await fixture.call('teacherA','groupProgress',scope(fixture))).body;
   expect(progress.studentsActive).toBe(2);
-  expect(progress.activities).toMatchObject({opened:2,declared:2,reported:2,validated:0});
+  expect(progress.activities).toMatchObject({opened:2,declared:2,reported:2,completed:2,validated:0});
   await login(page,fixture,'teacherA');await openDashboard(page);
   const dashboard=page.locator('.teacher-dashboard');
   await expect(dashboard).toBeVisible();await expect(dashboard.getByRole('heading',{name:'Resumen',exact:true})).toBeVisible();
@@ -23,11 +23,12 @@ test('resumen: teacherA ve dos alumnos y conteos reales del periodo',async({page
   await expect(card(dashboard,'Alumnos con actividad')).toHaveText('2');
   await expect(card(dashboard,'Actividades abiertas')).toHaveText('2');
   await expect(card(dashboard,'Actividades practicadas')).toHaveText('2');
-  await expect(card(dashboard,'Actividades completadas')).toHaveText('2');
+  await expect(card(dashboard,'Resultados informados')).toHaveText('2');
+  await expect(card(dashboard,'Finalizaciones reportadas')).toHaveText('2');
   await expect(card(dashboard,'Validación')).toHaveText('0');await expect(card(dashboard,'Validación').locator('..')).toContainText('sin evidencia validada');
   const rows=dashboard.locator('tbody tr');await expect(rows).toHaveCount(2);
   const studentA=rows.filter({hasText:'Synthetic studentA'});await expect(studentA).toHaveCount(1);
-  for(const [label,value] of [['Actividad abierta','1'],['Actividad practicada (declarada)','1'],['Actividad completada (informe del cliente)','1'],['Juegos practicados','1'],['Juegos completados','1']] as const)await expect(studentA.locator(`td[data-label="${label}"]`)).toHaveText(value);
+  for(const [label,value] of [['Actividad abierta','1'],['Actividad practicada (declarada)','1'],['Resultado informado (cliente)','1'],['Finalización reportada (cliente)','1'],['Juegos practicados','1']] as const)await expect(studentA.locator(`td[data-label="${label}"]`)).toHaveText(value);
   await expect(studentA.locator('td[data-label="Validado: sin evidencia"]')).toHaveText('0');
   await expect(studentA.getByText('system-lab',{exact:false})).toHaveCount(0);
   const studentB=rows.filter({hasText:'Synthetic studentB'});await expect(studentB).toHaveCount(1);

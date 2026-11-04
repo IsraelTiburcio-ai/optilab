@@ -49,7 +49,7 @@ function compatible(operation:keyof Api,input:unknown,result:unknown):boolean {
     const period=data.period as Record<string,unknown>|undefined,activities=data.activities as Record<string,unknown>|undefined;
     return !!period&&Number.isInteger(period.days)&&(period.from===null||typeof period.from==='string')&&typeof period.to==='string'&&
       Number.isInteger(data.studentsTotal)&&Number.isInteger(data.studentsActive)&&!!activities&&
-      ['opened','declared','reported','validated'].every(key=>Number.isInteger(activities[key]))&&
+      ['opened','declared','reported','completed','validated'].every(key=>Number.isInteger(activities[key]))&&
       Array.isArray(data.gyms)&&Array.isArray(data.students)&&typeof data.truncated==='boolean';
   }
   if(['roster','groupRequests','groupInvitations','myScopes'].includes(operation)){

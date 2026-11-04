@@ -65,17 +65,20 @@ test('flujo real: B completa Memorama, C practica y A ve el tablero sin datos in
     await expect(card(page,'Alumnos con actividad')).toHaveText('2');
     await expect(card(page,'Actividades abiertas')).toHaveText('1');
     await expect(card(page,'Actividades practicadas')).toHaveText('1');
-    await expect(card(page,'Actividades completadas')).toHaveText('1');
+    await expect(card(page,'Resultados informados')).toHaveText('1');
+    await expect(card(page,'Finalizaciones reportadas')).toHaveText('1');
     await expect(card(page,'Validación')).toHaveText('0');
     const rows=dashboard.locator('tbody tr');await expect(rows).toHaveCount(2);
     const rowB=rows.filter({hasText:'Alumno B MVP'}),rowC=rows.filter({hasText:'Alumno C MVP'});
     await expect(rowB).toHaveCount(1);await expect(rowC).toHaveCount(1);
     await expect(rowB.locator('td[data-label="Actividad abierta"]')).toHaveText('1');
     await expect(rowB.locator('td[data-label="Actividad practicada (declarada)"]')).toHaveText('0');
-    await expect(rowB.locator('td[data-label="Actividad completada (informe del cliente)"]')).toHaveText('1');
+    await expect(rowB.locator('td[data-label="Resultado informado (cliente)"]')).toHaveText('1');
+    await expect(rowB.locator('td[data-label="Finalización reportada (cliente)"]')).toHaveText('1');
     await expect(rowC.locator('td[data-label="Actividad abierta"]')).toHaveText('0');
     await expect(rowC.locator('td[data-label="Actividad practicada (declarada)"]')).toHaveText('1');
-    await expect(rowC.locator('td[data-label="Actividad completada (informe del cliente)"]')).toHaveText('0');
+    await expect(rowC.locator('td[data-label="Resultado informado (cliente)"]')).toHaveText('0');
+    await expect(rowC.locator('td[data-label="Finalización reportada (cliente)"]')).toHaveText('0');
     if(process.env.TEACHER_CAPTURE==='1'){fs.mkdirSync('docs/qa/teacher-mvp',{recursive:true});await dashboard.screenshot({path:'docs/qa/teacher-mvp/dashboard.png'});}
     await page.reload();await expect(page.locator('.teacher-group-card')).toBeVisible();await ready(page);await page.getByRole('navigation',{name:'Secciones del panel'}).getByRole('button',{name:'Resumen',exact:true}).click();
     await expect(card(page,'Alumnos con actividad')).toHaveText('2');

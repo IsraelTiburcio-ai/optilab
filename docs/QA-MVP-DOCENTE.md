@@ -9,11 +9,11 @@ Alcance: Firestore Emulator y cuentas sintéticas. **Sin producción, sin despli
 La profesora ficticia A abre `#/docente` → **Resumen** y ve el grupo real del periodo:
 
 - 2 alumnos inscritos y 2 con actividad.
-- 1 actividad abierta, 1 practicada y 1 completada; 0 validadas.
+- 1 actividad abierta, 1 practicada, 1 resultado informado y 1 finalización reportada; 0 validadas.
 - B completó un Memorama real; su intento y progreso se sincronizaron desde el cliente.
 - C marcó una práctica; quedó declarada, sin convertirla en completada.
 - Recarga, aislamiento entre docentes y revocación de B comprobados.
-- El backend autoriza `groupProgress` con `manageMembers`; un docente ajeno, alumno o externo recibe 403.
+- El backend autoriza `groupProgress` con `readHistory`; un docente ajeno, alumno o externo recibe 403. Un docente puede administrar miembros sin leer historiales, y otro leer historiales sin administrar miembros.
 - `validated` permanece en 0: no se eleva un autoinforme a resultado validado.
 
 Captura sintética: [dashboard.png](qa/teacher-mvp/dashboard.png). No contiene secretos, tokens ni datos reales; no sustituye QA físico Mac↔iPhone.
@@ -22,8 +22,8 @@ Captura sintética: [dashboard.png](qa/teacher-mvp/dashboard.png). No contiene s
 
 | Verificación | Resultado |
 |---|---|
-| `node --import tsx --test tests/academic/dashboard.test.ts` | 5/5 |
-| `npm run test:academic:api` | 75/75 |
+| `node --import tsx --test tests/academic/dashboard.test.ts` | 8/8 |
+| `npm run test:academic:api` | 78/78 |
 | `npm run typecheck:academic` | PASS |
 | `npm run build` | PASS |
 | Suite docente Chromium | 71/71 |
@@ -31,6 +31,8 @@ Captura sintética: [dashboard.png](qa/teacher-mvp/dashboard.png). No contiene s
 | `dashboard-real-flow.spec.ts` Chromium/WebKit | PASS |
 
 El test real usa cuentas Auth sintéticas y Firestore Emulator reales: B completa Memorama, C marca práctica y A consulta el tablero. La captura se genera con `TEACHER_CAPTURE=1`.
+
+Los eventos de `reportedAttempts` se consultan aunque el alumno no tenga `users/{uid}/sync/current`; se descartan si no pertenecen al UID, no coinciden con el ID del documento, no usan el tipo/trust admitido, tienen fecha inválida o un resultado malformado. Así el consentimiento de intentos es independiente del consentimiento de progreso.
 
 Para reproducir, los emuladores deben arrancar desde este worktree/rama. Las Rules de `main` no incluyen todavía `reportedAttempts`; usar las Rules de esta rama. El modo local reutiliza 9099/8085/5200/5195 y `TEACHER_REUSE_VITE=1`; el CI arranca sus propios procesos.
 
@@ -45,6 +47,12 @@ TEACHER_BROWSER=webkit npm run test:teacher:ui
 ```
 
 El flujo real requiere `MEMORAMA_DIR` con el fixture pinneado de Memorama; el workflow `teacher-ci.yml` lo descarga en `.qa-memorama`. La prueba no inventa puntuaciones: el tablero muestra conteos derivados de documentos sincronizados por B/C.
+
+## Métricas y coste
+
+`reported` cuenta resultados informados; `completed` cuenta únicamente finalizaciones con `result.completed === true` en un intento o `gameRun`. Un `reported` sin esa evidencia no es una finalización; los diagnósticos actualizan la última actividad y no crean finalizaciones. `validated` permanece en 0.
+
+El coste actual es explícito: cada alumno consulta hasta 2,000 eventos de `reportedAttempts`, además de su head, hasta 40 campos, 50 `gameRuns` y 50 diagnósticos. Con 100 alumnos esto puede acercarse a 200,000 lecturas por `groupProgress`. No se resuelve ahora con agregados; queda como limitación para el siguiente incremento.
 
 ## Snapshot productivo read-only
 
