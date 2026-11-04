@@ -10,6 +10,10 @@ test('production build stays guest/local with zero Firebase requests even when a
   await expect(page.getByRole('heading',{name:'Tu cuenta OptiLab',exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'Continuar con Google'})).toBeDisabled();
   await expect(page.locator('.sync-panel')).toHaveCount(0);
+  await expect(page.getByRole('region',{name:'Historial local de intentos'})).toContainText('No se sincronizan');
+  await page.goto('#/aventura',{waitUntil:'domcontentloaded'});
+  await expect(page.locator('.local-note')).toContainText('No se sincroniza entre dispositivos');
+  await page.goto('#/cuenta',{waitUntil:'domcontentloaded'});
   await expect.poll(()=>page.evaluate(()=>localStorage.getItem('optilab-v1')!==null)).toBe(true);
   const before=await page.evaluate(()=>localStorage.getItem('optilab-v1'));
   await page.getByRole('link',{name:'Continuar como invitado'}).click();await expect(page.locator('.map-node')).toHaveCount(5);

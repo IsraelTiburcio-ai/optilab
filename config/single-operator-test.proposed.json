@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "mode": "single-operator-test",
+  "project": "optilab-cd829",
+  "origin": "https://optilab.club",
+  "frontendSha": null,
+  "expectedActiveRulesSha256": null,
+  "uid": null,
+  "operator": null,
+  "startAt": null,
+  "endAt": null,
+  "adultAttested": false,
+  "fictitiousDataOnly": false,
+  "studentsAllowed": false,
+  "independentConsents": true,
+  "leaseMinutes": 10,
+  "checkEveryMinutes": 5,
+  "limits24h": {"reads":5000,"writes":1000,"deletes":1000,"documents":2000,"largestAccount":500},
+  "retentionDaysAfterEnd": 14,
+  "exports": {"directory":null,"encryptionVerified":false,"removeExternalCopies":false},
+  "risksAcknowledged": false,
+  "authorization": null
+}
