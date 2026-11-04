@@ -5,10 +5,12 @@ import {createCloudAttemptTransport} from './cloudTransport';
 import {AttemptCloudContext} from './cloudContext';
 import {validateLedger} from './cloudModel';
 import * as local from './storage';
+import {productionSessionKind,singleOperatorWindowAllowed,observeSingleOperatorExpiry} from '../progress/productionConfig';
 
 export default function CloudAttempts({uid,children}:{uid:string;children:ReactNode}){
  const auth=useAuth(),alive=useRef(true),[error,setError]=useState('');
- const valid=()=>alive.current&&auth.isCurrentSession(uid);
+ const timed=productionSessionKind(import.meta.env??{})==='single-operator-test';
+ const valid=()=>alive.current&&auth.isCurrentSession(uid)&&(!timed||singleOperatorWindowAllowed(import.meta.env??{}));
  const decision=`optilab-attempt-cloud:v1:${encodeURIComponent(uid)}`;
  const [engine]=useState(()=>new AttemptCloudEngine({
   read:()=>local.readCanonical(uid),
@@ -25,9 +27,11 @@ export default function CloudAttempts({uid,children}:{uid:string;children:ReactN
    engine.changed();
   });
   const decisionChanged=(event:StorageEvent)=>{if(event.key!==decision||!valid())return;if(event.newValue==='accepted')engine.activate();else engine.pause();};
-  const online=()=>engine.setOnline(navigator.onLine);
-  addEventListener('storage',decisionChanged);addEventListener('online',online);addEventListener('offline',online);
-  return()=>{alive.current=false;stop();engine.dispose();removeEventListener('storage',decisionChanged);removeEventListener('online',online);removeEventListener('offline',online);};
+  const expire=()=>{engine.pause();setError('La ventana de prueba terminó. El historial permanece local; el envío está pausado.');};
+  const stopExpiry=observeSingleOperatorExpiry(import.meta.env??{},expire);
+  const online=()=>{if(timed&&!singleOperatorWindowAllowed(import.meta.env??{}))expire();else engine.setOnline(navigator.onLine);};
+  addEventListener('storage',decisionChanged);addEventListener('online',online);addEventListener('offline',online);addEventListener('visibilitychange',online);
+  return()=>{alive.current=false;stopExpiry();stop();engine.dispose();removeEventListener('storage',decisionChanged);removeEventListener('online',online);removeEventListener('offline',online);removeEventListener('visibilitychange',online);};
  },[engine,decision]);
  const run=async(action:()=>Promise<void>)=>{setError('');try{await action();}catch(e){setError(e instanceof Error?e.message:'No se guardó el cambio. Conserva los respaldos.');}};
  const activate=async(guest:boolean)=>run(async()=>{

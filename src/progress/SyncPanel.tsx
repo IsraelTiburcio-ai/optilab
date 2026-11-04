@@ -1,4 +1,4 @@
-import {syncMode} from './config';
+import {syncMode,productionKind} from './config';
 import {useState, type ChangeEvent} from 'react';
 import {useProgress} from '../store';
 import type {Backup} from './engine';
@@ -15,6 +15,7 @@ export default function SyncPanel() {
   const [restore,setRestore]=useState<Backup|null>(null);
   if(!sync)return <p className="sync-guest-note" role="status">Modo invitado · copia local del navegador (optilab-v1). Las cuentas usan un perfil separado.</p>;
   const {engine,view}=sync;
+  const individual=syncMode==='production'&&productionKind==='single-operator-test';
   const run=async(action:()=>Promise<unknown>)=>{
     if(busy)return;setBusy(true);setError('');
     try {await action();}catch(e){setError(e instanceof Error?e.message:'No se pudo completar; conserva el respaldo.');}finally{setBusy(false);}
@@ -26,13 +27,13 @@ export default function SyncPanel() {
     try {setRestore(JSON.parse(await selected.text()));setReview(true);}catch{setError('Archivo JSON inválido.');}
   };
   return <section className="sync-panel paper" aria-label="Sincronización de progreso">
-    <h2>Tu aventura en Cloud · {syncMode==='production'?'piloto privado':'emulador'}</h2>
+    <h2>Tu aventura en Cloud · {syncMode==='production'?(productionKind==='single-operator-test'?'prueba individual':'piloto privado'):'emulador'}</h2>
     <p role="status"><strong>{labels[view.status]}</strong> · {view.pending} operaciones pendientes</p>
-    <p>{syncMode==='production'?'Piloto privado de sincronización.':'Entorno local de pruebas; sin Firestore productivo.'} Este perfil pertenece solo a tu cuenta.</p>
+    <p>{syncMode==='production'?(productionKind==='single-operator-test'?'Prueba individual supervisada, limitada a la cuenta y ventana autorizadas.':'Piloto privado de sincronización.'):'Entorno local de pruebas; sin Firestore productivo.'} Este perfil pertenece solo a tu cuenta.</p>
     {view.decision!=='accepted'&&<div>
-      <p>El progreso anterior de este navegador no se importará al iniciar sesión. Puedes unirlo a esta cuenta, usar solo lo remoto o cancelar.</p>
+      <p>{individual?'Esta prueba usa solo el progreso de la cuenta autorizada. No se importará el perfil invitado.':'El progreso anterior de este navegador no se importará al iniciar sesión. Puedes unirlo a esta cuenta, usar solo lo remoto o cancelar.'}</p>
       <p>Usar la cuenta activa la sincronización de sus propios cambios pendientes; no importa el invitado. Cancelar pausa el envío y conserva esos cambios locales.</p>
-      <button className="button" disabled={busy||!view.ready} onClick={()=>void run(()=>engine.importRaw(legacy()))}>Importar progreso del navegador</button>{' '}
+      {!individual&&<button className="button" disabled={busy||!view.ready} onClick={()=>void run(()=>engine.importRaw(legacy()))}>Importar progreso del navegador</button>}{' '}
       <button className="button" disabled={busy||!view.ready} onClick={()=>void run(()=>engine.keepRemote())}>Conservar progreso remoto</button>{' '}
       <button className="text-button" onClick={()=>setReview(!review)}>Revisar posibles conflictos</button>{' '}
       <button className="text-button" disabled={busy} onClick={()=>void run(()=>engine.keepRemote(true))}>Cancelar importación</button>

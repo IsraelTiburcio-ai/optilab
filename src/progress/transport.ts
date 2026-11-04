@@ -162,7 +162,7 @@ export function createProductionTransport(uid:string):Transport {
   if(auth.currentUser?.uid!==uid||auth.currentUser.isAnonymous||logoutBlocked(uid))throw new Error('La identidad cambió antes de abrir el progreso.');
   // No persistent SDK cache: the existing journal/backups stay partitioned by UID.
   productionDb??=initializeFirestore(app,{localCache:memoryLocalCache()});
-  return privateProgressTransport(productionDb,uid,()=>auth.currentUser?.uid===uid&&!auth.currentUser.isAnonymous&&!logoutBlocked(uid));
+  return privateProgressTransport(productionDb,uid,()=>productionSyncAllowed(import.meta.env??{},authSettings,location.origin)&&auth.currentUser?.uid===uid&&!auth.currentUser.isAnonymous&&!logoutBlocked(uid));
 }
 export function createProgressTransport(uid:string):Transport {
   if(syncAllowed(import.meta.env??{},authSettings,typeof location==='undefined'?'':location.hostname))return createEmulatorTransport(uid);
@@ -187,5 +187,7 @@ export function createAttemptChannel(uid:string){
   // Factories recheck project, origin, Auth emulator/production identity and logout fence.
   createProgressTransport(uid);
   const app=getApp('optilab-accounts'),auth=getAuth(app);
-  return {db:getFirestore(app),valid:()=>auth.currentUser?.uid===uid&&!logoutBlocked(uid)&&!auth.currentUser.isAnonymous&&auth.currentUser.emailVerified};
+  return {db:getFirestore(app),valid:()=>
+    (syncAllowed(import.meta.env??{},authSettings,location.hostname)||productionSyncAllowed(import.meta.env??{},authSettings,location.origin))&&
+    auth.currentUser?.uid===uid&&!logoutBlocked(uid)&&!auth.currentUser.isAnonymous&&auth.currentUser.emailVerified};
 }

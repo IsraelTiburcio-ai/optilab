@@ -76,8 +76,8 @@ ${(observations+'\n'+sync+epochs).replaceAll('pilotAccess(', 'singleOperatorAcce
   const control={version:1,mode,uid:m.uid,windowDigest:w.windowDigest,startAt:m.startAt,endAt:m.endAt,readsEnabled:false,writesEnabled:false,expiresAt:m.startAt,updatedAt:m.startAt};
   const plan={version:1,mode,project:m.project,origin:m.origin,frontendSha:m.frontendSha,versionedBaseRulesSha256:reviewedSources.base,versionedPilotRulesSha256:reviewedSources.pilot,expectedActiveRulesSha256:m.expectedActiveRulesSha256,activeRulesVerification:'NOT_PERFORMED',rulesSha256,windowDigest:w.windowDigest,startAt:m.startAt,endAt:m.endAt,uidSha256:sha256(m.uid),limits24h:m.limits24h,
     scope:['adventure-v2','memorama-reported-attempts','own-backup-restore'],
-    approvalRequired:true,executionImplemented:false,network:false,productionWrites:false,
-    blockers:['Separate owner approval of SHA, Rules, scope and risks','No single-operator deployment or activation runner is included','Fresh live Rules/billing/services/usage verification required'],
+    approvalRequired:true,executionImplemented:true,network:false,productionWrites:false,
+    blockers:['Separate owner approval of SHA, Rules, scope and risks','Fresh execution receipt and explicit process acknowledgment required','Fresh live Rules/billing/services/usage verification required'],
   };
   return {rules,control,plan};
 }

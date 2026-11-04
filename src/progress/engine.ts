@@ -73,6 +73,8 @@ export class ProgressEngine {
       :'No se pudo leer Cloud. Tu copia y operaciones locales se conservan; revisa permisos o conexión.';this.publish();}});
   }
   dispose() {this.active=false;this.stop?.();clearTimeout(this.timer);this.listeners.clear();}
+  /** Preserve the UID journal and visible copy while closing a timed session. */
+  suspend(message:string) {if(!this.active)return;this.online=false;this.stop?.();this.stop=undefined;clearTimeout(this.timer);this.error=message;this.publish();}
   private mergeRemote(s:Snapshot) {
     if(s.confirmed===false)this.ready=false;
     if(s.epoch>this.remote.epoch) {

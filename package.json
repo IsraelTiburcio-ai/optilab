@@ -37,7 +37,10 @@
     "test:pilot": "PILOT_QA=1 node scripts/test-cloud-sprint.mjs",
     "pilot:admin": "node scripts/pilot-admin.mjs",
     "pilot:activation": "node scripts/pilot-activation.mjs",
-    "pilot:platform": "node scripts/pilot-platform.mjs"
+    "pilot:platform": "node scripts/pilot-platform.mjs",
+    "single:prepare": "node scripts/single-operator-prepare.mjs",
+    "single:snapshot": "node scripts/single-operator-snapshot.mjs",
+    "single:session": "node scripts/single-operator-session.mjs"
   },
   "dependencies": {
     "firebase": "12.19.0",
