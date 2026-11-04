@@ -14,6 +14,7 @@ import type {EmulatorAdmin} from './sdk';
 import {updateProfile,type AuthIdentity} from './profiles';
 import {savePlayer} from './players';
 import {rotateEnrollmentLink,revokeEnrollmentLink,redeemInvitation,validateRedemption} from './enrollmentLinks';
+import {saveActivityDraft,publishActivities,reorderActivities,moveActivity,setActivityStatus} from './activities';
 export interface ServiceOptions {
   /** Test-only policy seam for mutation control. Never configured from HTTP/env. */
   policy?:Policy;
@@ -61,10 +62,11 @@ export class AcademicService {
       const receipt=await tx.get(`academicOperations/${commandId}`);
       if(receipt) {
         if(!exact(receipt,['schemaVersion','actorUid','operation','fingerprint','result','createdAt'])||receipt.schemaVersion!==2||receipt.actorUid!==actor.uid||receipt.operation!==op||receipt.fingerprint!==fingerprint)throw conflict();
-        const result=receipt.result,allowed=['outcome','inviteId','requestId','uid','version','profileVersion','sourceVersion','destinationVersion','termId','courseId','groupId','commandId','operation','tokenAvailable'];
+        const result=receipt.result,allowed=['outcome','inviteId','requestId','uid','version','profileVersion','sourceVersion','destinationVersion','termId','courseId','groupId','commandId','operation','tokenAvailable','activityId','status','revision','placementRevision','count','gymId'];
         if(!isRecord(result)||Object.keys(result).some(k=>!allowed.includes(k))||result.commandId!==commandId||result.operation!==op||typeof result.outcome!=='string'||result.outcome.length>80||result.tokenAvailable!==false)throw conflict();
-        for(const key of ['inviteId','requestId','uid','termId','courseId','groupId'])if(key in result&&!identifier(result[key],128))throw conflict();
-        for(const key of ['version','profileVersion','sourceVersion','destinationVersion'])if(key in result&&!integer(result[key],0,2147483647))throw conflict();
+        for(const key of ['inviteId','requestId','uid','termId','courseId','groupId','activityId'])if(key in result&&!identifier(result[key],128))throw conflict();
+        for(const key of ['version','profileVersion','sourceVersion','destinationVersion','revision','placementRevision','count','gymId'])if(key in result&&!integer(result[key],0,2147483647))throw conflict();
+        if('status' in result&&!['draft','published','hidden','archived'].includes(result.status))throw conflict();
         return {...receipt.result,replayed:true,tokenAvailable:false};
       }
       const s=scopeOf(i);
@@ -82,7 +84,12 @@ export class AcademicService {
         op==='updateAcademicProfile'?await updateProfile(tx,actor,i,identity!,this.sdk.time):
         op==='savePlayerIdentity'?await savePlayer(tx,actor,i,identity!,this.sdk.time):
         op==='rotateEnrollmentLink'?await rotateEnrollmentLink(tx,s,actor,i,this.clock):op==='revokeEnrollmentLink'?await revokeEnrollmentLink(tx,s,i):
-        op==='redeemInvitation'?await redeemInvitation(tx,s,actor,i,identity!,this.clock,commandId):null;
+        op==='redeemInvitation'?await redeemInvitation(tx,s,actor,i,identity!,this.clock,commandId):
+        op==='saveActivityDraft'?await saveActivityDraft(tx,this.policy,actor,i,commandId,this.clock.time):
+        op==='publishActivities'?await publishActivities(tx,this.policy,actor,i,this.clock.time):
+        op==='reorderActivities'?await reorderActivities(tx,this.policy,actor,i,this.clock.time):
+        op==='moveActivity'?await moveActivity(tx,this.policy,actor,i,this.clock.time):
+        op==='setActivityStatus'?await setActivityStatus(tx,this.policy,actor,i,this.clock.time):null;
       if(!p)throw new ApiError(404,'NOT_FOUND','Operación no disponible.');
       return commitPlan(tx,actor,op,i,commandId,fingerprint,p,this.sdk.time);
     });
