@@ -7,9 +7,12 @@ permissions:
   contents: read
   pages: write
   id-token: write
+# Shared Pages mutex with manual recovery. Never cancel a running OFF/ON release:
+# a push queues behind it. The single-operator ON workflow refuses a stale ON
+# after a newer completed Pages deployment.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: ubuntu-latest

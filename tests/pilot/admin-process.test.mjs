@@ -45,6 +45,12 @@ test('authorized process sets quota before mocked ADC/SDK and restores absent, e
     assert.equal(result,'mock-result');assert.equal(f.events.filter(e=>e==='adc').length,1);assert.deepEqual(f.events.slice(-2),['terminate','delete']);assert.deepEqual(env,initial);
   }
 });
+test('normal sync emulator pair is accepted only for emulator scope',()=>{
+  const normal={FIRESTORE_EMULATOR_HOST:'127.0.0.1:8085',FIREBASE_AUTH_EMULATOR_HOST:'127.0.0.1:9099'};
+  assert.deepEqual(administrativeExecution(emulator,normal),emulator);
+  assert.throws(()=>administrativeExecution(production,normal));
+  assert.throws(()=>administrativeExecution(emulator,{FIRESTORE_EMULATOR_HOST:'127.0.0.1:8085',FIREBASE_AUTH_EMULATOR_HOST:'127.0.0.1:9199'}));
+});
 test('default process environment is scoped and restored while the SDK is mocked',async t=>{
   const keys=['GOOGLE_CLOUD_QUOTA_PROJECT','FIRESTORE_EMULATOR_HOST','FIREBASE_AUTH_EMULATOR_HOST'];
   const before=keys.map(key=>[key,Object.hasOwn(process.env,key),process.env[key]]);

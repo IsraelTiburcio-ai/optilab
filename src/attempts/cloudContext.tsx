@@ -1,5 +1,6 @@
 import {createContext,useContext} from 'react';
 import type {AttemptCloudView} from './cloudEngine';
+import {productionSessionKind} from '../progress/productionConfig';
 export const AttemptCloudContext=createContext<null|{view:AttemptCloudView;verified:boolean;activate:(guest:boolean)=>Promise<void>;pause:()=>void;retry:()=>void;keepRemote:()=>Promise<void>;restore:(file:File)=>Promise<void>;exportAll:()=>Promise<void>}>(null);
 export function AttemptCloudControls(){
  const cloud=useContext(AttemptCloudContext);if(!cloud)return null;
@@ -9,7 +10,7 @@ export function AttemptCloudControls(){
  <p>Consentimiento independiente del progreso de aventura. Solo declaraciones e informes del cliente; ningún resultado validado ni ranking.</p>
  {!cloud.verified?<p>Verifica tu correo y actualiza la sesión para habilitar este canal.</p>:<>
  <button onClick={()=>run(()=>cloud.activate(false))}>Sincronizar historial de esta cuenta</button>{' '}
- <button onClick={()=>run(()=>cloud.activate(true))}>Importar historial invitado y sincronizar</button>{' '}
+ {productionSessionKind(import.meta.env??{})!=='single-operator-test'&&<button onClick={()=>run(()=>cloud.activate(true))}>Importar historial invitado y sincronizar</button>}{' '}
  <button onClick={cloud.pause}>Pausar envío de intentos</button>{' '}
  <button onClick={cloud.retry}>Reintentar intentos</button>
  </>}

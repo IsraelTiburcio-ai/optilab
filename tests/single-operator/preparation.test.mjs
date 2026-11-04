@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,writeFile,readFile,stat,rm,symlink,mkdir} from 'node:fs/promises';
+import {mkdtemp,writeFile,readFile,stat,rm,symlink,mkdir,realpath} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -10,7 +10,7 @@ import {assertProtectedEnvironment} from '../../server/pilot/environment.mjs';
 import {session,sources} from './fixture.mjs';
 
 test('separate preparation binds exact UID/window/SHA/scope, never grants authorization',()=>{
-  const m=session(),b=prepareSession(m,sources);assert.equal(b.plan.executionImplemented,false);assert.equal(b.plan.approvalRequired,true);
+  const m=session(),b=prepareSession(m,sources);assert.equal(b.plan.executionImplemented,true);assert.equal(b.plan.approvalRequired,true);
   assert.equal(b.plan.rulesSha256,sha256(b.rules));assert.equal(b.control.readsEnabled,false);assert.equal(b.control.writesEnabled,false);
   assert.equal(b.control.expiresAt,m.startAt);assert.equal(b.plan.network,false);assert.equal(b.plan.productionWrites,false);
   assert.equal(JSON.stringify(b.plan).includes(m.uid),false);
@@ -49,8 +49,9 @@ test('CLI dry-run is offline; no execute option, no UID stdout, private artifact
     await mkdir(join(dir,'another-repo'));await writeFile(join(dir,'another-repo','.git'),'gitdir: fictitious');assert.notEqual(run(['--out',join(dir,'another-repo','unsafe')]).status,0);
     assert.notEqual(run(['--out',join(tmpdir(),'outside-declared-location')]).status,0);
     const out=join(dir,'bundle'),written=run(['--out',out]);assert.equal(written.status,0,written.stderr);assert.equal((await stat(out)).mode&0o777,0o700);
-    for(const name of ['candidate.rules','control-paused.json','approval-plan.json','session.json'])assert.equal((await stat(join(out,name))).mode&0o777,0o600);
+    for(const name of ['candidate.rules','control-paused.json','approval-plan.json','session.json','firebase-rules.json'])assert.equal((await stat(join(out,name))).mode&0o777,0o600);
     assert.equal(JSON.parse(await readFile(join(out,'control-paused.json'),'utf8')).writesEnabled,false);
+    assert.deepEqual(JSON.parse(await readFile(join(out,'firebase-rules.json'),'utf8')),{firestore:{rules:join(await realpath(out),'candidate.rules')}});
     assert.notEqual(run(['--out',out]).status,0);
   }finally{await rm(dir,{recursive:true,force:true});}
 });

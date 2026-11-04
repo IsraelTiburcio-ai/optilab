@@ -10,6 +10,7 @@ import {ProgressEngine} from './engine';
 import {createProgressTransport} from './transport';
 import {withEvolution, type Progress} from './model';
 import {accountStorage} from './storage';
+import {productionSessionKind,singleOperatorWindowAllowed,observeSingleOperatorExpiry} from './productionConfig';
 
 export default function CloudProgress({uid,children}:{uid:string;children:ReactNode}) {
   const [local]=useState(accountStorage);
@@ -17,10 +18,13 @@ export default function CloudProgress({uid,children}:{uid:string;children:ReactN
   const view=useSyncExternalStore(engine.subscribe,engine.getSnapshot);
   useEffect(()=>{
     engine.start();engine.setOnline(navigator.onLine);
-    const online=()=>engine.setOnline(navigator.onLine);
+    const timed=productionSessionKind(import.meta.env??{})==='single-operator-test';
+    const expire=()=>engine.suspend('La ventana de prueba terminó. El envío se pausó; conserva y exporta tu copia local.');
+    const online=()=>{if(timed&&!singleOperatorWindowAllowed(import.meta.env??{}))expire();else engine.setOnline(navigator.onLine);};
+    const stopExpiry=observeSingleOperatorExpiry(import.meta.env??{},expire);
     const storage=()=>engine.refreshLocal();
-    addEventListener('online',online);addEventListener('offline',online);addEventListener('storage',storage);
-    return ()=>{engine.dispose();removeEventListener('online',online);removeEventListener('offline',online);removeEventListener('storage',storage);};
+    addEventListener('online',online);addEventListener('offline',online);addEventListener('storage',storage);addEventListener('visibilitychange',online);
+    return ()=>{stopExpiry();engine.dispose();removeEventListener('online',online);removeEventListener('offline',online);removeEventListener('storage',storage);removeEventListener('visibilitychange',online);};
   },[engine]);
   const p=view.progress;
   const change=(update:(value:Progress)=>Progress)=>engine.change(update(engine.getSnapshot().progress));

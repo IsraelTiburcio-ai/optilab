@@ -1,5 +1,5 @@
 import {authSettings, type FirebaseSettings} from '../auth/config';
-import {productionSyncAllowed} from './productionConfig';
+import {productionSyncAllowed,productionSessionKind} from './productionConfig';
 export function syncAllowed(env:Record<string,unknown>,auth:FirebaseSettings,hostname:string):boolean {
   return env.DEV===true && env.VITE_PROGRESS_SYNC==='emulator' &&
     ['localhost','127.0.0.1'].includes(hostname) && auth.status==='ready' &&
@@ -14,3 +14,4 @@ export function progressSyncMode(env:Record<string,unknown>,auth:FirebaseSetting
 }
 export const syncMode=progressSyncMode(import.meta.env??{},authSettings,typeof location==='undefined'?'':location.origin);
 export const syncEnabled=syncMode!=='disabled';
+export const productionKind=productionSessionKind(import.meta.env??{});

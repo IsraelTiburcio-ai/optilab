@@ -1,17 +1,25 @@
-# single-operator-test — preparation only, not authorized for production
+# single-operator-test — execution implemented locally, not authorized for production
 
 This is a separate proposal for one supervising owner, one verified adult UID,
 fictitious progress and at most two hours. It is **not** the two-reviewer private
 pilot and does not impersonate an independent reviewer. That pilot's validator,
 Rules, manifest, environments and workflows remain unchanged.
 
+The execution layer is implemented and tested against isolated emulators in this
+branch. **No production operation, deploy, Auth account, IAM change or billing
+change has been executed.** Production execution remains blocked until the owner
+approves the exact artifacts and window.
+
 ## What this delivery can do
 
 `scripts/single-operator-prepare.mjs` validates a private session and renders a
 session-specific Rules candidate, an initially paused control and a review plan.
-It has **no execute option, SDK, ADC, network or deployment operation**. Missing
-decisions fail closed. `authorization` must remain null: preparing an artifact,
-acknowledging risks and merging this PR do not authorize a production operation.
+The execution path adds owner-bound approval receipts, live Rules/billing/services
+verification, a paused control, `open`/`renew`/`recover`/`pause`, a private metadata
+snapshot and a manual ON/OFF frontend workflow. Every production action requires an
+exact `action:digest` confirmation and a separate environment acknowledgement.
+Missing decisions fail closed. `authorization` must remain null in the preparation
+manifest: preparing artifacts does not authorize production.
 
 Copy `config/single-operator-test.proposed.json` **outside every Git checkout**.
 The owner must fill the exact UID, operator, approved frontend SHA, UTC dates,
@@ -24,11 +32,15 @@ node scripts/single-operator-prepare.mjs --manifest /PRIVATE/session.json
 node scripts/single-operator-prepare.mjs --manifest /PRIVATE/session.json --out /PRIVATE/new-bundle
 ```
 
-Without `--out`, nothing is written. With it, a new 0700 directory and four 0600
-files are created inside the declared private export location: `candidate.rules`, `control-paused.json`, `approval-plan.json`,
-`session.json`. Existing directories, Git ancestors and symlinked Git destinations
-are rejected. Stdout contains hashes and status, not UID or data. Encryption and
+Without `--out`, nothing is written. With it, a new 0700 directory and seven 0600
+files are created inside the declared private export location: `candidate.rules`,
+`firebase-rules.json`, `control-paused.json`, `approval-plan.json`,
+`execution-approval.proposed.json`, `usage.proposed.json` and `session.json`.
+Existing directories, Git ancestors and symlinked Git destinations are rejected.
+Stdout contains hashes and status, not UID or data. Encryption and
 adult/fictitious-data attestations are owner decisions, not verified by the tool.
+An optional `--snapshot` validates the read-only baseline and fills the service
+inventory hash in the proposed approval; the approval remains unsigned.
 
 ## Enforced by the candidate Rules
 
@@ -82,10 +94,11 @@ do not silently preserve broader access or hardcode an exception.
    sole UID, two-hour UTC interval, scope and acceptance of one-human oversight.
 2. Accept the global Rules impact, public Pages distribution and remaining
    project-wide quota/availability risk. One admitted account is not a rate limit.
-3. Approve a separate publication/activation procedure. **No single-operator
-   publisher or production control writer is included.** The original private
-   workflow/activation CLI rejects this manifest and must not be bypassed or
-   repurposed. No new production build gate is enabled by this preparation.
+3. Approve the exact execution artifacts and the separate publication window.
+   The single-operator publisher/control writer exists in this branch but remains
+   owner-gated; the original two-reviewer workflow/activation CLI rejects this
+   manifest and must not be bypassed or repurposed. No production build gate is
+   enabled by merging this branch.
 4. Fresh read-only verification of Rules release `cloud.firestore`, billing=false,
    unchanged services, permissions and usage. No unknown counter counts as zero.
 5. Approve quotas, receipt freshness, storage headroom, encrypted export location,
@@ -93,6 +106,59 @@ do not silently preserve broader access or hardcode an exception.
    retention after end; separately decide minimal fence/audit and Auth retention.
 6. Authorize full emergency pause, frontend OFF recovery and per-UID export/erase.
    A Rules rollback requires explicit review of the exact previous artifact.
+
+## First Mac ↔ iPhone runbook (authorized production; not run in this delivery)
+
+Keep the filled manifest, approval, receipts, baseline and exports outside Git.
+`DIGEST` below is the `windowDigest` printed by `plan`; no production command in
+this repository has been executed.
+
+1. **Fill the private manifest** from `config/single-operator-test.proposed.json`
+   with the exact adult UID, operator, approved frontend SHA, UTC start/end,
+   expected active Rules source hash, export directory and consents. Never commit it.
+2. **Read-only baseline** (requires separate snapshot acknowledgement):
+   `npm run single:snapshot -- --target production --project optilab-cd829 --execute --confirm snapshot:optilab-cd829 --out /PRIVATE/baseline`
+   with `SINGLE_OPERATOR_SNAPSHOT_APPROVAL=read-only-approved`.
+3. **Prepare artifacts:** `npm run single:prepare -- --manifest /PRIVATE/session.json --snapshot /PRIVATE/baseline/snapshot.json --out /PRIVATE/bundle`.
+   Review `approval-plan.json`, `candidate.rules`, `execution-approval.proposed.json`
+   and `usage.proposed.json`; fill and sign the approval privately.
+4. **Preflight without writes:** run `npm run single:session -- preflight --target production --manifest /PRIVATE/session.json --approval /PRIVATE/approval.json --approved-source /PRIVATE/baseline/baseline.rules --usage /PRIVATE/usage.json --execute --confirm preflight:DIGEST`
+   with `SINGLE_OPERATOR_EXECUTION_APPROVAL=DIGEST`. Require PASS for active Rules,
+   billing=false, unchanged services and permissions.
+5. **Rules deployment (only after the second authorization):**
+   `npx firebase-tools@15.0.0 deploy --only firestore:rules --project optilab-cd829 --config /PRIVATE/bundle/firebase-rules.json`.
+   No indexes, APIs, IAM or billing changes are included. Read back the release and
+   require the exact candidate hash; a mismatch is a stop condition.
+6. **Paused control and opening:** run `inspect` to obtain a fresh receipt, then
+   `prepare` (initially paused), then `inspect` again. Publish the frontend ON only
+   after the control is paused and the owner approves the manual workflow. Open with
+   a fresh receipt; the lease is at most ten minutes and never exceeds the fixed end.
+7. **Mac ↔ iPhone:** use the same verified adult account on
+   `https://optilab.club/` in Mac and physical iPhone Safari, without LAN/tunnels.
+   Accept adventure and attempt consent independently; choose remote adventure, not
+   guest import. Complete Memorama on Mac, verify the exact reported attempt on
+   iPhone and in a server-confirmed read, reload without duplicates, test offline,
+   conflict and own-backup restore. Use fictitious data only.
+8. **Supervision and recovery:** record Console usage before opening and every five
+   minutes; renew only with a fresh receipt inside the fixed end. On any failure,
+   `pause` immediately. Publish OFF with the manual workflow. **Reload both clients**
+   after `recover` or OFF; the local journal survives, while the Firestore listener
+   must be recreated. Recovery never extends the fixed end or grants a new UID.
+9. **Close:** pause, publish OFF, export privately, then perform UID-checked erasure
+   and Auth deletion for only the disposable pilot identities. Keep the fourteen-day
+   retention maximum and external-copy receipts. A Rules rollback is a separate
+   reviewed operation, never automatic.
+
+### Pages ordering guarantee
+
+`deploy.yml` and the single-operator workflow share the same `pages` group and
+neither cancels an in-progress run. A push therefore queues behind an OFF/ON
+recovery instead of canceling it. The ON build job has no Pages environment; it
+checks the latest completed Pages deployment before uploading the artifact, so a
+completed OFF newer than the receipt blocks a stale ON. If an OFF is queued behind
+ON, it runs after ON and wins. GitHub may replace a pending run when a newer run
+enters the same concurrency group; do not dispatch ON while an OFF is pending. The
+Firestore control pause remains the primary safety mechanism.
 
 ## Proposed operations for that later review — not commands to run now
 
@@ -123,14 +189,22 @@ operational controls, not server-enforced rate quotas. Spark's free quotas and
 metrics lag affect the whole project. Stop on unknown/exhausted usage; never
 enable Blaze to continue. Do not use paid TTL/PITR/managed backups/restores.
 
-**Pause this mode by setting both flags false on its separate control** or removing
-that control; the server then denies new progress requests. Original
-`pilot:activation pause` and `pilot:admin monitor/pause` target `syncPilotControl`
-and **do not pause this mode**. The existing monitor's inventory may be reused only
-as explicitly approved read evidence; its automatic pause is not applicable.
-No background quota monitor or single-operator pause executor is installed here.
-If operational control fails, close clients, stop renewal and let the lease expire;
-cached/offline data is not remotely purged. Do not claim instantaneous revocation.
+**Pause this mode with the single-operator executor:**
+`npm run single:session -- pause --target production --execute --confirm pause:pause`
+with `SINGLE_OPERATOR_EXECUTION_APPROVAL=pause-approved`. It sets both flags false
+on `singleOperatorTestControl/current`; the server then denies new progress requests.
+This is distinct from the original two-reviewer pilot: `pilot:activation pause` and
+`pilot:admin monitor/pause` target `syncPilotControl` and **do not pause this mode**.
+
+There is no background monitor or paid scheduler. The named operator records
+project-wide Console usage before opening and every five minutes; the ten-minute
+lease and fixed end are the fail-closed limits, not a daemon. If administrative
+pause fails, stop clients, stop renewals, keep the restrictive candidate paused,
+publish frontend OFF after authorization, and let the lease expire (at most ten
+minutes). Retry pause from the backup operator; never enable APIs or billing to
+recover and never claim instantaneous revocation; cached/offline data is not
+remotely purged. After `recover` or frontend OFF, reload both clients: the local
+journal is preserved and the Firestore listener is recreated.
 
 Recovery: preserve local queues, export privately, keep the restrictive candidate
 paused and publish frontend OFF after authorization. Do not restore the broader
@@ -149,18 +223,32 @@ their deletion. SHA-256 integrity is not encryption or forensic erasure.
 ## Tests and limits of evidence
 
 The normal `test:sync` launcher now runs `tests/single-operator/*.test.mjs` at the
-end of its emulator-only checks. No deployment workflow was added or modified.
+end of its emulator-only checks. No Firebase deploy workflow was added. The only
+new workflow is the manual, owner-gated Pages ON/OFF release; the regular public
+Pages workflow remains pinned to Sync OFF.
 
 ```sh
-node --test tests/single-operator/preparation.test.mjs
+node --test tests/single-operator/preparation.test.mjs tests/single-operator/execution.test.mjs \
+  tests/single-operator/frontend.test.mjs tests/single-operator/snapshot.test.mjs
 # With both isolated loopback emulators already running, demo project only:
-GCLOUD_PROJECT=demo-optilab-sync CLOUD_QA_ISOLATED=1 \
-FIRESTORE_EMULATOR_HOST=127.0.0.1:8185 \
-node --import tsx --test --test-concurrency=1 tests/single-operator/*.test.mjs
-npm run test:sync
+CLOUD_QA_ISOLATED=1 GCLOUD_PROJECT=demo-optilab-sync \
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8185 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9199 \
+node --import tsx --test --test-concurrency=1 tests/single-operator/execution-emulator.test.mjs
+CLOUD_QA_ISOLATED=1 GCLOUD_PROJECT=demo-optilab-sync \
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8185 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9199 \
+npm run test:sync:core
 npm run test:sync:production
+npm run test:pages-base
 npm run build
 ```
+
+Local evidence for this branch: **18/18** pure single-operator tests, **5/5**
+execution emulator tests, **54/54** sync core tests, **1/1 Chromium and 1/1 WebKit**
+two-client UI rehearsals, **1/1** production gate, **5/5** Pages workflow/guard
+tests and **build PASS**. The UI rehearsal completed a real Memorama result on two
+clients, exercised duplicate rejection, total pause, journal preservation, recovery
+with reload and canonical export. These are emulator results, not production or
+physical iPhone evidence.
 
 Tests compile and execute generated Rules against real emulator RPCs: separate
 clients and existing engines, consent, deduplication, backup/restore, wrong UID,
@@ -171,8 +259,9 @@ distinguishes OFF/local, emulator and production, without changing consent or ga
 mechanics. Chromium/WebKit ON-emulator and OFF-build checks cover rendered text;
 production-ON wording is unit tested, never tested against a live project here.
 
-This preparation is technically reviewable; **production execution remains
-BLOCKED pending the decisions and the separately reviewed execution procedure**.
+The execution layer is implemented and locally verified; **production execution
+remains BLOCKED pending the owner decisions, exact artifact approval and a
+separately authorized operational window**.
 
 Sources: [Firestore quotas](https://firebase.google.com/docs/firestore/quotas),
 [monitoring limitations](https://firebase.google.com/docs/firestore/monitor-usage),

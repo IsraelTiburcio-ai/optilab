@@ -1,0 +1,39 @@
+{
+  "base": "8fe551faca3dbf01359df0b7a54c2977018867a2",
+  "mode": "single-operator-test",
+  "status": "EXECUTION_IMPLEMENTED_LOCAL",
+  "productionWrites": false,
+  "productionRulesDeployed": false,
+  "productionSyncEnabled": false,
+  "productionAndPhysicalIphone": "NOT_RUN",
+  "tests": {
+    "singleOperatorPure": {"pass": 18, "fail": 0},
+    "singleOperatorEmulator": {"pass": 5, "fail": 0},
+    "syncCoreWithBaseRules": {"pass": 54, "fail": 0},
+    "twoClientUiChromium": {"pass": 1, "fail": 0},
+    "twoClientUiWebKit": {"pass": 1, "fail": 0},
+    "productionGate": {"pass": 1, "fail": 0},
+    "pagesWorkflowsAndGuard": {"pass": 5, "fail": 0}
+  },
+  "build": "PASS (TypeScript + Vite, Node 22)",
+  "coverage": [
+    "owner-bound execution approval, exact project/UID/SHA/hashes/window",
+    "live active Rules comparison before deployment",
+    "paused initial control and one-shot open",
+    "supervised renew, total pause and explicit recover",
+    "two-client Memorama result, duplicate rejection and canonical export",
+    "journal preserved across pause; clients reloaded for recovery",
+    "Pages ON refused after a newer completed deployment; shared non-canceling Pages mutex",
+    "partial failure pauses; original two-reviewer pilot untouched"
+  ],
+  "limitations": [
+    "No production Firebase, IAM, billing, rules, Auth account or frontend operation was executed",
+    "No live ADC metadata probe; emulator and fixture adapters only",
+    "Physical Mac/iPhone Safari behavior is not certified by emulator tests",
+    "Reload both clients after total pause/recover; the local journal survives"
+  ],
+  "ruleSourcesSha256": {
+    "firestore.rules": "ee7fec34e49971a847bc3e6882196fb3fed64ffe42da39f9b7802ba9cef1cf62",
+    "firestore.pilot.rules": "048501565c5dc3f1eb8270a9db74c275b23c288705bd92aec6c215383ed4787e"
+  }
+}
