@@ -1,5 +1,16 @@
 const projects={production:'optilab-cd829',emulator:'demo-optilab-sync'};
-const endpoints={FIRESTORE_EMULATOR_HOST:'127.0.0.1:8185',FIREBASE_AUTH_EMULATOR_HOST:'127.0.0.1:9199'};
+const emulatorPairs=[
+  {FIRESTORE_EMULATOR_HOST:'127.0.0.1:8185',FIREBASE_AUTH_EMULATOR_HOST:'127.0.0.1:9199'},
+  {FIRESTORE_EMULATOR_HOST:'127.0.0.1:8085',FIREBASE_AUTH_EMULATOR_HOST:'127.0.0.1:9099'},
+];
+const endpointKeys=['FIRESTORE_EMULATOR_HOST','FIREBASE_AUTH_EMULATOR_HOST'];
+function approvedEmulatorEndpoints(env){
+  const present=endpointKeys.filter(key=>env[key]!==undefined&&env[key]!=='');
+  if(!present.length)return emulatorPairs[0];
+  const pair=emulatorPairs.find(candidate=>endpointKeys.every(key=>env[key]===candidate[key]));
+  if(!pair)throw Error('Unexpected emulator endpoint');
+  return pair;
+}
 
 /** Pure validation: never loads ADC, initializes an SDK or changes the environment. */
 export function administrativeTarget(target,projectId,env=process.env){
@@ -10,17 +21,16 @@ export function administrativeTarget(target,projectId,env=process.env){
 }
 export function administrativeExecution(scope,env=process.env){
   const config=administrativeTarget(scope.target,scope.projectId,env);
-  for(const [key,value]of Object.entries(endpoints)){
-    if(config.target==='production'&&env[key])throw Error('Production forbids emulator overrides');
-    if(config.target==='emulator'&&env[key]&&env[key]!==value)throw Error('Unexpected emulator endpoint');
-  }
+  if(config.target==='production'){
+    if(endpointKeys.some(key=>env[key]))throw Error('Production forbids emulator overrides');
+  } else approvedEmulatorEndpoints(env);
   return config;
 }
 
 /** Called only after the CLI's existing execute/approval/confirmation gates. */
 export async function withAdministrativeProcess(scope,run,env=process.env){
   const config=administrativeExecution(scope,env);
-  const changes=config.target==='production'?{GOOGLE_CLOUD_QUOTA_PROJECT:config.projectId}:endpoints;
+  const changes=config.target==='production'?{GOOGLE_CLOUD_QUOTA_PROJECT:config.projectId}:approvedEmulatorEndpoints(env);
   const previous=Object.entries(changes).map(([key])=>[key,Object.hasOwn(env,key),env[key]]);
   try{
     for(const [key,value]of Object.entries(changes))env[key]=value;
@@ -34,7 +44,7 @@ export async function withAdministrativeProcess(scope,run,env=process.env){
 export async function withAdministrativeSdk(scope,run,{env=process.env,loadSdk=name=>import(name)}={}){
   const config=administrativeExecution(scope,env);
   if(config.target==='production'&&env.GOOGLE_CLOUD_QUOTA_PROJECT!==config.projectId)throw Error('Production process quota not configured');
-  if(config.target==='emulator'&&Object.entries(endpoints).some(([key,value])=>env[key]!==value))throw Error('Both isolated emulator endpoints required');
+  if(config.target==='emulator'&&Object.entries(approvedEmulatorEndpoints(env)).some(([key,value])=>env[key]!==value))throw Error('Both approved emulator endpoints required');
   const [apps,firestore,accounts]=await Promise.all(['firebase-admin/app','firebase-admin/firestore','firebase-admin/auth'].map(loadSdk));
   let app,db;
   try{
