@@ -19,9 +19,10 @@ function operationFrom(req:IncomingMessage):string|undefined {
 async function backend(runtime:AcademicRuntime) {
   if(!runtime.open||runtime.mode!=='vercel-production'||!runtime.projectId)throw new Error('ACADEMIC_ENV_REJECTED');
   if(cached&&cached.runtime.projectId===runtime.projectId&&cached.runtime.allowedOrigins.join('|')===runtime.allowedOrigins.join('|'))return cached;
-  const admin=await productionAdmin(runtime.projectId);
+  const admin=await productionAdmin(runtime.projectId,runtime.credentialMode);
   const service=new AcademicService(new AcademicRepository(admin.db,'production'),admin,runtime.maxTtlSeconds,{progressAttemptLimit:runtime.progressAttemptLimit});
-  cached={admin,service,limiter:new Limiter(runtime.rateLimit),runtime};return cached;
+  const result={admin,service,limiter:new Limiter(runtime.rateLimit),runtime};
+  cached=result;return result;
 }
 export interface VercelTestDependencies {runtime:AcademicRuntime;admin:Pick<EmulatorAdmin,'auth'>;service:AcademicService;limiter:Limiter}
 export async function vercelHandler(req:IncomingMessage,res:ServerResponse,test?:VercelTestDependencies):Promise<void> {

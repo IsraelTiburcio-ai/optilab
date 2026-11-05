@@ -41,9 +41,11 @@
     "single:prepare": "node scripts/single-operator-prepare.mjs",
     "single:snapshot": "node scripts/single-operator-snapshot.mjs",
     "single:session": "node scripts/single-operator-session.mjs",
-    "pilot:provision": "node scripts/pilot-provision.mjs"
+    "pilot:provision": "node scripts/pilot-provision.mjs",
+    "pilot:preflight": "node scripts/pilot-preflight.mjs"
   },
   "dependencies": {
+    "@vercel/oidc": "4.0.6",
     "firebase": "12.19.0",
     "firebase-admin": "14.5.0",
     "google-auth-library": "11.3.1",

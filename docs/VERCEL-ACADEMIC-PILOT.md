@@ -53,10 +53,12 @@ VITE_ACADEMIC_APP_ORIGIN=https://optilab.club
 | `ACADEMIC_RATE_LIMIT` | configuración | límite best-effort por instancia, 1–10000 |
 | `ACADEMIC_MAX_TTL_SECONDS` | configuración | TTL de invitaciones, 1–604800 |
 | `ACADEMIC_PROGRESS_ATTEMPT_LIMIT` | configuración | intentos leídos por alumno, 1–2000; default 200 |
-| `FIREBASE_SERVICE_ACCOUNT_JSON` | **secreta** | futura credencial Admin; no se creó ni se incluyó aquí |
+| `ACADEMIC_CREDENTIAL_MODE` | configuración | `oidc`, `service-account` o `none`; default cerrado |
+| `GCP_*` / `ACADEMIC_VERCEL_SUBJECT` | configuración | identidad federada OIDC/WIF, solo producción |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | **secreta** | fallback Admin; no se creó ni se incluyó aquí |
 | `VERCEL_ENV` | automática de Vercel | `preview`/`production`; no se falsifica |
 
-No se creó ni solicitó una llave real. Si el propietario autoriza producción, usar una variable **Sensitive** de Vercel y rotarla/revocarla al terminar; nunca commitear JSON, PEM, tokens o `.env` con secretos. Evaluar primero Workload Identity/credencial administrada si Vercel la habilita para el proyecto; el adaptador acepta la credencial protegida como mecanismo de transición, no inventa identidad administrada de Google.
+El adaptador OIDC/WIF está implementado en código, pero no configurado ni activado. Si se autoriza, configurar Vercel OIDC + Workload Identity Federation y el subject `owner:optilab:project:optilab-api:environment:production`; no se aplicaron IAM ni credenciales. El fallback `FIREBASE_SERVICE_ACCOUNT_JSON` solo puede usarse como variable Sensitive con aprobación; nunca commitear JSON, PEM, tokens o `.env` con secretos.
 
 ## Despliegue del API (no ejecutado)
 

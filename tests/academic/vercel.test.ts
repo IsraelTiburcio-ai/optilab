@@ -90,3 +90,50 @@ test('proxy-aware rate keys use the forwarded client, not the Vercel proxy addre
   assert.equal(rateLimitKey(forwarded,false),'10.0.0.1');
   assert.equal(rateLimitKey({headers:{'x-forwarded-for':'not-an-ip'},socket:{remoteAddress:'10.0.0.1'}} as unknown as IncomingMessage,true),'10.0.0.1');
 });
+test('OIDC configuration is explicit, production-only and validates the Vercel subject shape',async()=>{
+  const {credentialMode,oidcConfig,productionAdmin}=await import('../../server/academic/sdk');
+  assert.equal(credentialMode({}),'none');
+  assert.equal(credentialMode({FIREBASE_SERVICE_ACCOUNT_JSON:'{}'}),'service-account');
+  assert.equal(credentialMode({ACADEMIC_CREDENTIAL_MODE:'oidc',FIREBASE_SERVICE_ACCOUNT_JSON:'{}'}),'oidc');
+  const env={GCP_PROJECT_NUMBER:'123456789012',GCP_SERVICE_ACCOUNT_EMAIL:'vercel@optilab-cd829.iam.gserviceaccount.com',
+    GCP_WORKLOAD_IDENTITY_POOL_ID:'vercel',GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID:'vercel',
+    GCP_AUDIENCE:'https://iam.googleapis.com/projects/123456789012/locations/global/workloadIdentityPools/vercel/providers/vercel',
+    ACADEMIC_VERCEL_SUBJECT:'owner:optilab:project:optilab-api:environment:production'};
+  const config=oidcConfig(env);assert.equal(config.subject,'owner:optilab:project:optilab-api:environment:production');
+  for(const patch of [{GCP_PROJECT_NUMBER:'bad'},{GCP_SERVICE_ACCOUNT_EMAIL:'nope'},{GCP_WORKLOAD_IDENTITY_POOL_ID:''},
+    {GCP_AUDIENCE:'http://iam.googleapis.com/x'},{ACADEMIC_VERCEL_SUBJECT:'owner:optilab:project:optilab-api:environment:preview'},
+    {ACADEMIC_VERCEL_SUBJECT:'owner:other:project:optilab-api:environment:production'},{ACADEMIC_VERCEL_SUBJECT:'owner:optilab:project:other:environment:production'}])assert.throws(()=>oidcConfig({...env,...patch}),/ACADEMIC_ENV_REJECTED/);
+  const original={...process.env};delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;delete process.env.FIREBASE_AUTH_EMULATOR_HOST;delete process.env.FIRESTORE_EMULATOR_HOST;
+  process.env.ACADEMIC_PRODUCTION_ENABLED='false';process.env.VERCEL_ENV='production';
+  try{await assert.rejects(productionAdmin('optilab-cd829','oidc'),/ACADEMIC_ENV_REJECTED/);}finally{process.env=original;}
+});
+
+test('OIDC credential renews the subject token on every access-token request without persisting the OIDC JWT',async()=>{
+  const {createOidcCredential,PILOT_VERCEL_SUBJECT}=await import('../../server/academic/sdk');
+  const payload=(jti:string)=>Buffer.from(JSON.stringify({sub:PILOT_VERCEL_SUBJECT,jti})).toString('base64url');
+  const tokens=[`e30.${payload('one')}.sig`,`e30.${payload('two')}.sig`];
+  let subjectCalls=0,clients=0;
+  const credential=createOidcCredential({projectNumber:'123456789012',serviceAccountEmail:'vercel@optilab-cd829.iam.gserviceaccount.com',poolId:'vercel',providerId:'vercel',audience:'https://iam.googleapis.com/projects/123456789012/locations/global/workloadIdentityPools/vercel/providers/vercel',subject:PILOT_VERCEL_SUBJECT},{
+    getVercelOidcToken:async()=>tokens[subjectCalls++],
+    createClient:(config:any)=>{clients++;return {credentials:{expiry_date:Date.now()+60000},getAccessToken:async()=>{const subject=await config.subject_token_supplier.getSubjectToken();assert.equal(subject,tokens[clients-1]);return {token:`access-${clients}`};}};},
+  });
+  assert.deepEqual(await credential.getAccessToken(),{access_token:'access-1',expires_in:60});
+  assert.deepEqual(await credential.getAccessToken(),{access_token:'access-2',expires_in:60});
+  assert.equal(clients,2);assert.equal(subjectCalls,2);
+});
+test('shared limiter survives requests and concurrent requests cannot bypass the instance cap',async()=>{
+  const {Readable}=await import('node:stream');
+  const {Limiter}=await import('../../server/academic/handler');
+  const {PILOT_VERCEL_SUBJECT}=await import('../../server/academic/sdk');
+  const baseRuntime={...runtime(),rateLimit:1} as any;
+  const admin={auth:{verifyIdToken:async()=>({uid:'user-1',aud:'optilab-cd829',iss:'https://securetoken.google.com/optilab-cd829',firebase:{sign_in_provider:'password'}})}};
+  const service={execute:async()=>({ok:true})} as any;
+  const makeReq=(body:string)=>{const q=Readable.from([Buffer.from(body)]) as any;Object.assign(q,{method:'POST',url:'/api/v1/roster',headers:{'content-type':'application/json',authorization:'Bearer token'},socket:{remoteAddress:'203.0.113.9',localPort:443},query:{operation:'roster'}});return q;};
+  const makeRes=()=>{const headers:Record<string,any>={};let body='';return {headers,setHeader:(k:string,v:any)=>headers[k]=v,writeHead:(s:number,h:any={})=>Object.assign(headers,{statusCode:s},h),end:(v='')=>body=v,get status(){return Number(headers.statusCode??0);},get body(){return body;}};};
+  const limiter=new Limiter(1),deps={runtime:baseRuntime,admin,service,limiter};
+  const first=makeRes();await vercelHandler(makeReq('{}') as any,first as any,deps);assert.equal(first.status,200);
+  const second=makeRes();await vercelHandler(makeReq('{}') as any,second as any,deps);assert.equal(second.status,429);
+  const concurrentLimiter=new Limiter(1),concurrent=[makeRes(),makeRes()];await Promise.all(concurrent.map(res=>vercelHandler(makeReq('{}') as any,res as any,{...deps,limiter:concurrentLimiter})));
+  assert.deepEqual(concurrent.map(res=>res.status).sort(),[200,429]);
+  assert.ok(PILOT_VERCEL_SUBJECT.endsWith(':environment:production'));
+});
