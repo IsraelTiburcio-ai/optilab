@@ -81,9 +81,9 @@ export function createOidcCredential(config:OidcConfig,deps:OidcCredentialDepend
 export async function productionAdmin(projectId:string,mode:CredentialMode=credentialMode()):Promise<EmulatorAdmin> {
   if(process.env.ACADEMIC_PRODUCTION_ENABLED!=='true'||process.env.VERCEL_ENV!=='production'||
     projectId!=='optilab-cd829'||process.env.FIREBASE_AUTH_EMULATOR_HOST||process.env.FIRESTORE_EMULATOR_HOST||mode==='none')throw new Error('ACADEMIC_ENV_REJECTED');
-  let credentialValue:unknown,oidc:OidcConfig|undefined;
+  let credentialValue:unknown;
   if(mode==='oidc'){
-    const config=oidcConfig(process.env);oidc=config;
+    const config=oidcConfig(process.env);
     const {ExternalAccountClient}=await import('google-auth-library');
     credentialValue=createOidcCredential(config,{getVercelOidcToken:options=>{if(options.audience!==config.vercelAudience)throw new Error('ACADEMIC_ENV_REJECTED');return verifiedRequestOidcToken({issuer:config.vercelIssuer,audience:config.vercelAudience,projectId:config.vercelProjectId,subject:config.subject,environment:'production'});},
       verifyVercelOidcToken:(token,options)=>import('@vercel/oidc').then(({verifyVercelOidcToken})=>verifyVercelOidcToken(token,options)),
@@ -94,11 +94,30 @@ export async function productionAdmin(projectId:string,mode:CredentialMode=crede
     if(parsed.project_id!==projectId||typeof parsed.private_key!=='string'||typeof parsed.client_email!=='string')throw new Error('ACADEMIC_ENV_REJECTED');
     const {cert}=await import('firebase-admin/app');credentialValue=cert(parsed as Parameters<typeof cert>[0]);
   }
-  const [{initializeApp,deleteApp},{getFirestore,FieldValue,Timestamp},{getAuth}]=await Promise.all([
-    import('firebase-admin/app'),import('firebase-admin/firestore'),import('firebase-admin/auth'),
-  ]);
+  const [{initializeApp,deleteApp},{getAuth}]=await Promise.all([import('firebase-admin/app'),import('firebase-admin/auth')]);
   const app=initializeApp({projectId,credential:credentialValue as Credential},`academic-prod-${crypto.randomUUID()}`);
-  const db=getFirestore(app);productionDatabases.add(db);
-  return Object.freeze({db,auth:getAuth(app),time:()=>FieldValue.serverTimestamp(),timestamp:(n:number)=>Timestamp.fromMillis(n),
+  let db:Firestore;
+  let time:()=>unknown;
+  let timestamp:(milliseconds:number)=>unknown;
+  if(mode==='oidc'){
+    const [{GoogleAuth,ExternalAccountClient},{Firestore,FieldValue,Timestamp}]=await Promise.all([
+      import('google-auth-library'),import('@google-cloud/firestore'),
+    ]);
+    const config=oidcConfig(process.env);
+    const external=ExternalAccountClient.fromJSON({type:'external_account',audience:config.gcpAudience,
+      subject_token_type:'urn:ietf:params:oauth:token-type:jwt',token_url:'https://sts.googleapis.com/v1/token',
+      service_account_impersonation_url:`https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${config.serviceAccountEmail}:generateAccessToken`,
+      subject_token_supplier:{getSubjectToken:()=>verifiedRequestOidcToken({issuer:config.vercelIssuer,audience:config.vercelAudience,projectId:config.vercelProjectId,subject:config.subject,environment:'production'})},
+    } as unknown as Parameters<typeof ExternalAccountClient.fromJSON>[0]);
+    if(!external)throw new Error('ACADEMIC_ENV_REJECTED');
+    const authClient=new GoogleAuth({projectId,authClient:external});
+    db=new Firestore({projectId,auth:authClient});
+    time=()=>FieldValue.serverTimestamp();timestamp=(n:number)=>Timestamp.fromMillis(n);
+  }else{
+    const {getFirestore,FieldValue,Timestamp}=await import('firebase-admin/firestore');
+    db=getFirestore(app);time=()=>FieldValue.serverTimestamp();timestamp=(n:number)=>Timestamp.fromMillis(n);
+  }
+  productionDatabases.add(db);
+  return Object.freeze({db,auth:getAuth(app),time,timestamp,
     close:async()=>{await db.terminate();await deleteApp(app);}});
 }

@@ -40,6 +40,14 @@ test('request token resolution fails closed without a context or with wrong clai
   await assert.rejects(withRequestOidcToken('raw-token',()=>verifiedRequestOidcToken(expected,{verify:async()=>({payload:{...claims,sub:'owner:other:project:optilab-api:environment:production'}})})),/OIDC_TOKEN_INVALID/);
   await assert.rejects(withRequestOidcToken('raw-token',()=>verifiedRequestOidcToken(expected,{verify:async()=>{throw new Error('signature');}})),/OIDC_TOKEN_INVALID/);
 });
+test('sequential request contexts never reuse or mix the previous OIDC token',async()=>{
+  const seen:string[]=[];
+  const verify=async(token:string)=>{seen.push(token);return {payload:claims};};
+  await withRequestOidcToken('request-one',()=>verifiedRequestOidcToken(expected,{verify}));
+  await withRequestOidcToken('request-two',()=>verifiedRequestOidcToken(expected,{verify}));
+  assert.deepEqual(seen,['request-one','request-two']);
+  await assert.rejects(verifiedRequestOidcToken(expected,{verify}),/OIDC_TOKEN_UNAVAILABLE/);
+});
 test('AsyncLocalStorage keeps request tokens isolated under concurrency',async()=>{
   const first=withRequestOidcToken('token-a',async()=>{await new Promise(resolve=>setTimeout(resolve,10));return currentRequestOidcToken();});
   const second=withRequestOidcToken('token-b',async()=>{await new Promise(resolve=>setTimeout(resolve,5));return currentRequestOidcToken();});

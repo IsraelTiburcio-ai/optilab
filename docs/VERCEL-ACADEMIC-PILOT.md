@@ -2,7 +2,7 @@
 
 Rama `codex/vercel-academic`, base `main` `8c780fe1a095087afa672329f0a16ee141442195`. Fecha: 4 de noviembre de 2026.
 
-**Estado de esta PR:** código preparado y probado; **sin despliegue, sin variables productivas, sin credenciales reales, sin Firestore productivo y sin cambios de IAM/billing/Rules**. El frontend sigue en GitHub Pages/`optilab.club`; Vercel solo se prepara para el API.
+**Estado actual:** PR #44 desplegada en Production; primer smoke real falló con `502 OIDC_TOKEN_UNAVAILABLE` antes de STS. Smoke desactivado (`404 OIDC_SMOKE_DISABLED`), API académica cerrada (`503 ACADEMIC_DISABLED`), 10 variables OIDC/GCP configuradas y secreto temporal pendiente de retirar/rotar. La corrección está en PR #45, no desplegada. El frontend sigue en GitHub Pages/`optilab.club`; Vercel solo se prepara para el API.
 
 ## Arquitectura
 
@@ -59,9 +59,9 @@ VITE_ACADEMIC_APP_ORIGIN=https://optilab.club
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | **secreta** | fallback Admin; no se creó ni se incluyó aquí |
 | `VERCEL_ENV` | automática de Vercel | `preview`/`production`; no se falsifica |
 
-El adaptador OIDC/WIF está implementado en código. La infraestructura GCP fue configurada manualmente y confirmada por el operador (pool `optilab-vercel`, provider `optilab-vercel-oidc`, service account `optilab-api@optilab-cd829.iam.gserviceaccount.com`, issuer `https://oidc.vercel.com/optilab`, audiencia `https://vercel.com/optilab`, subject Production). **La credencial temporal todavía no se ha probado de extremo a extremo desde Vercel y producción académica sigue deshabilitada.** Las variables de Vercel Production aún deben configurarse; no se modificaron IAM ni credenciales en esta PR. El fallback `FIREBASE_SERVICE_ACCOUNT_JSON` solo puede usarse como variable Sensitive con aprobación; nunca commitear JSON, PEM, tokens o `.env` con secretos.
+El adaptador OIDC/WIF está implementado. La infraestructura GCP fue configurada manualmente y las 10 variables OIDC/GCP ya están en Vercel Production. El primer smoke real (PR #44) falló con `502 OIDC_TOKEN_UNAVAILABLE` antes de STS; el smoke está desactivado y la producción académica sigue cerrada. La corrección #45 incorpora lectura directa de `x-vercel-oidc-token`, verificación estricta y Firestore directo por petición. El secreto temporal anterior debe retirarse/rotarse; no se modificaron IAM ni credenciales en esta PR. El fallback `FIREBASE_SERVICE_ACCOUNT_JSON` solo puede usarse como variable Sensitive con aprobación; nunca commitear JSON, PEM, tokens o `.env` con secretos.
 
-Compatibilidad verificada con `@vercel/oidc@4.0.6`: `getVercelOidcToken({audience})` y `verifyVercelOidcToken(token,{issuer,audience,projectId,environment})` existen con esas firmas; `VERCEL_PROJECT_ID` está disponible en build/runtime cuando el acceso a System Environment Variables está habilitado. En el handler Node, el runtime debe leer `x-vercel-oidc-token` directamente de `IncomingMessage`; `getVercelOidcToken` depende del contexto global de Vercel y no de `req.headers`. La prueba local ejecuta el verificador real de `@vercel/oidc` con un JWT/JWKS de prueba, interceptando solo `https.get`, para validar firma y claims sin red; el intercambio STS/WIF real sigue pendiente.
+Compatibilidad verificada con `@vercel/oidc@4.0.6`: `getVercelOidcToken({audience})` y `verifyVercelOidcToken(token,{issuer,audience,projectId,environment})` existen con esas firmas; `VERCEL_PROJECT_ID` está disponible en build/runtime cuando el acceso a System Environment Variables está habilitado. En el handler Node, el runtime debe leer `x-vercel-oidc-token` directamente de `IncomingMessage`; `getVercelOidcToken` depende del contexto global de Vercel y no de `req.headers`. La prueba local ejecuta el verificador real de `@vercel/oidc` con un JWT/JWKS de prueba, interceptando solo `https.get`, para validar firma y claims sin red; el smoke real posterior a #45 sigue pendiente.
 
 ## Despliegue del API (no ejecutado)
 
@@ -133,7 +133,7 @@ Pruebas específicas del adaptador: `node --import tsx --test tests/academic/ver
 
 - Vercel Preview está cerrada; no es un entorno de datos de prueba por sí misma.
 - El rate limiter actual es por instancia, no distribuido. En Vercel usa el primer IP de `x-forwarded-for`/`x-real-ip` para no agrupar a todos los clientes detrás del proxy; esa cabecera es best-effort y puede ser spoofeada, por lo que no es una frontera de seguridad. Después de autenticar también se limita por UID.
-- Producción requiere credencial protegida y aprobación; no se creó ninguna.
+- Producción requiere credencial protegida y aprobación. La service account dedicada no se creó como JSON; el secreto temporal del primer smoke debe retirarse/rotarse.
 - No se modificaron Rules, IAM, facturación, workflows ni lockfiles.
 - El frontend sigue en Pages y los 28 juegos no cambian.
 
