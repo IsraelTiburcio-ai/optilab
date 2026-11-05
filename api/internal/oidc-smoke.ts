@@ -1,5 +1,6 @@
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {authorizedSmokeRequest,oidcSmokeConfig,OidcSmokeError,runOidcSmoke} from '../../server/oidc-smoke.js';
+import {oidcTokenFromRequest,verifiedRequestOidcToken,withRequestOidcToken} from '../../server/vercel-oidc.js';
 
 function send(res:ServerResponse,status:number,body:unknown,headers:Record<string,string>={}):void {
   res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Pragma':'no-cache','X-Content-Type-Options':'nosniff',...headers});
@@ -24,15 +25,22 @@ export default async function handler(req:IncomingMessage,res:ServerResponse):Pr
     send(res,401,{ok:false,error:{code:'OIDC_SMOKE_UNAUTHORIZED'}},{'WWW-Authenticate':'Bearer'});return;
   }
   if(hasQuery(req)||hasBody(req)){send(res,400,{ok:false,error:{code:'OIDC_SMOKE_BAD_REQUEST'}});return;}
+  const raw=oidcTokenFromRequest(req);
+  if(!raw){failure(res,new OidcSmokeError('OIDC_TOKEN_UNAVAILABLE',502,'TOKEN'));return;}
   try{
-    const [{getVercelOidcToken,verifyVercelOidcToken},{ExternalAccountClient}]=await Promise.all([
+    const token=await withRequestOidcToken(raw,()=>verifiedRequestOidcToken({issuer:config.oidc.vercelIssuer,audience:config.oidc.vercelAudience,projectId:config.oidc.vercelProjectId,subject:config.oidc.subject,environment:'production'}));
+    const [{verifyVercelOidcToken},{ExternalAccountClient}]=await Promise.all([
       import('@vercel/oidc'),import('google-auth-library'),
     ]);
     const result=await runOidcSmoke(config.oidc,{
-      getVercelOidcToken:options=>getVercelOidcToken(options),
+      getVercelOidcToken:async()=>token,
       verifyVercelOidcToken:(token,options)=>verifyVercelOidcToken(token,options),
       createClient:value=>ExternalAccountClient.fromJSON(value as unknown as Parameters<typeof ExternalAccountClient.fromJSON>[0]),
     });
     send(res,200,result);
-  }catch(error){failure(res,error);}
+  }catch(error){
+    if(error instanceof OidcSmokeError)failure(res,error);
+    else if(error instanceof Error&&error.message==='OIDC_TOKEN_UNAVAILABLE')failure(res,new OidcSmokeError('OIDC_TOKEN_UNAVAILABLE',502,'TOKEN'));
+    else failure(res,new OidcSmokeError('OIDC_TOKEN_INVALID',502,'TOKEN'));
+  }
 }

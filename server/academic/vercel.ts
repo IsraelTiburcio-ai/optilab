@@ -2,6 +2,7 @@ import type {IncomingMessage,ServerResponse} from 'node:http';
 import {handleAcademicRequest,Limiter,type HandlerPolicy} from './handler.js';
 import {vercelRuntimeConfig,type AcademicRuntime} from './runtime.js';
 import {productionAdmin,type EmulatorAdmin} from './sdk.js';
+import {oidcTokenFromRequest,withRequestOidcToken} from '../vercel-oidc.js';
 import {AcademicRepository} from './repository.js';
 import {AcademicService} from './service.js';
 
@@ -28,9 +29,14 @@ export interface VercelTestDependencies {runtime:AcademicRuntime;admin:Pick<Emul
 export async function vercelHandler(req:IncomingMessage,res:ServerResponse,test?:VercelTestDependencies):Promise<void> {
   const runtime=test?.runtime??vercelRuntimeConfig(process.env);
   if(!runtime.open){closed(res);return;}
-  let ready:{admin:Pick<EmulatorAdmin,'auth'>;service:AcademicService;limiter:Limiter;runtime:AcademicRuntime};
-  try{ready=test??await backend(runtime);}catch{closed(res);return;}
-  const policy:HandlerPolicy={allowedOrigins:runtime.allowedOrigins,requireLoopback:false,rateLimit:runtime.rateLimit,
-    maxBodyBytes:runtime.maxBodyBytes,projectId:runtime.projectId!,health:false,mode:runtime.mode,trustProxy:true};
-  await handleAcademicRequest(req,res,policy,ready.admin,ready.service,ready.limiter,operationFrom(req));
+  const raw=oidcTokenFromRequest(req);
+  if(!test&&runtime.credentialMode==='oidc'&&!raw){closed(res);return;}
+  const run=async()=>{
+    let ready:{admin:Pick<EmulatorAdmin,'auth'>;service:AcademicService;limiter:Limiter;runtime:AcademicRuntime};
+    try{ready=test??await backend(runtime);}catch{closed(res);return;}
+    const policy:HandlerPolicy={allowedOrigins:runtime.allowedOrigins,requireLoopback:false,rateLimit:runtime.rateLimit,
+      maxBodyBytes:runtime.maxBodyBytes,projectId:runtime.projectId!,health:false,mode:runtime.mode,trustProxy:true};
+    await handleAcademicRequest(req,res,policy,ready.admin,ready.service,ready.limiter,operationFrom(req));
+  };
+  if(raw&&!test)await withRequestOidcToken(raw,run);else await run();
 }

@@ -3,6 +3,7 @@ import type {Auth} from 'firebase-admin/auth';
 import type {Credential} from 'firebase-admin/app';
 import type {Firestore} from 'firebase-admin/firestore';
 import {createConnection} from 'node:net';
+import {verifiedRequestOidcToken} from '../vercel-oidc.js';
 export type CredentialMode='none'|'service-account'|'oidc';
 export const PILOT_VERCEL_SUBJECT='owner:optilab:project:optilab-api:environment:production';
 export const PILOT_VERCEL_ISSUER='https://oidc.vercel.com/optilab';
@@ -82,11 +83,10 @@ export async function productionAdmin(projectId:string,mode:CredentialMode=crede
     projectId!=='optilab-cd829'||process.env.FIREBASE_AUTH_EMULATOR_HOST||process.env.FIRESTORE_EMULATOR_HOST||mode==='none')throw new Error('ACADEMIC_ENV_REJECTED');
   let credentialValue:unknown,oidc:OidcConfig|undefined;
   if(mode==='oidc'){
-    oidc=oidcConfig(process.env);
-    const {getVercelOidcToken,verifyVercelOidcToken}=await import('@vercel/oidc');
+    const config=oidcConfig(process.env);oidc=config;
     const {ExternalAccountClient}=await import('google-auth-library');
-    credentialValue=createOidcCredential(oidc,{getVercelOidcToken:options=>getVercelOidcToken(options),
-      verifyVercelOidcToken:(token,options)=>verifyVercelOidcToken(token,options),
+    credentialValue=createOidcCredential(config,{getVercelOidcToken:options=>{if(options.audience!==config.vercelAudience)throw new Error('ACADEMIC_ENV_REJECTED');return verifiedRequestOidcToken({issuer:config.vercelIssuer,audience:config.vercelAudience,projectId:config.vercelProjectId,subject:config.subject,environment:'production'});},
+      verifyVercelOidcToken:(token,options)=>import('@vercel/oidc').then(({verifyVercelOidcToken})=>verifyVercelOidcToken(token,options)),
       createClient:config=>ExternalAccountClient.fromJSON(config as unknown as Parameters<typeof ExternalAccountClient.fromJSON>[0])});
   }else{
     const raw=process.env.FIREBASE_SERVICE_ACCOUNT_JSON;if(!raw||raw.length>20000)throw new Error('ACADEMIC_ENV_REJECTED');

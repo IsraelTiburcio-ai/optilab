@@ -31,6 +31,14 @@ test('Vercel production open only with explicit activation and exact HTTPS origi
   assert.equal(runtime({ACADEMIC_ALLOWED_ORIGINS:'https://optilab.club/path'}).open,false);
   assert.equal(runtime({FIREBASE_AUTH_EMULATOR_HOST:'127.0.0.1:9099'}).open,false);
 });
+test('production OIDC handler fails closed before backend initialization when Vercel header is absent',async()=>{
+  const original={...process.env};delete process.env.FIREBASE_AUTH_EMULATOR_HOST;delete process.env.FIRESTORE_EMULATOR_HOST;
+  Object.assign(process.env,base,{ACADEMIC_CREDENTIAL_MODE:'oidc'});
+  try{
+    const res=response();await vercelHandler(request(),res as unknown as ServerResponse);
+    assert.equal(res.status,503);assert.equal(JSON.parse(res.body).error.code,'ACADEMIC_DISABLED');
+  }finally{process.env=original;}
+});
 test('Vercel Preview and off never open; handler closes without a backend',async()=>{
   for(const mode of ['vercel-preview','off'] as const){
     const original={...process.env};delete process.env.FIREBASE_AUTH_EMULATOR_HOST;delete process.env.FIRESTORE_EMULATOR_HOST;Object.assign(process.env,base,{VERCEL_ENV:'preview',ACADEMIC_ADMIN_MODE:mode,ACADEMIC_PRODUCTION_ENABLED:'false'});

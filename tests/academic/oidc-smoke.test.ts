@@ -86,6 +86,9 @@ test('smoke handler rejects disabled, unauthorized, wrong method, query and body
     const disabled=response();await smokeHandler(request('POST',{},'/api/internal/oidc-smoke?x=1'),disabled as unknown as ServerResponse);
     assert.equal(disabled.status,404);assert.equal(JSON.parse(disabled.body).error.code,'OIDC_SMOKE_DISABLED');
     Object.assign(process.env,base);
+    const noHeader=response();await smokeHandler(request('POST',{'authorization':`Bearer ${base.OIDC_SMOKE_TOKEN}`}),noHeader as unknown as ServerResponse);
+    assert.equal(noHeader.status,502);assert.equal(JSON.parse(noHeader.body).error.code,'OIDC_TOKEN_UNAVAILABLE');
+    assert.doesNotMatch(noHeader.body,/Bearer|oidc-token|temporary-access-token/);
     const unauthorized=response();await smokeHandler(request('POST'),unauthorized as unknown as ServerResponse);
     assert.equal(unauthorized.status,401);assert.equal(JSON.parse(unauthorized.body).error.code,'OIDC_SMOKE_UNAUTHORIZED');
     const method=response();await smokeHandler(request('GET',{'authorization':`Bearer ${base.OIDC_SMOKE_TOKEN}`}),method as unknown as ServerResponse);
