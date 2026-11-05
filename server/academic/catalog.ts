@@ -1,4 +1,4 @@
-import catalog from '../../catalogo_optimizacion_gimnasios_1_a_5.json';
+import catalog from '../../catalogo_optimizacion_gimnasios_1_a_5.json' with {type:'json'};
 export interface CatalogGame {gameId:string;gymId:number;title:string}
 export interface CatalogGym {gymId:number;title:string;totalGames:number;games:string[]}
 const titles:Record<number,string>={1:'Bosque de Sistemas',2:'Valle Lineal',3:'Fortaleza Simplex',4:'Santuario Dual',5:'Cumbre de Metas'};
