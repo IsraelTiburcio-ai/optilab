@@ -1,4 +1,4 @@
-import {academicEnabled} from './config';
+import {academicEnabled,academicEndpoint,academicMode} from './config';
 import type {Api} from './types';
 export class AcademicError extends Error {
   constructor(readonly status:number,readonly uncertain=false,readonly code=''){super(message(status,uncertain,code));}
@@ -7,9 +7,9 @@ function message(status:number,uncertain:boolean,code:string) {
   if(code==='GAMERTAG_TAKEN')return 'Ese gamertag ya está ocupado. Elige otro; tus datos anteriores no se cambiaron.';
   if(code==='VERIFIED_EMAIL_REQUIRED')return 'Verifica tu correo desde Cuenta y actualiza la sesión para completar la inscripción.';
   if(code==='ONBOARDING_REQUIRED')return 'Completa tu bienvenida antes de inscribirte.';
-  if(uncertain)return 'No pudimos confirmar la respuesta del API local. Comprueba que esté encendido y reintenta exactamente la misma operación.';
+  if(uncertain)return academicMode==='emulator'?'No pudimos confirmar la respuesta del API local. Comprueba que esté encendido y reintenta exactamente la misma operación.':'No pudimos confirmar la respuesta del API académico. Reintenta exactamente la misma operación.';
   return ({401:'La sesión ya no es válida. Vuelve a entrar desde Cuenta.',403:'No tienes permiso para esta operación o se retiró tu acceso. Actualiza tus grupos.',
-    502:'El API local devolvió un contrato incompatible. Reinícialo desde esta rama y actualiza los grupos.',
+    502:academicMode==='emulator'?'El API local devolvió un contrato incompatible. Reinícialo desde esta rama y actualiza los grupos.':'El API académico devolvió un contrato incompatible. Actualiza la aplicación antes de continuar.',
     409:'La información cambió. Actualiza los datos antes de realizar una nueva operación; no se sobrescribió la versión actual.',
     429:'Se alcanzó el límite de peticiones. Espera un minuto antes de reintentar.',404:'La solicitud o invitación ya no está disponible.'} as Record<number,string>)[status]??'No se pudo completar la operación. Revisa los datos y vuelve a intentarlo.';
 }
@@ -23,7 +23,7 @@ export function academicClient(session:{uid:string;getIdToken:(uid:string)=>Prom
     }
     if(signal.aborted||!session.current())throw new DOMException('Sesión cambiada','AbortError');
     try {
-      const response=await fetch(`http://127.0.0.1:5200/v1/${operation}`,{method:'POST',redirect:'error',cache:'no-store',signal:AbortSignal.any([signal,AbortSignal.timeout(12000),...(cancel?[cancel]:[])]),
+      const response=await fetch(academicEndpoint(String(operation)),{method:'POST',redirect:'error',cache:'no-store',signal:AbortSignal.any([signal,AbortSignal.timeout(12000),...(cancel?[cancel]:[])]),
         headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(input)});
       if(signal.aborted||!session.current())throw new DOMException('Sesión cambiada','AbortError');
       if(!response.ok){let code='';try{const body=await response.json();if(['GAMERTAG_TAKEN','VERIFIED_EMAIL_REQUIRED','ONBOARDING_REQUIRED'].includes(body.error?.code))code=body.error.code;}catch{/* Never expose raw server errors. */}
@@ -48,7 +48,7 @@ function compatible(operation:keyof Api,input:unknown,result:unknown):boolean {
   if(operation==='groupProgress'){
     const period=data.period as Record<string,unknown>|undefined,activities=data.activities as Record<string,unknown>|undefined;
     return !!period&&Number.isInteger(period.days)&&(period.from===null||typeof period.from==='string')&&typeof period.to==='string'&&
-      Number.isInteger(data.studentsTotal)&&Number.isInteger(data.studentsActive)&&!!activities&&
+      Number.isInteger(data.studentsTotal)&&Number.isInteger(data.studentsActive)&&typeof data.activityDataTruncated==='boolean'&&!!activities&&
       ['opened','declared','reported','completed','validated'].every(key=>Number.isInteger(activities[key]))&&
       Array.isArray(data.gyms)&&Array.isArray(data.students)&&typeof data.truncated==='boolean';
   }

@@ -7,7 +7,10 @@ import {academicPath} from '../../server/academic/repository';
 import {academicEnvironment} from '../../scripts/academic-env.mjs';
 const valid={NODE_ENV:'development',ACADEMIC_ADMIN_MODE:'emulator',ACADEMIC_ADMIN_HOST:'127.0.0.1',ACADEMIC_ADMIN_PROJECT:'demo-optilab-sync',
   FIREBASE_AUTH_EMULATOR_HOST:'127.0.0.1:9099',FIRESTORE_EMULATOR_HOST:'127.0.0.1:8085'};
-test('strict local configuration accepts only the exact explicit emulator environment',()=>assert.equal(localConfig(valid).projectId,'demo-optilab-sync'));
+test('strict local configuration accepts only the exact explicit emulator environment',()=>{
+  assert.equal(localConfig(valid).projectId,'demo-optilab-sync');
+  for(const value of ['0','2001','not-a-number'])assert.throws(()=>localConfig({...valid,ACADEMIC_PROGRESS_ATTEMPT_LIMIT:value}),/ACADEMIC_ENV_REJECTED/);
+});
 for(const [name,patch] of Object.entries({
   project:{ACADEMIC_ADMIN_PROJECT:'optilab-cd829'},host:{ACADEMIC_ADMIN_HOST:'example.com'},allInterfaces:{ACADEMIC_ADMIN_HOST:'0.0.0.0'},
   production:{NODE_ENV:'production'},disabled:{ACADEMIC_ADMIN_MODE:'disabled'},missingMode:{ACADEMIC_ADMIN_MODE:undefined},

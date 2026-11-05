@@ -78,7 +78,7 @@ El flujo UI usa profesora A, alumno B y docente ajeno (teacherB). Incluye borrad
 
 ## Limitaciones para producción
 
-- No hay despliegue de API académica ni Rules de lectura directa para alumnos; todo depende del API local de desarrollo.
+- No hay despliegue de API académica ni Rules de lectura directa para alumnos; el adaptador Vercel está preparado pero cerrado. Ver `docs/VERCEL-ACADEMIC-PILOT.md`.
 - No hay persistencia de intentos/telemetría por actividad, rankings ni analíticas; las capacidades se declaran como no verificadas.
 - No hay fechas de disponibilidad, edición masiva de asignaciones ni publicación multi-grupo en una sola acción de UI (la API acepta varios grupos; la UI publica el grupo abierto).
 - Archivar es terminal en la UI; no hay restauración de archivadas en este MVP.

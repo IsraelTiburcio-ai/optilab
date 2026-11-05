@@ -7,8 +7,9 @@ export interface EmulatorAdmin {
   time:()=>unknown; timestamp:(milliseconds:number)=>unknown;
   close:()=>Promise<void>;
 }
-const localDatabases=new WeakSet<Firestore>();
+const localDatabases=new WeakSet<Firestore>(),productionDatabases=new WeakSet<Firestore>();
 export function assertEmulatedDatabase(db:Firestore) {if(!localDatabases.has(db)||db.databaseId!=='(default)')throw new Error('ACADEMIC_ENV_REJECTED');}
+export function assertProductionDatabase(db:Firestore) {if(!productionDatabases.has(db)||db.databaseId!=='(default)')throw new Error('ACADEMIC_ENV_REJECTED');}
 export async function emulatorAdmin():Promise<EmulatorAdmin> {
   localConfig(process.env);
   await Promise.all([9099,8085].map(port=>new Promise<void>((resolve,reject)=>{
@@ -30,6 +31,23 @@ export async function emulatorAdmin():Promise<EmulatorAdmin> {
   const db=new Firestore(settings);
   db.settings(settings);
   localDatabases.add(db);
+  return Object.freeze({db,auth:getAuth(app),time:()=>FieldValue.serverTimestamp(),timestamp:(n:number)=>Timestamp.fromMillis(n),
+    close:async()=>{await db.terminate();await deleteApp(app);}});
+}
+
+/** Future production boundary. No credential is created or read by this PR. */
+export async function productionAdmin(projectId:string):Promise<EmulatorAdmin> {
+  if(process.env.ACADEMIC_PRODUCTION_ENABLED!=='true'||process.env.VERCEL_ENV!=='production'||
+    projectId!=='optilab-cd829'||process.env.FIREBASE_AUTH_EMULATOR_HOST||process.env.FIRESTORE_EMULATOR_HOST)throw new Error('ACADEMIC_ENV_REJECTED');
+  const raw=process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if(!raw||raw.length>20000)throw new Error('ACADEMIC_ENV_REJECTED');
+  let parsed:Record<string,unknown>;try{parsed=JSON.parse(raw);}catch{throw new Error('ACADEMIC_ENV_REJECTED');}
+  if(parsed.project_id!==projectId||typeof parsed.private_key!=='string'||typeof parsed.client_email!=='string')throw new Error('ACADEMIC_ENV_REJECTED');
+  const [{initializeApp,cert,deleteApp},{getFirestore,FieldValue,Timestamp},{getAuth}]=await Promise.all([
+    import('firebase-admin/app'),import('firebase-admin/firestore'),import('firebase-admin/auth'),
+  ]);
+  const app=initializeApp({projectId,credential:cert(parsed as Parameters<typeof cert>[0])},`academic-prod-${crypto.randomUUID()}`);
+  const db=getFirestore(app);productionDatabases.add(db);
   return Object.freeze({db,auth:getAuth(app),time:()=>FieldValue.serverTimestamp(),timestamp:(n:number)=>Timestamp.fromMillis(n),
     close:async()=>{await db.terminate();await deleteApp(app);}});
 }

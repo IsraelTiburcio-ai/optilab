@@ -9,7 +9,7 @@ import {invitation,request,publicInvite,publicRequest,scoped,roster,millis,detai
 import {ApiError,denied,conflict} from './errors';
 import {groupProgress} from './progress';
 import {activityWorkspace,publishedGroupActivities,publishedActivity} from './activities';
-export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Actor,operation:Operation,input:Input):Promise<Data> {
+export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Actor,operation:Operation,input:Input,progressAttemptLimit=200):Promise<Data> {
   if(operation==='getAcademicProfile')return ownProfile(repo,actor.uid);
   if(operation==='getPlayerIdentity')return ownPlayer(repo,actor.uid);
   if(operation==='gamertagAvailability')return tagAvailability(repo,actor.uid,input.gamertag!);
@@ -57,7 +57,7 @@ export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Ac
   if(operation==='activityWorkspace')return activityWorkspace(repo,policy,actor,input);
   if(operation==='publishedGroupActivities')return publishedGroupActivities(repo,actor,input);
   if(operation==='publishedActivity')return publishedActivity(repo,actor,input);
-  if(operation==='groupProgress')return groupProgress(repo,policy,actor,input);
+  if(operation==='groupProgress')return groupProgress(repo,policy,actor,input,progressAttemptLimit);
   if(operation==='groupEnrollmentLink'){await policy.group(repo,actor.uid,s,'manageInvitations');return currentEnrollmentLink(repo,s);}
   if(operation==='requestStatus') {
     const requestId=input.inviteId?hash(`${input.inviteId}:${actor.uid}`):input.requestId!;

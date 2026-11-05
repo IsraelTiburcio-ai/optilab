@@ -5,7 +5,7 @@ export function teacherEnvironment(source=process.env) {
     VITE_FIREBASE_PROJECT_ID:'demo-optilab-sync',VITE_FIREBASE_STORAGE_BUCKET:'demo-optilab-sync.example',
     VITE_FIREBASE_MESSAGING_SENDER_ID:'123456789',VITE_FIREBASE_APP_ID:'1:123456789:web:demooptilabsync',
     VITE_FIREBASE_AUTH_EMULATOR_URL:'http://127.0.0.1:9099',VITE_FIRESTORE_EMULATOR_HOST:'127.0.0.1:8085',
-    VITE_PROGRESS_SYNC:'emulator',VITE_ACADEMIC_ADMIN:'emulator'};
+    VITE_PROGRESS_SYNC:'emulator',VITE_ACADEMIC_ADMIN:'emulator',VITE_ACADEMIC_API_MODE:'emulator',VITE_ACADEMIC_API_URL:'http://127.0.0.1:5200'};
   if(Object.entries(web).some(([key,value])=>source[key]&&source[key]!==value))throw new Error('ACADEMIC_ENV_REJECTED');
   return {...env,...web};
 }

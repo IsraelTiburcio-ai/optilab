@@ -1,4 +1,4 @@
-import {academicEnabled} from './config';
+import {academicAppOrigin,academicEnabled,academicMode} from './config';
 import type {Scope} from './types';
 export interface InvitationContext extends Scope {inviteId:string;token:string|null}
 type Memory={context:InvitationContext|null;state:'none'|'ready'|'submitted'|'lost'|'invalid'|'disabled';uid:string|null;generation:number};
@@ -9,7 +9,9 @@ export const invitationSnapshot=()=>memory;
 export const subscribeInvitation=(fn:()=>void)=>{listeners.add(fn);return ()=>{listeners.delete(fn);};};
 export function invitationLink(origin:string,base:string,context:InvitationContext):string {
   const url=new URL(base,origin);
-  if(!academicEnabled||url.protocol!=='http:'||!['localhost','127.0.0.1'].includes(url.hostname)||!context.token)throw new Error('INVITATION_LOCAL_ONLY');
+  if(!academicEnabled||!context.token)throw new Error('INVITATION_LOCAL_ONLY');
+  if(academicMode==='emulator'){if(url.protocol!=='http:'||!['localhost','127.0.0.1'].includes(url.hostname))throw new Error('INVITATION_LOCAL_ONLY');}
+  else if(url.protocol!=='https:'||url.origin!==academicAppOrigin)throw new Error('INVITATION_LOCAL_ONLY');
   url.search='';url.hash='/unirse?'+new URLSearchParams({...context,token:context.token}).toString();return url.href;
 }
 function consume(){

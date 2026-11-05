@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react';
 import type {AcademicCall} from './client';
 import type {GroupProgress} from './types';
 import {scopeInput} from './components';
+import {academicMode} from './config';
 
 const periods=[{days:7,label:'Últimos 7 días'},{days:30,label:'Últimos 30 días'},{days:90,label:'Últimos 90 días'},{days:0,label:'Todo'}] as const;
 function dateLabel(value:string|null) {
@@ -39,7 +40,8 @@ export function ClassDashboard({scope,call,refresh,disabled=false,showStudents}:
     <div className="teacher-dashboard-heading"><div><span className="eyebrow">RESUMEN DEL PERIODO</span><h2 id="teacher-dashboard-title">Resumen</h2><p>Actividad declarada, resultados y finalizaciones informadas por el cliente en este grupo.</p></div>
       <label className="teacher-dashboard-period">Periodo de actividad<select aria-label="Periodo de actividad" value={days} disabled={disabled} onChange={e=>setDays(Number(e.target.value))}>{periods.map(period=><option key={period.days} value={period.days}>{period.label}</option>)}</select></label>
     </div>
-    <p className="teacher-dashboard-note">Datos del Firestore Emulator local. Las aperturas y prácticas son declaraciones; los resultados y finalizaciones son informes del cliente y no están validados.</p>
+    <p className="teacher-dashboard-note">{academicMode==='emulator'?'Datos del Firestore Emulator local.':'Datos del API académico configurado.'} Las aperturas y prácticas son declaraciones; los resultados y finalizaciones son informes del cliente y no están validados.</p>
+    {data?.activityDataTruncated&&<p className="teacher-dashboard-warning" role="status">Historial truncado: algunos alumnos superan el límite de lectura de 200 eventos. Los conteos mostrados son parciales, no totales exactos del historial completo.</p>}
     {loading?<p role="status">Consultando el progreso del grupo…</p>:error?<div className="teacher-error" role="alert"><p>{error}</p><button className="button" onClick={()=>setAttempt(value=>value+1)}>Reintentar resumen</button></div>:data?<>
       <div className="teacher-summary teacher-dashboard-summary" aria-label="Resumen del periodo">{cards.map(([label,value,detail])=><div className="paper" key={label}><strong>{value}</strong><span>{label}</span><small>{detail}</small></div>)}</div>
       <p className="muted teacher-dashboard-meta">{period} · Generado {dateLabel(data.generatedAt)}{data.truncated?' · La lista de alumnos se truncó en el servidor':''}</p>
