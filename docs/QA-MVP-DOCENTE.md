@@ -52,7 +52,7 @@ El flujo real requiere `MEMORAMA_DIR` con el fixture pinneado de Memorama; el wo
 
 `reported` cuenta resultados informados; `completed` cuenta únicamente finalizaciones con `result.completed === true` en un intento o `gameRun`. Un `reported` sin esa evidencia no es una finalización; los diagnósticos actualizan la última actividad y no crean finalizaciones. `validated` permanece en 0.
 
-El coste actual es explícito: cada alumno consulta hasta 200 eventos de `reportedAttempts` por defecto (`ACADEMIC_PROGRESS_ATTEMPT_LIMIT`), además de su head, hasta 40 campos, 50 `gameRuns` y 50 diagnósticos. Si se alcanza el límite, el dashboard marca `activityDataTruncated` y los conteos pueden ser parciales. Con 40 alumnos el peor caso ronda 13,900 lecturas por llamada; no se resuelve todavía con agregados. Ver `docs/VERCEL-ACADEMIC-PILOT.md` para los escenarios 5/20/40.
+El coste actual es explícito: cada alumno consulta hasta 200 eventos de `reportedAttempts` por defecto (`ACADEMIC_PROGRESS_ATTEMPT_LIMIT`), filtrados en Firestore por el periodo seleccionado, además de su head, hasta 40 campos, 50 `gameRuns` y 50 diagnósticos. Si se alcanza el límite, el dashboard marca `activityDataTruncated` y los conteos pueden ser parciales. Con 40 alumnos el peor caso ronda 13,900 lecturas por llamada; no se resuelve todavía con agregados. Ver `docs/VERCEL-ACADEMIC-PILOT.md` para los escenarios 5/20/40.
 
 ## Snapshot productivo read-only
 

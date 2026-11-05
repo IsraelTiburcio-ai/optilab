@@ -30,11 +30,20 @@ export class AcademicTransaction {
     this.track('documentReadAttempts',rows.size||1);this.track('queryDocumentsReturned',rows.size);
     return rows.docs.map(d=>({id:d.id,data:d.data()}));
   }
+  async attempts(path:string,limit:number,fromISO:string|null,toISO:string):Promise<{id:string;data:Data}[]> {
+    const rows=await this.tx.get(attemptQuery(this.db,path,limit,fromISO,toISO));
+    this.track('documentReadAttempts',rows.size||1);this.track('queryDocumentsReturned',rows.size);
+    return rows.docs.map(d=>({id:d.id,data:d.data()}));
+  }
 }
-export type AcademicReadView=Pick<AcademicTransaction,'get'|'page'>;
+export type AcademicReadView=Pick<AcademicTransaction,'get'|'page'|'attempts'>;
 function pageQuery(db:Firestore,path:string,limit:number,cursor?:string,status?:string):Query {
   academicPath(path+'/probe');let q:Query=db.collection(path).orderBy('__name__').limit(limit);
   if(status)q=q.where('status','==',status);if(cursor)q=q.startAfter(cursor);return q;
+}
+function attemptQuery(db:Firestore,path:string,limit:number,fromISO:string|null,toISO:string):Query {
+  academicPath(path+'/probe');let q:Query=db.collection(path).orderBy('observedAt','desc').limit(limit);
+  if(fromISO)q=q.where('observedAt','>=',fromISO);q=q.where('observedAt','<=',toISO);return q;
 }
 export class AcademicRepository {
   private metrics=new AsyncLocalStorage<Metrics>();

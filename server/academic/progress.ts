@@ -85,7 +85,7 @@ async function readActivity(repo:AcademicReadView,uid:string,from:number|null,to
   const result=blankActivity();
   const [head,attempts]=await Promise.all([
     repo.get(`users/${uid}/sync/current`),
-    repo.page(`users/${uid}/reportedAttempts`,attemptLimit),
+    repo.attempts(`users/${uid}/reportedAttempts`,attemptLimit,from===null?null:new Date(from).toISOString(),new Date(to).toISOString()),
   ]);
   result.truncated=attempts.length===attemptLimit;
   const signal=(kind:SignalKind,gameId:string,at:number)=>{

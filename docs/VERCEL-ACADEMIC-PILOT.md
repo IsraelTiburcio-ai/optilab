@@ -109,7 +109,7 @@ por alumno ≈ 1 sync + r intentos + 40 fields + 50 gameRuns + 50 diagnostics + 
 | 20 | ≈ 6,940 | ≈ 42,940 |
 | 40 | ≈ 13,880 | ≈ 85,880 |
 
-No es una factura medida. Cada montaje/refresco del dashboard, cambio de periodo o reintento puede repetir la consulta. El periodo 7/30/90 no reduce las lecturas actuales porque el filtro se aplica en memoria; el cap sí reduce el peor caso. Para 40 alumnos y uso intensivo, la siguiente mejora debe ser un agregado/summary autorizado, no aumentar el cap. Mantener Spark; no habilitar Blaze por esta PR.
+No es una factura medida. Cada montaje/refresco del dashboard, cambio de periodo o reintento puede repetir la consulta. El periodo 7/30/90 ahora filtra `reportedAttempts` en Firestore por `observedAt`; «Todo» usa el cap de 200 y puede marcar historial parcial. Para 40 alumnos y uso intensivo, la siguiente mejora debe ser un agregado/summary autorizado, no aumentar el cap. Mantener Spark; no habilitar Blaze por esta PR. Ver el runbook del piloto para 3/5/20/40.
 
 ## Validación local
 
@@ -137,3 +137,8 @@ Pruebas específicas del adaptador: `node --import tsx --test tests/academic/ver
 ## ESM hotfix (post-deploy)
 
 Vercel transpila TypeScript a `.js` pero conserva los especificadores relativos; con `"type":"module"`, Node ESM exige extensión. Todos los imports relativos de `server/academic/**/*.ts` y `api/v1/[operation].ts` usan `.js`. El catálogo se importa como JSON estático con atributo de tipo, por lo que `@vercel/nft` lo incluye. Evidencia: `docs/evidence/vercel-esm-hotfix.txt`. No se cambió lógica académica, Firebase, permisos ni infraestructura.
+
+
+## Piloto real
+
+El procedimiento de aprovisionamiento dry-run, activación y reversión está en [PILOT-REAL-RUNBOOK.md](PILOT-REAL-RUNBOOK.md).
