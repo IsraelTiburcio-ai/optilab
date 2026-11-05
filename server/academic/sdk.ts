@@ -10,7 +10,7 @@ export const PILOT_VERCEL_AUDIENCE='https://vercel.com/optilab';
 export interface OidcConfig {projectNumber:string;serviceAccountEmail:string;poolId:string;providerId:string;vercelProjectId:string;vercelIssuer:string;vercelAudience:string;gcpAudience:string;subject:string}
 export interface OidcCredentialDependencies {
   getVercelOidcToken:(options:{audience:string})=>Promise<string>;
-  verifyVercelOidcToken:(token:string,options:{issuer:string;audience:string;projectId:string;environment:'production'})=>Promise<{payload:{iss?:string;aud?:string;sub?:string;project_id?:string}}>;
+  verifyVercelOidcToken:(token:string,options:{issuer:string;audience:string;projectId:string;environment:'production'})=>Promise<{payload:{iss?:string;aud?:string;sub?:string;project_id?:string;environment?:string}}>;
   createClient:(config:Record<string,unknown>)=>unknown;
 }
 export interface EmulatorAdmin {
