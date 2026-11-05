@@ -33,6 +33,7 @@
     {"collectionGroup": "groupActivities", "fieldPath": "*", "indexes": []},
     {"collectionGroup": "activityPlacements", "fieldPath": "*", "indexes": []},
     {"collectionGroup": "activityAttempts", "fieldPath": "*", "indexes": []},
-    {"collectionGroup": "reportedAttempts", "fieldPath": "*", "indexes": []}
+    {"collectionGroup": "reportedAttempts", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "reportedAttempts", "fieldPath": "observedAt", "indexes": [{"order": "DESCENDING", "queryScope": "COLLECTION"}]}
   ]
 }
