@@ -79,9 +79,13 @@ La opción `{audience}` existe en los tipos instalados de `@vercel/oidc@4.0.6`, 
 La primera revisión detectó además que Firebase Admin `getFirestore()` rechaza credenciales personalizadas (`firestore/invalid-credential`). Por eso el backend OIDC usa Firestore directo con `GoogleAuth` + `ExternalAccountClient` por petición, no `getFirestore(app)`.
 
 - Admin/Firestore OIDC se crean por petición y se cierran en `finally`; no se reutilizan entre solicitudes.
-- El token OIDC vive en `AsyncLocalStorage` únicamente durante la petición.
+- El contexto de `AsyncLocalStorage` contiene `{token, active}` y se invalida en `finally` al terminar la petición.
+- `currentRequestOidcToken()` y `verifiedRequestOidcToken()` rechazan contextos inactivos.
+- `verifiedRequestOidcToken()` revalida `active` después del `await` de verificación; una validación pendiente que termina después del cierre no entrega token.
 - Cada access token se renueva bajo demanda; nunca se guarda un JWT vencido.
-- Si un recurso intenta renovar después de terminar la petición, no hay contexto y falla cerrado; no hay mezcla de identidades.
+- Si un recurso intenta renovar después de terminar la petición, el contexto está inactivo y falla cerrado; no hay mezcla de identidades.
+- Las solicitudes concurrentes usan objetos de contexto distintos: cerrar una no invalida la otra.
+- Si `productionAdmin()` falla después de crear la Firebase App, termina el Firestore creado y elimina la App antes de relanzar.
 - El access token temporal no se devuelve ni se registra.
 
 El mismo patrón se aplica al backend académico: `vercelHandler` guarda el token de la cabecera en `AsyncLocalStorage` durante la petición y `productionAdmin()` lo consume desde ahí, sin depender del contexto global de Vercel.
@@ -219,7 +223,7 @@ No se deben usar tokens reales manipulados contra Vercel: manipular un JWT no de
 
 ## 8. Criterios PASS/FAIL
 
-Las pruebas locales son **124/124 PASS**; no sustituyen el smoke real.
+Las pruebas locales son **130/130 PASS**; no sustituyen el smoke real.
 
 ### PASS
 

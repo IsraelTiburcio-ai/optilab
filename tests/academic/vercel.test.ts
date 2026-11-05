@@ -31,6 +31,13 @@ test('Vercel production open only with explicit activation and exact HTTPS origi
   assert.equal(runtime({ACADEMIC_ALLOWED_ORIGINS:'https://optilab.club/path'}).open,false);
   assert.equal(runtime({FIREBASE_AUTH_EMULATOR_HOST:'127.0.0.1:9099'}).open,false);
 });
+test('failed production initialization terminates Firestore and deletes the Firebase app',async()=>{
+  const [{initializeApp,getApps},{cleanupProductionApp}]=await Promise.all([import('firebase-admin/app'),import('../../server/academic/sdk')]);
+  const app=initializeApp({projectId:'optilab-cd829',credential:{getAccessToken:async()=>({access_token:'test',expires_in:3600})}},'failed-init-cleanup-test');
+  let terminated=false;
+  await cleanupProductionApp(app,{terminate:async()=>{terminated=true;}} as any);
+  assert.equal(terminated,true);assert.equal(getApps().some(candidate=>candidate.name==='failed-init-cleanup-test'),false);
+});
 test('production OIDC admin builds direct Firestore auth without Firebase Admin custom-credential rejection',async()=>{
   const original={...process.env};delete process.env.FIREBASE_AUTH_EMULATOR_HOST;delete process.env.FIRESTORE_EMULATOR_HOST;
   Object.assign(process.env,base,{ACADEMIC_CREDENTIAL_MODE:'oidc',GCP_PROJECT_NUMBER:'401863964479',

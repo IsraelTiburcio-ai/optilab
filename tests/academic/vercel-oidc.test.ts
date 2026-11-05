@@ -53,3 +53,40 @@ test('AsyncLocalStorage keeps request tokens isolated under concurrency',async()
   const second=withRequestOidcToken('token-b',async()=>{await new Promise(resolve=>setTimeout(resolve,5));return currentRequestOidcToken();});
   assert.deepEqual(await Promise.all([first,second]),['token-a','token-b']);
 });
+test('descendant async work cannot retrieve the token after the request context is invalidated',async()=>{
+  let descendant!:Promise<string|undefined>;
+  await withRequestOidcToken('request-token',async()=>{
+    descendant=(async()=>{await new Promise(resolve=>setTimeout(resolve,5));return currentRequestOidcToken();})();
+  });
+  assert.equal(await descendant,undefined);
+});
+test('a pending verification cannot return a token after the request context closes',async()=>{
+  let release!:()=>void;const gate=new Promise<void>(resolve=>release=resolve);
+  let pending!:Promise<string>;
+  await withRequestOidcToken('request-token',async()=>{
+    pending=verifiedRequestOidcToken(expected,{verify:async()=>{await gate;return {payload:claims};}});
+  });
+  const outcome=pending.catch(error=>error);
+  release();
+  const error=await outcome;
+  assert.ok(error instanceof Error);assert.match(error.message,/OIDC_TOKEN_UNAVAILABLE/);
+});
+test('finishing one concurrent request does not invalidate the other request context',async()=>{
+  let releaseA!:()=>void,releaseB!:()=>void;
+  const gateA=new Promise<void>(resolve=>releaseA=resolve),gateB=new Promise<void>(resolve=>releaseB=resolve);
+  const first=withRequestOidcToken('token-a',async()=>{await gateA;return currentRequestOidcToken();});
+  const second=withRequestOidcToken('token-b',async()=>{await gateB;return currentRequestOidcToken();});
+  releaseA();assert.equal(await first,'token-a');assert.equal(currentRequestOidcToken(),undefined);
+  releaseB();assert.equal(await second,'token-b');
+});
+test('an expired token is rejected on every attempt and never reused',async()=>{
+  let verifies=0;const verify=async()=>{verifies++;throw new Error('JWTExpired');};
+  await assert.rejects(withRequestOidcToken('expired-token',()=>verifiedRequestOidcToken(expected,{verify})),/OIDC_TOKEN_INVALID/);
+  await assert.rejects(withRequestOidcToken('expired-token',()=>verifiedRequestOidcToken(expected,{verify})),/OIDC_TOKEN_INVALID/);
+  assert.equal(verifies,2);
+});
+test('smoke-style token resolution completes while the context is active and closes afterwards',async()=>{
+  const token=await withRequestOidcToken('smoke-token',()=>verifiedRequestOidcToken(expected,{verify:async()=>({payload:claims})}));
+  assert.equal(token,'smoke-token');assert.equal(currentRequestOidcToken(),undefined);
+  await assert.rejects(verifiedRequestOidcToken(expected),/OIDC_TOKEN_UNAVAILABLE/);
+});
