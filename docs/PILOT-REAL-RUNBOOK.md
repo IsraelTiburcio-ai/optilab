@@ -42,14 +42,14 @@ El manifiesto y los UIDs nunca se guardan en el repositorio. El dry-run no impor
 
 **Estado real:** el adaptador OIDC/WIF ya está implementado en código, pero **no está configurado ni activado**. `productionAdmin()` selecciona el modo con `ACADEMIC_CREDENTIAL_MODE=oidc` y usa `@vercel/oidc` + `ExternalAccountClient`; no se aplicaron IAM ni credenciales. El fallback `FIREBASE_SERVICE_ACCOUNT_JSON` sigue disponible solo como secreto Sensitive y también está cerrado por defecto.
 
-Estrategia recomendada e implementada en código: **Vercel OIDC + Google Cloud Workload Identity Federation**, disponible en todos los planes de Vercel. El token OIDC es de corta vida; `productionAdmin()` lo obtiene por solicitud, valida `ACADEMIC_VERCEL_SUBJECT` y lo intercambia por una identidad federada con una service account mínima. No está configurado, no se aplicó IAM y el modo queda cerrado hasta aprobación. Si Google exigiera facturación, se mantiene el fallback JSON Sensitive; no se activó Blaze.
+Estrategia recomendada e implementada en código: **Vercel OIDC + Google Cloud Workload Identity Federation**, disponible en todos los planes de Vercel. El token OIDC es de corta vida; `productionAdmin()` lo obtiene por solicitud, valida exactamente `ACADEMIC_VERCEL_SUBJECT=owner:optilab:project:optilab-api:environment:production` y lo intercambia por una identidad federada con una service account mínima. No está configurado, no se aplicó IAM y el modo queda cerrado hasta aprobación. La app Firebase/Firestore y el rate limiter se reutilizan por instancia; la credencial crea un cliente OIDC nuevo en cada solicitud de access token y no conserva el JWT OIDC. El limiter es best-effort y no distribuido. Si Google exigiera facturación, se mantiene el fallback JSON Sensitive; no se activó Blaze.
 
 Configuración futura, solo después de aprobación:
 
 - Activar Secure backend access con OIDC en el proyecto `optilab-api`.
-- Configurar `ACADEMIC_CREDENTIAL_MODE=oidc`, `GCP_PROJECT_NUMBER`, `GCP_SERVICE_ACCOUNT_EMAIL`, `GCP_WORKLOAD_IDENTITY_POOL_ID`, `GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID`, `GCP_AUDIENCE` y `ACADEMIC_VERCEL_SUBJECT=owner:Optilab:project:optilab-api:environment:production`.
+- Configurar `ACADEMIC_CREDENTIAL_MODE=oidc`, `GCP_PROJECT_NUMBER`, `GCP_SERVICE_ACCOUNT_EMAIL`, `GCP_WORKLOAD_IDENTITY_POOL_ID`, `GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID`, `GCP_AUDIENCE` y `ACADEMIC_VERCEL_SUBJECT=owner:optilab:project:optilab-api:environment:production`.
 - Crear Workload Identity Pool/Provider con issuer de Vercel.
-- Condicionar el provider a `assertion.environment == "production"` y al proyecto/equipo exactos; Preview no recibe el token productivo.
+- Condicionar el provider a `assertion.environment == "production"`, a `assertion.sub == "owner:optilab:project:optilab-api:environment:production"` y al proyecto/equipo exactos; Preview no recibe el token productivo.
 - Service account dedicada con `roles/datastore.user` (Firestore) y los permisos mínimos de lectura de Auth necesarios (`roles/firebaseauth.viewer`; revisar antes de aplicar).
 - `roles/iam.workloadIdentityUser` sobre la service account para el provider; sin llaves persistentes.
 - No usar la misma identidad en Preview/Development ni compartir credenciales.

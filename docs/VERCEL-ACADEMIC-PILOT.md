@@ -58,7 +58,7 @@ VITE_ACADEMIC_APP_ORIGIN=https://optilab.club
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | **secreta** | fallback Admin; no se creó ni se incluyó aquí |
 | `VERCEL_ENV` | automática de Vercel | `preview`/`production`; no se falsifica |
 
-El adaptador OIDC/WIF está implementado en código, pero no configurado ni activado. Si se autoriza, configurar Vercel OIDC + Workload Identity Federation y el subject `owner:Optilab:project:optilab-api:environment:production`; no se aplicaron IAM ni credenciales. El fallback `FIREBASE_SERVICE_ACCOUNT_JSON` solo puede usarse como variable Sensitive con aprobación; nunca commitear JSON, PEM, tokens o `.env` con secretos.
+El adaptador OIDC/WIF está implementado en código, pero no configurado ni activado. Si se autoriza, configurar Vercel OIDC + Workload Identity Federation y el subject `owner:optilab:project:optilab-api:environment:production`; no se aplicaron IAM ni credenciales. El fallback `FIREBASE_SERVICE_ACCOUNT_JSON` solo puede usarse como variable Sensitive con aprobación; nunca commitear JSON, PEM, tokens o `.env` con secretos.
 
 ## Despliegue del API (no ejecutado)
 

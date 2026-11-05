@@ -4,7 +4,9 @@ import type {Credential} from 'firebase-admin/app';
 import type {Firestore} from 'firebase-admin/firestore';
 import {createConnection} from 'node:net';
 export type CredentialMode='none'|'service-account'|'oidc';
+export const PILOT_VERCEL_SUBJECT='owner:optilab:project:optilab-api:environment:production';
 export interface OidcConfig {projectNumber:string;serviceAccountEmail:string;poolId:string;providerId:string;audience:string;subject:string}
+export interface OidcCredentialDependencies {getVercelOidcToken:(options:{audience:string})=>Promise<string>;createClient:(config:Record<string,unknown>)=>unknown}
 export interface EmulatorAdmin {
   db:Firestore;auth:Auth;
   time:()=>unknown; timestamp:(milliseconds:number)=>unknown;
@@ -48,12 +50,24 @@ export function oidcConfig(env:NodeJS.ProcessEnv=process.env):OidcConfig {
   if(!/^\d{6,20}$/.test(projectNumber)||!/^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/.test(serviceAccountEmail)||
     !/^[A-Za-z0-9_-]{1,64}$/.test(poolId)||!/^[A-Za-z0-9_-]{1,64}$/.test(providerId)||
     !/^https:\/\/iam\.googleapis\.com\/projects\/\d+\/locations\/global\/workloadIdentityPools\/[A-Za-z0-9_-]+\/providers\/[A-Za-z0-9_-]+$/.test(audience)||
-    !/^owner:[^:]+:project:optilab-api:environment:production$/.test(subject))throw new Error('ACADEMIC_ENV_REJECTED');
+    subject!==PILOT_VERCEL_SUBJECT)throw new Error('ACADEMIC_ENV_REJECTED');
   return Object.freeze({projectNumber,serviceAccountEmail,poolId,providerId,audience,subject});
 }
 function tokenSubject(token:string):string {
   const parts=token.split('.');if(parts.length!==3)throw new Error('ACADEMIC_ENV_REJECTED');
   try{const payload=JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8'));return typeof payload.sub==='string'?payload.sub:'';}catch{throw new Error('ACADEMIC_ENV_REJECTED');}
+}
+export function createOidcCredential(config:OidcConfig,deps:OidcCredentialDependencies):Credential {
+  const supplier=async()=>{const token=await deps.getVercelOidcToken({audience:config.audience});if(tokenSubject(token)!==config.subject)throw new Error('ACADEMIC_ENV_REJECTED');return token;};
+  return {getAccessToken:async()=>{
+    const client=await deps.createClient({type:'external_account',audience:`//iam.googleapis.com/projects/${config.projectNumber}/locations/global/workloadIdentityPools/${config.poolId}/providers/${config.providerId}`,
+      subject_token_type:'urn:ietf:params:oauth:token-type:jwt',token_url:'https://sts.googleapis.com/v1/token',
+      service_account_impersonation_url:`https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${config.serviceAccountEmail}:generateAccessToken`,
+      subject_token_supplier:{getSubjectToken:supplier}}) as {getAccessToken:()=>Promise<{token?:string|null}>;credentials:{expiry_date?:number}};
+    if(!client)throw new Error('ACADEMIC_ENV_REJECTED');
+    const result=await client.getAccessToken();if(!result.token)throw new Error('ACADEMIC_ENV_REJECTED');
+    const expiry=client.credentials.expiry_date;return {access_token:result.token,expires_in:expiry?Math.max(1,Math.floor((expiry-Date.now())/1000)):3600};
+  }};
 }
 export async function productionAdmin(projectId:string,mode:CredentialMode=credentialMode()):Promise<EmulatorAdmin> {
   if(process.env.ACADEMIC_PRODUCTION_ENABLED!=='true'||process.env.VERCEL_ENV!=='production'||
@@ -63,14 +77,8 @@ export async function productionAdmin(projectId:string,mode:CredentialMode=crede
     oidc=oidcConfig(process.env);
     const {getVercelOidcToken}=await import('@vercel/oidc');
     const {ExternalAccountClient}=await import('google-auth-library');
-    const createClient=()=>ExternalAccountClient.fromJSON({
-      type:'external_account',audience:`//iam.googleapis.com/projects/${oidc!.projectNumber}/locations/global/workloadIdentityPools/${oidc!.poolId}/providers/${oidc!.providerId}`,
-      subject_token_type:'urn:ietf:params:oauth:token-type:jwt',token_url:'https://sts.googleapis.com/v1/token',
-      service_account_impersonation_url:`https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${oidc!.serviceAccountEmail}:generateAccessToken`,
-      subject_token_supplier:{getSubjectToken:async()=>{const token=await getVercelOidcToken({audience:oidc!.audience});if(tokenSubject(token)!==oidc!.subject)throw new Error('ACADEMIC_ENV_REJECTED');return token;}},
-    });
-    if(!createClient())throw new Error('ACADEMIC_ENV_REJECTED');
-    credentialValue={getAccessToken:async()=>{const client=createClient();if(!client)throw new Error('ACADEMIC_ENV_REJECTED');const result=await client.getAccessToken();if(!result.token)throw new Error('ACADEMIC_ENV_REJECTED');const expiry=client.credentials.expiry_date;return {access_token:result.token,expires_in:expiry?Math.max(1,Math.floor((expiry-Date.now())/1000)):3600};}};
+    credentialValue=createOidcCredential(oidc,{getVercelOidcToken:options=>getVercelOidcToken(options),
+      createClient:config=>ExternalAccountClient.fromJSON(config as unknown as Parameters<typeof ExternalAccountClient.fromJSON>[0])});
   }else{
     const raw=process.env.FIREBASE_SERVICE_ACCOUNT_JSON;if(!raw||raw.length>20000)throw new Error('ACADEMIC_ENV_REJECTED');
     let parsed:Record<string,unknown>;try{parsed=JSON.parse(raw);}catch{throw new Error('ACADEMIC_ENV_REJECTED');}
