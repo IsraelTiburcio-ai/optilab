@@ -30,6 +30,6 @@ export async function vercelHandler(req:IncomingMessage,res:ServerResponse,test?
   let ready:{admin:Pick<EmulatorAdmin,'auth'>;service:AcademicService;limiter:Limiter;runtime:AcademicRuntime};
   try{ready=test??await backend(runtime);}catch{closed(res);return;}
   const policy:HandlerPolicy={allowedOrigins:runtime.allowedOrigins,requireLoopback:false,rateLimit:runtime.rateLimit,
-    maxBodyBytes:runtime.maxBodyBytes,projectId:runtime.projectId!,health:false,mode:runtime.mode};
+    maxBodyBytes:runtime.maxBodyBytes,projectId:runtime.projectId!,health:false,mode:runtime.mode,trustProxy:true};
   await handleAcademicRequest(req,res,policy,ready.admin,ready.service,ready.limiter,operationFrom(req));
 }

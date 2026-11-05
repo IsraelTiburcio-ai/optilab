@@ -1,0 +1,33 @@
+Vercel CLI 65.11.0 local smoke (no project link, no deployment)
+Date: 2026-11-05
+Command:
+  ACADEMIC_ADMIN_MODE=vercel-preview ACADEMIC_PRODUCTION_ENABLED=false \
+    npx --yes vercel@65.11.0 dev --local --listen 127.0.0.1:3000 --yes
+Result before request:
+  Vercel CLI 65.11.0
+  Ready! Available at http://127.0.0.1:3000
+Request:
+  curl -i -X POST http://127.0.0.1:3000/api/v1/roster \
+    -H 'Content-Type: application/json' \
+    -H 'Authorization: Bearer invalid' \
+    --data '{"courseId":"c","termId":"t","groupId":"g"}'
+Response:
+  HTTP/1.1 503 Service Unavailable
+  server: Vercel
+  cache-control: no-store
+  content-type: application/json
+  x-vercel-cache: MISS
+  {"error":{"code":"ACADEMIC_DISABLED","message":"La API académica no está habilitada en este entorno."}}
+Notes:
+  - Dynamic route /api/v1/[operation].ts was reached.
+  - The response was produced before any Firebase Admin/Firestore initialization.
+  - The function module graph imports the server service/queries/progress/catalog; a missing catalog JSON would fail module loading instead of returning this 503.
+  - `vercel build --standalone` was attempted but the CLI requires a saved Vercel login/project; it was not executed and no deployment was made.
+  - No FIREBASE_SERVICE_ACCOUNT_JSON or production Firebase variables were supplied.
+
+Follow-up checks (same revision before final commit):
+  - vercel.json: maxDuration=15, no memory field (Hobby-managed).
+  - Runtime dependencies: firebase-admin 14.5.0 and google-auth-library 11.3.1 moved to dependencies; npm ci completed.
+  - Open-path test: valid JSON reaches service; malformed JSON returns 400 INVALID_INPUT (tests/academic/vercel.test.ts).
+  - Proxy rate-key test: first x-forwarded-for client is used, not the proxy socket address.
+  - Dashboard truncated flag has an explicit role=status warning; partial counts are not labeled exact totals.

@@ -10,6 +10,7 @@ export interface HandlerPolicy {
   rateLimit:number;
   maxBodyBytes:number;
   projectId:string;
+  trustProxy:boolean;
   health:boolean;
   mode:string;
 }
@@ -22,6 +23,16 @@ export class Limiter {
     let row=this.entries.get(key);if(!row){if(this.entries.size>=1000)throw new ApiError(429,'RATE_LIMIT','Espera antes de reintentar.');row={count:0,until:now+60000};this.entries.set(key,row);}
     if(++row.count>this.maximum)throw new ApiError(429,'RATE_LIMIT','Espera antes de reintentar.');
   }
+}
+export function rateLimitKey(req:IncomingMessage,trustProxy:boolean):string {
+  if(trustProxy){
+    const forwarded=req.headers['x-forwarded-for'],value=Array.isArray(forwarded)?forwarded[0]:forwarded;
+    const first=typeof value==='string'?value.split(',')[0]?.trim():'';
+    if(first&&/^[0-9a-fA-F:.]{3,64}$/.test(first))return first;
+    const real=req.headers['x-real-ip'],realValue=Array.isArray(real)?real[0]:real;
+    if(typeof realValue==='string'&&/^[0-9a-fA-F:.]{3,64}$/.test(realValue.trim()))return realValue.trim();
+  }
+  return req.socket.remoteAddress??'unknown';
 }
 function send(res:ServerResponse,status:number,body:unknown,headers:Record<string,string>={}) {
   res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers});
@@ -41,7 +52,7 @@ export async function handleAcademicRequest(req:IncomingMessage,res:ServerRespon
       res.setHeader('Access-Control-Allow-Headers','Authorization, Content-Type');
       res.setHeader('Access-Control-Allow-Methods','POST');res.writeHead(204).end();return;
     }
-    limiter.take(`ip:${req.socket.remoteAddress??'unknown'}`);
+    limiter.take(`ip:${rateLimitKey(req,policy.trustProxy)}`);
     if(policy.health&&req.method==='GET'&&req.url==='/health'){
       send(res,200,{mode:policy.mode,projectId:policy.projectId});return;
     }

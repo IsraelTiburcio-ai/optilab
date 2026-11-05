@@ -7,6 +7,7 @@ import {authenticate} from '../../server/academic/authentication';
 import {parseAllowedOrigins,vercelRuntimeConfig} from '../../server/academic/runtime';
 import {productionAdmin} from '../../server/academic/sdk';
 import {vercelHandler} from '../../server/academic/vercel';
+import {rateLimitKey} from '../../server/academic/handler';
 
 const base={NODE_ENV:'production',VERCEL_ENV:'production',ACADEMIC_ADMIN_MODE:'vercel-production',ACADEMIC_PRODUCTION_ENABLED:'true',
   ACADEMIC_ADMIN_PROJECT:'optilab-cd829',ACADEMIC_ALLOWED_ORIGINS:'https://optilab.club'};
@@ -54,7 +55,7 @@ test('production admin refuses activation without explicit environment and prote
 test('Vercel function declaration is bounded and has no production credential in source',()=>{
   const config=JSON.parse(readFileSync('vercel.json','utf8'));
   assert.equal(config.functions['api/v1/[operation].ts'].maxDuration,15);
-  assert.equal(config.functions['api/v1/[operation].ts'].memory,512);
+  assert.equal('memory' in config.functions['api/v1/[operation].ts'],false);
   const source=readFileSync('api/v1/[operation].ts','utf8');
   assert.doesNotMatch(source,/private_key|service_account|firebase-tools/);
   assert.match(source,/vercelHandler/);
@@ -76,4 +77,16 @@ test('open Vercel handler routes /api/v1/:operation through the shared HTTP hand
   const service={execute:async(actor:{uid:string},name:string)=>({ok:true,operation:name,uid:actor.uid})} as unknown as import('../../server/academic/service').AcademicService;
   await vercelHandler(req,res as unknown as ServerResponse,{runtime,admin:admin as never,service,limiter:new Limiter(60)});
   assert.equal(res.status,200);assert.equal(JSON.parse(res.body).operation,'roster');assert.equal(res.headers['Access-Control-Allow-Origin'],'https://optilab.club');
+  const badReq=Readable.from([Buffer.from('not-json')]) as unknown as IncomingMessage;
+  Object.assign(badReq,{method:'POST',url:'/api/v1/roster',headers:{'content-type':'application/json',authorization:'Bearer token'},socket:{remoteAddress:'203.0.113.11',localPort:443},query:{operation:'roster'}});
+  const badRes=response();
+  await vercelHandler(badReq,badRes as unknown as ServerResponse,{runtime,admin:admin as never,service,limiter:new Limiter(60)});
+  assert.equal(badRes.status,400);assert.equal(JSON.parse(badRes.body).error.code,'INVALID_INPUT');
+});
+
+test('proxy-aware rate keys use the forwarded client, not the Vercel proxy address',()=>{
+  const forwarded={headers:{'x-forwarded-for':'203.0.113.7, 10.0.0.2'},socket:{remoteAddress:'10.0.0.1'}} as unknown as IncomingMessage;
+  assert.equal(rateLimitKey(forwarded,true),'203.0.113.7');
+  assert.equal(rateLimitKey(forwarded,false),'10.0.0.1');
+  assert.equal(rateLimitKey({headers:{'x-forwarded-for':'not-an-ip'},socket:{remoteAddress:'10.0.0.1'}} as unknown as IncomingMessage,true),'10.0.0.1');
 });

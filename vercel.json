@@ -1,8 +1,7 @@
 {
   "functions": {
     "api/v1/[operation].ts": {
-      "maxDuration": 15,
-      "memory": 512
+      "maxDuration": 15
     }
   }
 }

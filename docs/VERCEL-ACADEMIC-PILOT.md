@@ -38,6 +38,10 @@ VITE_ACADEMIC_APP_ORIGIN=https://optilab.club
 - Producción exige que el proyecto Firebase del build sea `optilab-cd829`; preview rechaza `demo-*`.
 - No usar secretos en variables `VITE_*`.
 
+### Dependencias runtime
+
+`firebase-admin` y `google-auth-library` están en `dependencies` (no en `devDependencies`) para el bundle de Vercel. El lockfile se actualizó con npm; no se migró a otro gestor. `@types/node`, `tsx`, Playwright y Vite permanecen de desarrollo.
+
 ### Backend Vercel
 
 | Variable | Pública/Secreta | Uso |
@@ -58,12 +62,18 @@ No se creó ni solicitó una llave real. Si el propietario autoriza producción,
 
 1. En Vercel: **Add New → Project → Import Git Repository**. No reutilizar el proyecto de GitHub Pages.
 2. Configurar Node.js 22, `npm ci` y mantener el directorio raíz del repositorio. El proyecto es de API, no del frontend; no asignar `optilab.club` ni un dominio de producción al deployment de la API.
-3. No hace falta configurar un build estático para las funciones; Vercel detecta `api/v1/[operation].ts`. `vercel.json` limita la función a `maxDuration: 15` y 512 MB; el handler limita body a 16 KiB y el rate limiter es por instancia (no distribuido).
+3. No hace falta configurar un build estático para las funciones; Vercel detecta `api/v1/[operation].ts`. `vercel.json` limita la función a `maxDuration: 15`; no se declara `memory` porque Vercel Hobby administra la memoria. El handler limita body a 16 KiB y el rate limiter es por instancia (no distribuido).
 4. En Preview, usar `ACADEMIC_ADMIN_MODE=vercel-preview` o dejarlo vacío. No agregar credenciales Firebase.
 4. En Preview, usar `ACADEMIC_ADMIN_MODE=vercel-preview` o dejarlo vacío. No agregar credenciales Firebase.
 5. Verificar cierre: `POST https://<preview>/api/v1/roster` → 503 `ACADEMIC_DISABLED`. No debe aparecer ninguna llamada a Firestore.
 6. Comprobar HTTPS y CORS: una petición `OPTIONS /api/v1/roster` desde el origen autorizado devuelve 204 y `Access-Control-Allow-Origin`; el mismo origen no autorizado devuelve 403. Sin token, `POST` devuelve 401 antes de tocar Firestore.
 7. No activar una Preview con Firestore productivo. Si se necesita una API de prueba, usar un proyecto/emulador aprobado fuera de Vercel o un mock; una Preview de Vercel no alcanza `127.0.0.1`.
+
+## Smoke local con runtime oficial
+
+Se ejecutó `vercel dev --local` (CLI 65.11.0, sin link ni deploy) con `ACADEMIC_ADMIN_MODE=vercel-preview`. `POST /api/v1/roster` llegó a la función dinámica y respondió `503 ACADEMIC_DISABLED` con `server: Vercel`, antes de inicializar Firebase Admin/Firestore. Evidencia: `docs/evidence/vercel-preview-smoke.txt`.
+
+La validación de cuerpo JSON y el handler abierto se cubren con la prueba compartida `tests/academic/vercel.test.ts` (cuerpo válido llega al servicio; JSON inválido devuelve 400) y las pruebas HTTP locales. `vercel build --standalone` no se pudo ejecutar porque el CLI exige login/proyecto; no se creó un proyecto ni se desplegó. El bundle de la función carga `server/academic/service` → `queries` → `progress` → `catalog` y el catálogo JSON; el smoke no mostró error de módulo.
 
 ## Activación productiva futura (requiere aprobación separada)
 
@@ -118,7 +128,7 @@ Pruebas específicas del adaptador: `node --import tsx --test tests/academic/ver
 ## Limitaciones explícitas
 
 - Vercel Preview está cerrada; no es un entorno de datos de prueba por sí misma.
-- El rate limiter actual es por instancia, no distribuido.
+- El rate limiter actual es por instancia, no distribuido. En Vercel usa el primer IP de `x-forwarded-for`/`x-real-ip` para no agrupar a todos los clientes detrás del proxy; esa cabecera es best-effort y puede ser spoofeada, por lo que no es una frontera de seguridad. Después de autenticar también se limita por UID.
 - Producción requiere credencial protegida y aprobación; no se creó ninguna.
 - No se modificaron Rules, IAM, facturación, workflows ni lockfiles.
 - El frontend sigue en Pages y los 28 juegos no cambian.
