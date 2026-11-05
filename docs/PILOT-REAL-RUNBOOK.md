@@ -66,6 +66,8 @@ Compatibilidad revisada contra `@vercel/oidc@4.0.6`: `getVercelOidcToken(options
 
 Fallback actualmente implementado, pero desactivado: `FIREBASE_SERVICE_ACCOUNT_JSON` como variable **Sensitive** de Vercel producción, service account mínima y aprobación explícita. No se creó, copió ni solicitó ninguna credencial. El código de producción sigue cerrado y el fallback existente solo se activa con `ACADEMIC_PRODUCTION_ENABLED=true` y `VERCEL_ENV=production`; Preview no puede abrirlo.
 
+Para el smoke real de solo lectura, ver [OIDC-SMOKE-RUNBOOK.md](OIDC-SMOKE-RUNBOOK.md). No ejecutar sin autorización separada.
+
 ### A.3 Preflight
 
 ```sh
