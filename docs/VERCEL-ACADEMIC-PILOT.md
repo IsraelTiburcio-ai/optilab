@@ -54,11 +54,12 @@ VITE_ACADEMIC_APP_ORIGIN=https://optilab.club
 | `ACADEMIC_MAX_TTL_SECONDS` | configuración | TTL de invitaciones, 1–604800 |
 | `ACADEMIC_PROGRESS_ATTEMPT_LIMIT` | configuración | intentos leídos por alumno, 1–2000; default 200 |
 | `ACADEMIC_CREDENTIAL_MODE` | configuración | `oidc`, `service-account` o `none`; default cerrado |
+| `VERCEL_OIDC_ISSUER` / `VERCEL_OIDC_AUDIENCE` | configuración | `https://oidc.vercel.com/optilab` / `https://vercel.com/optilab` |
 | `GCP_*` / `ACADEMIC_VERCEL_SUBJECT` | configuración | identidad federada OIDC/WIF, solo producción |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | **secreta** | fallback Admin; no se creó ni se incluyó aquí |
 | `VERCEL_ENV` | automática de Vercel | `preview`/`production`; no se falsifica |
 
-El adaptador OIDC/WIF está implementado en código, pero no configurado ni activado. Si se autoriza, configurar Vercel OIDC + Workload Identity Federation y el subject `owner:optilab:project:optilab-api:environment:production`; no se aplicaron IAM ni credenciales. El fallback `FIREBASE_SERVICE_ACCOUNT_JSON` solo puede usarse como variable Sensitive con aprobación; nunca commitear JSON, PEM, tokens o `.env` con secretos.
+El adaptador OIDC/WIF está implementado en código, pero no configurado ni activado. Si se autoriza, configurar Vercel OIDC + Workload Identity Federation, la audiencia Vercel `https://vercel.com/optilab`, el emisor `https://oidc.vercel.com/optilab` y el subject `owner:optilab:project:optilab-api:environment:production`; la audiencia WIF de Google se deriva por separado. No se aplicaron IAM ni credenciales. El fallback `FIREBASE_SERVICE_ACCOUNT_JSON` solo puede usarse como variable Sensitive con aprobación; nunca commitear JSON, PEM, tokens o `.env` con secretos.
 
 ## Despliegue del API (no ejecutado)
 
