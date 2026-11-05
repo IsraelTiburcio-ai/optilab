@@ -5,8 +5,14 @@ import type {Firestore} from 'firebase-admin/firestore';
 import {createConnection} from 'node:net';
 export type CredentialMode='none'|'service-account'|'oidc';
 export const PILOT_VERCEL_SUBJECT='owner:optilab:project:optilab-api:environment:production';
-export interface OidcConfig {projectNumber:string;serviceAccountEmail:string;poolId:string;providerId:string;audience:string;subject:string}
-export interface OidcCredentialDependencies {getVercelOidcToken:(options:{audience:string})=>Promise<string>;createClient:(config:Record<string,unknown>)=>unknown}
+export const PILOT_VERCEL_ISSUER='https://oidc.vercel.com/optilab';
+export const PILOT_VERCEL_AUDIENCE='https://vercel.com/optilab';
+export interface OidcConfig {projectNumber:string;serviceAccountEmail:string;poolId:string;providerId:string;vercelProjectId:string;vercelIssuer:string;vercelAudience:string;gcpAudience:string;subject:string}
+export interface OidcCredentialDependencies {
+  getVercelOidcToken:(options:{audience:string})=>Promise<string>;
+  verifyVercelOidcToken:(token:string,options:{issuer:string;audience:string;projectId:string;environment:'production'})=>Promise<{payload:{iss?:string;aud?:string;sub?:string;project_id?:string}}>;
+  createClient:(config:Record<string,unknown>)=>unknown;
+}
 export interface EmulatorAdmin {
   db:Firestore;auth:Auth;
   time:()=>unknown; timestamp:(milliseconds:number)=>unknown;
@@ -46,21 +52,23 @@ export function credentialMode(env:NodeJS.ProcessEnv=process.env):CredentialMode
   return env.FIREBASE_SERVICE_ACCOUNT_JSON?'service-account':'none';
 }
 export function oidcConfig(env:NodeJS.ProcessEnv=process.env):OidcConfig {
-  const projectNumber=env.GCP_PROJECT_NUMBER??'',serviceAccountEmail=env.GCP_SERVICE_ACCOUNT_EMAIL??'',poolId=env.GCP_WORKLOAD_IDENTITY_POOL_ID??'',providerId=env.GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID??'',audience=env.GCP_AUDIENCE??'',subject=env.ACADEMIC_VERCEL_SUBJECT??'';
+  const projectNumber=env.GCP_PROJECT_NUMBER??'',serviceAccountEmail=env.GCP_SERVICE_ACCOUNT_EMAIL??'',poolId=env.GCP_WORKLOAD_IDENTITY_POOL_ID??'',providerId=env.GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID??'',subject=env.ACADEMIC_VERCEL_SUBJECT??'',vercelProjectId=env.VERCEL_PROJECT_ID??'',vercelIssuer=env.VERCEL_OIDC_ISSUER??'',vercelAudience=env.VERCEL_OIDC_AUDIENCE??'';
   if(!/^\d{6,20}$/.test(projectNumber)||!/^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$/.test(serviceAccountEmail)||
     !/^[A-Za-z0-9_-]{1,64}$/.test(poolId)||!/^[A-Za-z0-9_-]{1,64}$/.test(providerId)||
-    !/^https:\/\/iam\.googleapis\.com\/projects\/\d+\/locations\/global\/workloadIdentityPools\/[A-Za-z0-9_-]+\/providers\/[A-Za-z0-9_-]+$/.test(audience)||
+    !/^prj_[A-Za-z0-9]+$/.test(vercelProjectId)||vercelIssuer!==PILOT_VERCEL_ISSUER||vercelAudience!==PILOT_VERCEL_AUDIENCE||
     subject!==PILOT_VERCEL_SUBJECT)throw new Error('ACADEMIC_ENV_REJECTED');
-  return Object.freeze({projectNumber,serviceAccountEmail,poolId,providerId,audience,subject});
-}
-function tokenSubject(token:string):string {
-  const parts=token.split('.');if(parts.length!==3)throw new Error('ACADEMIC_ENV_REJECTED');
-  try{const payload=JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8'));return typeof payload.sub==='string'?payload.sub:'';}catch{throw new Error('ACADEMIC_ENV_REJECTED');}
+  const gcpAudience=`//iam.googleapis.com/projects/${projectNumber}/locations/global/workloadIdentityPools/${poolId}/providers/${providerId}`;
+  return Object.freeze({projectNumber,serviceAccountEmail,poolId,providerId,vercelProjectId,vercelIssuer,vercelAudience,gcpAudience,subject});
 }
 export function createOidcCredential(config:OidcConfig,deps:OidcCredentialDependencies):Credential {
-  const supplier=async()=>{const token=await deps.getVercelOidcToken({audience:config.audience});if(tokenSubject(token)!==config.subject)throw new Error('ACADEMIC_ENV_REJECTED');return token;};
+  const supplier=async()=>{
+    const token=await deps.getVercelOidcToken({audience:config.vercelAudience});
+    const verified=await deps.verifyVercelOidcToken(token,{issuer:config.vercelIssuer,audience:config.vercelAudience,projectId:config.vercelProjectId,environment:'production'});
+    if(verified.payload.iss!==config.vercelIssuer||verified.payload.aud!==config.vercelAudience||verified.payload.sub!==config.subject||verified.payload.project_id!==config.vercelProjectId)throw new Error('ACADEMIC_ENV_REJECTED');
+    return token;
+  };
   return {getAccessToken:async()=>{
-    const client=await deps.createClient({type:'external_account',audience:`//iam.googleapis.com/projects/${config.projectNumber}/locations/global/workloadIdentityPools/${config.poolId}/providers/${config.providerId}`,
+    const client=await deps.createClient({type:'external_account',audience:config.gcpAudience,
       subject_token_type:'urn:ietf:params:oauth:token-type:jwt',token_url:'https://sts.googleapis.com/v1/token',
       service_account_impersonation_url:`https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${config.serviceAccountEmail}:generateAccessToken`,
       subject_token_supplier:{getSubjectToken:supplier}}) as {getAccessToken:()=>Promise<{token?:string|null}>;credentials:{expiry_date?:number}};
@@ -75,9 +83,10 @@ export async function productionAdmin(projectId:string,mode:CredentialMode=crede
   let credentialValue:unknown,oidc:OidcConfig|undefined;
   if(mode==='oidc'){
     oidc=oidcConfig(process.env);
-    const {getVercelOidcToken}=await import('@vercel/oidc');
+    const {getVercelOidcToken,verifyVercelOidcToken}=await import('@vercel/oidc');
     const {ExternalAccountClient}=await import('google-auth-library');
     credentialValue=createOidcCredential(oidc,{getVercelOidcToken:options=>getVercelOidcToken(options),
+      verifyVercelOidcToken:(token,options)=>verifyVercelOidcToken(token,options),
       createClient:config=>ExternalAccountClient.fromJSON(config as unknown as Parameters<typeof ExternalAccountClient.fromJSON>[0])});
   }else{
     const raw=process.env.FIREBASE_SERVICE_ACCOUNT_JSON;if(!raw||raw.length>20000)throw new Error('ACADEMIC_ENV_REJECTED');

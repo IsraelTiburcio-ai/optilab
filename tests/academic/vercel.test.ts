@@ -95,13 +95,16 @@ test('OIDC configuration is explicit, production-only and validates the Vercel s
   assert.equal(credentialMode({}),'none');
   assert.equal(credentialMode({FIREBASE_SERVICE_ACCOUNT_JSON:'{}'}),'service-account');
   assert.equal(credentialMode({ACADEMIC_CREDENTIAL_MODE:'oidc',FIREBASE_SERVICE_ACCOUNT_JSON:'{}'}),'oidc');
-  const env={GCP_PROJECT_NUMBER:'123456789012',GCP_SERVICE_ACCOUNT_EMAIL:'vercel@optilab-cd829.iam.gserviceaccount.com',
-    GCP_WORKLOAD_IDENTITY_POOL_ID:'vercel',GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID:'vercel',
-    GCP_AUDIENCE:'https://iam.googleapis.com/projects/123456789012/locations/global/workloadIdentityPools/vercel/providers/vercel',
+  const env={GCP_PROJECT_NUMBER:'401863964479',GCP_SERVICE_ACCOUNT_EMAIL:'optilab-api@optilab-cd829.iam.gserviceaccount.com',
+    GCP_WORKLOAD_IDENTITY_POOL_ID:'optilab-vercel',GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID:'optilab-vercel-oidc',
+    VERCEL_PROJECT_ID:'prj_test123',VERCEL_OIDC_ISSUER:'https://oidc.vercel.com/optilab',VERCEL_OIDC_AUDIENCE:'https://vercel.com/optilab',
     ACADEMIC_VERCEL_SUBJECT:'owner:optilab:project:optilab-api:environment:production'};
   const config=oidcConfig(env);assert.equal(config.subject,'owner:optilab:project:optilab-api:environment:production');
+  assert.equal(config.vercelAudience,'https://vercel.com/optilab');assert.equal(config.vercelIssuer,'https://oidc.vercel.com/optilab');
+  assert.equal(config.gcpAudience,'//iam.googleapis.com/projects/401863964479/locations/global/workloadIdentityPools/optilab-vercel/providers/optilab-vercel-oidc');
   for(const patch of [{GCP_PROJECT_NUMBER:'bad'},{GCP_SERVICE_ACCOUNT_EMAIL:'nope'},{GCP_WORKLOAD_IDENTITY_POOL_ID:''},
-    {GCP_AUDIENCE:'http://iam.googleapis.com/x'},{ACADEMIC_VERCEL_SUBJECT:'owner:optilab:project:optilab-api:environment:preview'},
+    {VERCEL_PROJECT_ID:'bad'},{VERCEL_OIDC_ISSUER:'https://oidc.vercel.com/other'},{VERCEL_OIDC_AUDIENCE:'https://vercel.com/other'},
+    {ACADEMIC_VERCEL_SUBJECT:'owner:optilab:project:optilab-api:environment:preview'},
     {ACADEMIC_VERCEL_SUBJECT:'owner:other:project:optilab-api:environment:production'},{ACADEMIC_VERCEL_SUBJECT:'owner:optilab:project:other:environment:production'}])assert.throws(()=>oidcConfig({...env,...patch}),/ACADEMIC_ENV_REJECTED/);
   const original={...process.env};delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;delete process.env.FIREBASE_AUTH_EMULATOR_HOST;delete process.env.FIRESTORE_EMULATOR_HOST;
   process.env.ACADEMIC_PRODUCTION_ENABLED='false';process.env.VERCEL_ENV='production';
@@ -110,16 +113,16 @@ test('OIDC configuration is explicit, production-only and validates the Vercel s
 
 test('OIDC credential renews the subject token on every access-token request without persisting the OIDC JWT',async()=>{
   const {createOidcCredential,PILOT_VERCEL_SUBJECT}=await import('../../server/academic/sdk');
-  const payload=(jti:string)=>Buffer.from(JSON.stringify({sub:PILOT_VERCEL_SUBJECT,jti})).toString('base64url');
-  const tokens=[`e30.${payload('one')}.sig`,`e30.${payload('two')}.sig`];
-  let subjectCalls=0,clients=0;
-  const credential=createOidcCredential({projectNumber:'123456789012',serviceAccountEmail:'vercel@optilab-cd829.iam.gserviceaccount.com',poolId:'vercel',providerId:'vercel',audience:'https://iam.googleapis.com/projects/123456789012/locations/global/workloadIdentityPools/vercel/providers/vercel',subject:PILOT_VERCEL_SUBJECT},{
-    getVercelOidcToken:async()=>tokens[subjectCalls++],
-    createClient:(config:any)=>{clients++;return {credentials:{expiry_date:Date.now()+60000},getAccessToken:async()=>{const subject=await config.subject_token_supplier.getSubjectToken();assert.equal(subject,tokens[clients-1]);return {token:`access-${clients}`};}};},
+  const config={projectNumber:'401863964479',serviceAccountEmail:'optilab-api@optilab-cd829.iam.gserviceaccount.com',poolId:'optilab-vercel',providerId:'optilab-vercel-oidc',vercelProjectId:'prj_test123',vercelIssuer:'https://oidc.vercel.com/optilab',vercelAudience:'https://vercel.com/optilab',gcpAudience:'//iam.googleapis.com/projects/401863964479/locations/global/workloadIdentityPools/optilab-vercel/providers/optilab-vercel-oidc',subject:PILOT_VERCEL_SUBJECT};
+  const tokens=['token-one','token-two'];let tokenCalls=0,verifies=0,clients=0;
+  const credential=createOidcCredential(config,{
+    getVercelOidcToken:async()=>tokens[tokenCalls++],
+    verifyVercelOidcToken:async(token,options)=>{verifies++;assert.equal(token,tokens[verifies-1]);assert.deepEqual(options,{issuer:config.vercelIssuer,audience:config.vercelAudience,projectId:config.vercelProjectId,environment:'production'});return {payload:{iss:config.vercelIssuer,aud:config.vercelAudience,sub:config.subject,project_id:config.vercelProjectId}};},
+    createClient:(value:any)=>{clients++;assert.equal(value.audience,config.gcpAudience);return {credentials:{expiry_date:Date.now()+60000},getAccessToken:async()=>{const subject=await value.subject_token_supplier.getSubjectToken();assert.equal(subject,tokens[clients-1]);return {token:`access-${clients}`};}};},
   });
-  assert.deepEqual(await credential.getAccessToken(),{access_token:'access-1',expires_in:60});
-  assert.deepEqual(await credential.getAccessToken(),{access_token:'access-2',expires_in:60});
-  assert.equal(clients,2);assert.equal(subjectCalls,2);
+  const first=await credential.getAccessToken();assert.equal(first.access_token,'access-1');assert.ok(first.expires_in>=59&&first.expires_in<=60);
+  const second=await credential.getAccessToken();assert.equal(second.access_token,'access-2');assert.ok(second.expires_in>=59&&second.expires_in<=60);
+  assert.equal(clients,2);assert.equal(tokenCalls,2);assert.equal(verifies,2);
 });
 test('shared limiter survives requests and concurrent requests cannot bypass the instance cap',async()=>{
   const {Readable}=await import('node:stream');
@@ -136,4 +139,62 @@ test('shared limiter survives requests and concurrent requests cannot bypass the
   const concurrentLimiter=new Limiter(1),concurrent=[makeRes(),makeRes()];await Promise.all(concurrent.map(res=>vercelHandler(makeReq('{}') as any,res as any,{...deps,limiter:concurrentLimiter})));
   assert.deepEqual(concurrent.map(res=>res.status).sort(),[200,429]);
   assert.ok(PILOT_VERCEL_SUBJECT.endsWith(':environment:production'));
+});
+
+test('OIDC verifier rejects wrong issuer, audience, project or subject before creating Google credentials',async()=>{
+  const {createOidcCredential,PILOT_VERCEL_SUBJECT,PILOT_VERCEL_ISSUER,PILOT_VERCEL_AUDIENCE}=await import('../../server/academic/sdk');
+  const config={projectNumber:'401863964479',serviceAccountEmail:'optilab-api@optilab-cd829.iam.gserviceaccount.com',poolId:'optilab-vercel',providerId:'optilab-vercel-oidc',vercelProjectId:'prj_test123',vercelIssuer:PILOT_VERCEL_ISSUER,vercelAudience:PILOT_VERCEL_AUDIENCE,gcpAudience:'//iam.googleapis.com/projects/401863964479/locations/global/workloadIdentityPools/optilab-vercel/providers/optilab-vercel-oidc',subject:PILOT_VERCEL_SUBJECT};
+  for(const payload of [
+    {iss:'https://oidc.vercel.com/other',aud:PILOT_VERCEL_AUDIENCE,sub:PILOT_VERCEL_SUBJECT,project_id:'prj_test123'},
+    {iss:PILOT_VERCEL_ISSUER,aud:'https://vercel.com/other',sub:PILOT_VERCEL_SUBJECT,project_id:'prj_test123'},
+    {iss:PILOT_VERCEL_ISSUER,aud:PILOT_VERCEL_AUDIENCE,sub:'owner:other:project:optilab-api:environment:production',project_id:'prj_test123'},
+    {iss:PILOT_VERCEL_ISSUER,aud:PILOT_VERCEL_AUDIENCE,sub:'owner:optilab:project:other:environment:production',project_id:'prj_test123'},
+    {iss:PILOT_VERCEL_ISSUER,aud:PILOT_VERCEL_AUDIENCE,sub:PILOT_VERCEL_SUBJECT,project_id:'prj_other'},
+  ]){
+    let created=0,access=false;
+    const credential=createOidcCredential(config,{getVercelOidcToken:async()=> 'token',verifyVercelOidcToken:async()=>({payload}),createClient:(value:any)=>{created++;return {credentials:{},getAccessToken:async()=>{await value.subject_token_supplier.getSubjectToken();access=true;return {token:'access'};}};}});
+    await assert.rejects(credential.getAccessToken(),/ACADEMIC_ENV_REJECTED/);assert.equal(created,1);assert.equal(access,false);
+  }
+});
+test('actual @vercel/oidc verifier validates locally signed JWTs and rejects tampered, expired or wrong claims',async()=>{
+  const {createRequire}=await import('node:module'),{EventEmitter}=await import('node:events'),{Readable}=await import('node:stream');
+  const {generateKeyPair,exportJWK,SignJWT}=await import('jose');
+  const {createOidcCredential,PILOT_VERCEL_SUBJECT,PILOT_VERCEL_ISSUER,PILOT_VERCEL_AUDIENCE}=await import('../../server/academic/sdk');
+  const {publicKey,privateKey}=await generateKeyPair('RS256');
+  const jwk=await exportJWK(publicKey);jwk.kid='test-key';jwk.use='sig';jwk.alg='RS256';
+  const jwks={keys:[jwk]};
+  const https=createRequire(import.meta.url)('node:https'),originalGet=https.get;
+  https.get=((_url:unknown,_options:unknown)=>{
+    const req=new EventEmitter() as any;req.destroy=()=>{};req.setTimeout=()=>req;
+    const res=Readable.from([Buffer.from(JSON.stringify(jwks))]) as any;res.statusCode=200;
+    queueMicrotask(()=>req.emit('response',res));return req;
+  }) as typeof https.get;
+  const issue=async(claims:Record<string,unknown>,expiresIn:number|string='5m')=>new SignJWT(claims)
+    .setProtectedHeader({alg:'RS256',kid:'test-key'}).setIssuedAt().setExpirationTime(expiresIn as any).sign(privateKey);
+  const config={projectNumber:'401863964479',serviceAccountEmail:'optilab-api@optilab-cd829.iam.gserviceaccount.com',poolId:'optilab-vercel',providerId:'optilab-vercel-oidc',vercelProjectId:'prj_test123',vercelIssuer:PILOT_VERCEL_ISSUER,vercelAudience:PILOT_VERCEL_AUDIENCE,gcpAudience:'//iam.googleapis.com/projects/401863964479/locations/global/workloadIdentityPools/optilab-vercel/providers/optilab-vercel-oidc',subject:PILOT_VERCEL_SUBJECT};
+  try{
+    const {verifyVercelOidcToken}=await import('@vercel/oidc');
+    const claims={iss:PILOT_VERCEL_ISSUER,aud:PILOT_VERCEL_AUDIENCE,sub:PILOT_VERCEL_SUBJECT,project_id:'prj_test123',environment:'production'};
+    const valid=await issue(claims);
+    assert.equal((await verifyVercelOidcToken(valid,{issuer:PILOT_VERCEL_ISSUER,audience:PILOT_VERCEL_AUDIENCE,projectId:'prj_test123',environment:'production'})).payload.sub,PILOT_VERCEL_SUBJECT);
+    let accesses=0;
+    const credential=createOidcCredential(config,{
+      getVercelOidcToken:async()=>valid,
+      verifyVercelOidcToken:(token,options)=>verifyVercelOidcToken(token,options),
+      createClient:(value:any)=>({credentials:{expiry_date:Date.now()+60000},getAccessToken:async()=>{accesses++;await value.subject_token_supplier.getSubjectToken();return {token:'access-local'};}}),
+    });
+    const localAccess=await credential.getAccessToken();assert.equal(localAccess.access_token,'access-local');assert.ok(localAccess.expires_in>=59&&localAccess.expires_in<=60);assert.equal(accesses,1);
+    const tampered=valid.slice(0,-4)+'AAAA';
+    await assert.rejects(verifyVercelOidcToken(tampered,{issuer:PILOT_VERCEL_ISSUER,audience:PILOT_VERCEL_AUDIENCE,projectId:'prj_test123',environment:'production'}),/signature|verification/i);
+    const expired=await issue(claims,Math.floor(Date.now()/1000)-60);
+    await assert.rejects(verifyVercelOidcToken(expired,{issuer:PILOT_VERCEL_ISSUER,audience:PILOT_VERCEL_AUDIENCE,projectId:'prj_test123',environment:'production'}),/expired|exp/i);
+    const badIssuer=await issue({...claims,iss:'https://oidc.vercel.com/other'});
+    await assert.rejects(verifyVercelOidcToken(badIssuer,{issuer:PILOT_VERCEL_ISSUER,audience:PILOT_VERCEL_AUDIENCE,projectId:'prj_test123',environment:'production'}),/issuer|claim/i);
+    const badAudience=await issue({...claims,aud:'https://vercel.com/other'});
+    await assert.rejects(verifyVercelOidcToken(badAudience,{issuer:PILOT_VERCEL_ISSUER,audience:PILOT_VERCEL_AUDIENCE,projectId:'prj_test123',environment:'production'}),/audience|claim/i);
+    const badProject=await issue({...claims,project_id:'prj_other'});
+    await assert.rejects(verifyVercelOidcToken(badProject,{issuer:PILOT_VERCEL_ISSUER,audience:PILOT_VERCEL_AUDIENCE,projectId:'prj_test123',environment:'production'}),/project_id|claim/i);
+    const preview=await issue({...claims,environment:'preview'});
+    await assert.rejects(verifyVercelOidcToken(preview,{issuer:PILOT_VERCEL_ISSUER,audience:PILOT_VERCEL_AUDIENCE,projectId:'prj_test123',environment:'production'}),/environment|claim/i);
+  }finally{https.get=originalGet;}
 });
