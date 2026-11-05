@@ -1,9 +1,9 @@
 import type {IncomingMessage,ServerResponse} from 'node:http';
-import {handleAcademicRequest,Limiter,type HandlerPolicy} from './handler';
-import {vercelRuntimeConfig,type AcademicRuntime} from './runtime';
-import {productionAdmin,type EmulatorAdmin} from './sdk';
-import {AcademicRepository} from './repository';
-import {AcademicService} from './service';
+import {handleAcademicRequest,Limiter,type HandlerPolicy} from './handler.js';
+import {vercelRuntimeConfig,type AcademicRuntime} from './runtime.js';
+import {productionAdmin,type EmulatorAdmin} from './sdk.js';
+import {AcademicRepository} from './repository.js';
+import {AcademicService} from './service.js';
 
 let cached:{admin:EmulatorAdmin;service:AcademicService;limiter:Limiter;runtime:AcademicRuntime}|undefined;
 function closed(res:ServerResponse) {

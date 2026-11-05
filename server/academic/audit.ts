@@ -1,8 +1,8 @@
-import type {Actor,Data,Operation,Input} from './contracts';
-import type {AcademicTransaction} from './repository';
-import {groupPath,hash} from './repository';
-import {context} from './models';
-import type {Plan} from './plans';
+import type {Actor,Data,Operation,Input} from './contracts.js';
+import type {AcademicTransaction} from './repository.js';
+import {groupPath,hash} from './repository.js';
+import {context} from './models.js';
+import type {Plan} from './plans.js';
 export function commitPlan(tx:AcademicTransaction,actor:Actor,operation:Operation,input:Input,commandId:string,fingerprint:string,plan:Plan,time:()=>unknown):Data {
   for(const write of plan.writes)tx.set(write.path,write.data);
   for(const event of plan.events) {

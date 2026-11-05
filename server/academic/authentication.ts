@@ -1,7 +1,7 @@
 import type {Auth} from 'firebase-admin/auth';
-import {ApiError} from './errors';
-import {identifier} from './validation';
-import type {Actor} from './contracts';
+import {ApiError} from './errors.js';
+import {identifier} from './validation.js';
+import type {Actor} from './contracts.js';
 export async function authenticate(auth:Auth,header:string|undefined,expectedProjectId?:string):Promise<Actor> {
   if(!header||header.length>8200||!/^Bearer [A-Za-z0-9_.-]+$/.test(header))throw new ApiError(401,'UNAUTHENTICATED','Se requiere una sesión válida.');
   try {

@@ -1,15 +1,15 @@
 import {randomBytes,timingSafeEqual} from 'node:crypto';
-import type {Actor,Data,Input,Scope} from './contracts';
-import {activeContext,type Reader} from './authorization';
-import {groupPath,hash} from './repository';
-import {context,millis} from './models';
-import {exact,integer,identifier} from './validation';
-import {ApiError,conflict,unavailableInvite} from './errors';
-import {plan,type Plan} from './plans';
-import type {Clock} from './invitations';
-import {membershipState,admissionWrites} from './memberships';
-import {profileDocument,type AuthIdentity} from './profiles';
-import {playerDocument,reservation,tagPath} from './playerModel';
+import type {Actor,Data,Input,Scope} from './contracts.js';
+import {activeContext,type Reader} from './authorization.js';
+import {groupPath,hash} from './repository.js';
+import {context,millis} from './models.js';
+import {exact,integer,identifier} from './validation.js';
+import {ApiError,conflict,unavailableInvite} from './errors.js';
+import {plan,type Plan} from './plans.js';
+import type {Clock} from './invitations.js';
+import {membershipState,admissionWrites} from './memberships.js';
+import {profileDocument,type AuthIdentity} from './profiles.js';
+import {playerDocument,reservation,tagPath} from './playerModel.js';
 export const enrollmentLinkPath=(s:Scope)=>`${groupPath(s)}/enrollmentLink/current`;
 function linkDocument(raw:Data|null,s:Scope):Data|null {
   if(!raw)return null;

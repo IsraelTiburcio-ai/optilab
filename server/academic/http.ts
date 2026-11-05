@@ -1,9 +1,9 @@
 import {createServer,type Server} from 'node:http';
-import {PROJECT,type LocalConfig} from './config';
-import type {EmulatorAdmin} from './sdk';
-import {assertEmulatedDatabase} from './sdk';
-import type {AcademicService} from './service';
-import {handleAcademicRequest,Limiter,type HandlerPolicy} from './handler';
+import {PROJECT,type LocalConfig} from './config.js';
+import type {EmulatorAdmin} from './sdk.js';
+import {assertEmulatedDatabase} from './sdk.js';
+import type {AcademicService} from './service.js';
+import {handleAcademicRequest,Limiter,type HandlerPolicy} from './handler.js';
 export function localHandlerPolicy(config:LocalConfig):HandlerPolicy {
   if(config.host!=='127.0.0.1'||config.projectId!==PROJECT)throw new Error('ACADEMIC_ENV_REJECTED');
   return {allowedOrigins:['http://127.0.0.1:5195','http://localhost:5195'],requireLoopback:true,rateLimit:config.rateLimit,trustProxy:false,

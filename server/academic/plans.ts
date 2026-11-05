@@ -1,4 +1,4 @@
-import type {Data,Scope} from './contracts';
+import type {Data,Scope} from './contracts.js';
 export interface Write {path:string;data:Data}
 export interface Event {scope:Scope;action:string;subjectUid:string|null;version:number|null}
 export interface Plan {writes:Write[];events:Event[];result:Data;secret?:string}

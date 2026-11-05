@@ -1,12 +1,12 @@
-import type {Actor,Data,Input,Scope} from './contracts';
-import {activeContext,type Policy,type Reader} from './authorization';
-import {grant} from './authorization';
-import {coursePath,groupPath,hash,type AcademicReadView} from './repository';
-import {ApiError,conflict,denied,invalid} from './errors';
-import {plan,type Plan} from './plans';
-import {exact,identifier,integer,scopeOf} from './validation';
-import {millis} from './models';
-import {approvedActivityUrl,providerTelemetry,type ActivityProvider} from './activityUrls';
+import type {Actor,Data,Input,Scope} from './contracts.js';
+import {activeContext,type Policy,type Reader} from './authorization.js';
+import {grant} from './authorization.js';
+import {coursePath,groupPath,hash,type AcademicReadView} from './repository.js';
+import {ApiError,conflict,denied,invalid} from './errors.js';
+import {plan,type Plan} from './plans.js';
+import {exact,identifier,integer,scopeOf} from './validation.js';
+import {millis} from './models.js';
+import {approvedActivityUrl,providerTelemetry,type ActivityProvider} from './activityUrls.js';
 
 const gymIds=[1,2,3,4,5] as const;
 const definitionKeys=['schemaVersion','courseId','activityId','provider','resourceId','sourceUrl','embedUrl','title','description','instructions','groupIds','telemetry','status','revision','publishedRevision','createdBy','createdAt','updatedAt','publishedAt'];

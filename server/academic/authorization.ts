@@ -1,7 +1,7 @@
-import type {Data,Scope} from './contracts';
-import {exact} from './validation';
-import {denied} from './errors';
-import {coursePath,groupPath,termPath} from './repository';
+import type {Data,Scope} from './contracts.js';
+import {exact} from './validation.js';
+import {denied} from './errors.js';
+import {coursePath,groupPath,termPath} from './repository.js';
 export interface Reader {get(path:string):Promise<Data|null>}
 export type GroupCapability='manageInvitations'|'manageMembers'|'readHistory';
 export function contextData(d:Data|null,s:Scope,kind:'course'|'term'|'group'):boolean {

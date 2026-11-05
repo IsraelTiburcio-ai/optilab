@@ -132,3 +132,8 @@ Pruebas específicas del adaptador: `node --import tsx --test tests/academic/ver
 - Producción requiere credencial protegida y aprobación; no se creó ninguna.
 - No se modificaron Rules, IAM, facturación, workflows ni lockfiles.
 - El frontend sigue en Pages y los 28 juegos no cambian.
+
+
+## ESM hotfix (post-deploy)
+
+Vercel transpila TypeScript a `.js` pero conserva los especificadores relativos; con `"type":"module"`, Node ESM exige extensión. Todos los imports relativos de `server/academic/**/*.ts` y `api/v1/[operation].ts` usan `.js`. El catálogo se importa como JSON estático con atributo de tipo, por lo que `@vercel/nft` lo incluye. Evidencia: `docs/evidence/vercel-esm-hotfix.txt`. No se cambió lógica académica, Firebase, permisos ni infraestructura.

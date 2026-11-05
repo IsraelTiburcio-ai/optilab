@@ -1,6 +1,6 @@
-import {invalid,ApiError} from './errors';
-import type {Data,Input,Operation,Scope} from './contracts';
-import {normalizeGamertag} from './playerModel';
+import {invalid,ApiError} from './errors.js';
+import type {Data,Input,Operation,Scope} from './contracts.js';
+import {normalizeGamertag} from './playerModel.js';
 const shapes:Record<Operation,string[]>={
   myScopes:['kind','limit','cursor','courseId'],roster:['courseId','termId','groupId','limit','cursor'],
   requestStatus:['courseId','termId','groupId','requestId','inviteId'],groupInvitations:['courseId','termId','groupId','limit','cursor'],groupProgress:['courseId','termId','groupId','periodDays'],

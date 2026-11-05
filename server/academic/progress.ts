@@ -1,11 +1,11 @@
-import type {Actor,Data,Input,Scope} from './contracts';
-import type {Policy} from './authorization';
-import {grant} from './authorization';
-import type {AcademicReadView} from './repository';
-import {coursePath,groupPath} from './repository';
-import {roster,millis} from './models';
-import {teacherProfile} from './profiles';
-import {catalogGyms,gameById} from './catalog';
+import type {Actor,Data,Input,Scope} from './contracts.js';
+import type {Policy} from './authorization.js';
+import {grant} from './authorization.js';
+import type {AcademicReadView} from './repository.js';
+import {coursePath,groupPath} from './repository.js';
+import {roster,millis} from './models.js';
+import {teacherProfile} from './profiles.js';
+import {catalogGyms,gameById} from './catalog.js';
 
 type SignalKind='opened'|'declared'|'reported'|'completed';
 interface Activity {

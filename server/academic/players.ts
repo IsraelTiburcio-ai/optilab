@@ -1,9 +1,9 @@
-import type {Actor,Input,Data} from './contracts';
-import type {Reader} from './authorization';
-import {ApiError,conflict} from './errors';
-import {normalizeGamertag,playerDocument,reservation,tagPath,publicPlayer} from './playerModel';
-import {updateProfile,type AuthIdentity} from './profiles';
-import {plan,type Plan} from './plans';
+import type {Actor,Input,Data} from './contracts.js';
+import type {Reader} from './authorization.js';
+import {ApiError,conflict} from './errors.js';
+import {normalizeGamertag,playerDocument,reservation,tagPath,publicPlayer} from './playerModel.js';
+import {updateProfile,type AuthIdentity} from './profiles.js';
+import {plan,type Plan} from './plans.js';
 export async function ownPlayer(r:Reader,uid:string):Promise<Data>{
   const p=playerDocument(await r.get(`playerIdentities/${uid}`),uid);
   if(p){const index=reservation(await r.get(tagPath(p.normalizedGamertag)),p.normalizedGamertag);if(!index||index.uid!==uid||index.status!=='reserved')throw conflict();}

@@ -1,7 +1,7 @@
-import type {Data,Scope} from './contracts';
-import {exact,identifier,integer,isRecord} from './validation';
-import {conflict,unavailableInvite} from './errors';
-import {scopeKey,hash} from './repository';
+import type {Data,Scope} from './contracts.js';
+import {exact,identifier,integer,isRecord} from './validation.js';
+import {conflict,unavailableInvite} from './errors.js';
+import {scopeKey,hash} from './repository.js';
 export const context=(s:Scope)=>({schemaVersion:2,...s});
 export function scoped(d:Data|null,s:Scope):d is Data{return !!d&&d.schemaVersion===2&&d.courseId===s.courseId&&d.termId===s.termId&&d.groupId===s.groupId;}
 export const millis=(v:unknown):number=>v&&typeof v==='object'&&'toMillis' in v&&typeof v.toMillis==='function'?v.toMillis():NaN;
