@@ -40,14 +40,34 @@ La autorización se compara con SHA-256 y `timingSafeEqual`. El secreto es indep
 
 ### Validaciones
 
-1. `getVercelOidcToken({audience:'https://vercel.com/optilab'})`.
-2. `verifyVercelOidcToken` contra el JWKS de Vercel.
+1. Lectura del token desde `x-vercel-oidc-token` del `IncomingMessage`.
+2. `verifyVercelOidcToken` contra el JWKS de Vercel **antes** de usar el token.
 3. Claims exactos: `iss=https://oidc.vercel.com/optilab`, `aud=https://vercel.com/optilab`, `project_id=VERCEL_PROJECT_ID`, `environment=production` y `sub=owner:optilab:project:optilab-api:environment:production`.
 4. `ExternalAccountClient` con:
    `//iam.googleapis.com/projects/401863964479/locations/global/workloadIdentityPools/optilab-vercel/providers/optilab-vercel-oidc`.
 5. Suplantación de `optilab-api@optilab-cd829.iam.gserviceaccount.com`.
 6. Access token no vacío y expiración futura; solo se devuelve `accessTokenExpiresInSeconds`.
 7. Sin escrituras, sin persistencia y sin logs de credenciales.
+
+### Causa raíz del 502
+
+`getVercelOidcToken()` no lee `IncomingMessage.headers`. Lee el contexto global de Vercel:
+
+`globalThis[Symbol.for('@vercel/request-context')].headers['x-vercel-oidc-token']`
+
+El handler Node de `api/internal/oidc-smoke.ts` no rellena ese contexto, aunque Vercel sí entrega la cabecera en `req.headers`. Por eso la versión anterior terminaba en `OIDC_TOKEN_UNAVAILABLE` antes de verificar nada.
+
+La opción `{audience}` existe en los tipos instalados de `@vercel/oidc@4.0.6`, pero el problema era la recuperación del token. Además, el token de función ya usa por defecto `aud=https://vercel.com/optilab`, según la referencia oficial de Vercel. La corrección no intercambia el token: lee la cabecera, lo verifica criptográficamente y valida claims exactos. Si la audiencia no coincide, falla cerrado.
+
+El mismo patrón se aplica al backend académico: `vercelHandler` guarda el token de la cabecera en `AsyncLocalStorage` durante la petición y `productionAdmin()` lo consume desde ahí, sin depender del contexto global de Vercel.
+
+### Pruebas de regresión
+
+- Simulan la entrega de `x-vercel-oidc-token` en un `IncomingMessage`.
+- Demuestran que `getVercelOidcToken()` no ve esa cabecera sin el contexto global.
+- Verifican que el token de cabecera se valida antes de usarse.
+- Rechazan claims/audiencia/subject incorrectos, ausencia de contexto y concurrencia entre peticiones.
+- Confirman que no se devuelven tokens ni cabeceras.
 
 ## 3. Archivos de la preparación
 

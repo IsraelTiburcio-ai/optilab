@@ -62,7 +62,7 @@ Pendiente de verificación real (no declarar producción operativa):
 - Verificar el índice `reportedAttempts.observedAt` en el proyecto real.
 - Mantener `ACADEMIC_PRODUCTION_ENABLED=false` hasta completar el smoke y la aprobación.
 
-Compatibilidad revisada contra `@vercel/oidc@4.0.6`: `getVercelOidcToken(options?)` acepta `audience` y devuelve un token; `verifyVercelOidcToken(token, {issuer,audience,projectId,environment})` verifica firma contra JWKS remoto y los claims. La prueba local ejecuta el verificador real de `@vercel/oidc` con un JWT/JWKS de prueba, interceptando solo `https.get`, para validar criptográficamente el flujo sin red ni credenciales; no sustituye el smoke real.
+Compatibilidad revisada contra `@vercel/oidc@4.0.6`: `getVercelOidcToken(options?)` acepta `audience` y devuelve un token; `verifyVercelOidcToken(token, {issuer,audience,projectId,environment})` verifica firma contra JWKS remoto y los claims. En el handler Node, el runtime debe leer `x-vercel-oidc-token` directamente de `IncomingMessage`; `getVercelOidcToken` depende del contexto global de Vercel y no de `req.headers`. La prueba local ejecuta el verificador real de `@vercel/oidc` con un JWT/JWKS de prueba, interceptando solo `https.get`, para validar criptográficamente el flujo sin red ni credenciales; no sustituye el smoke real.
 
 Fallback actualmente implementado, pero desactivado: `FIREBASE_SERVICE_ACCOUNT_JSON` como variable **Sensitive** de Vercel producción, service account mínima y aprobación explícita. No se creó, copió ni solicitó ninguna credencial. El código de producción sigue cerrado y el fallback existente solo se activa con `ACADEMIC_PRODUCTION_ENABLED=true` y `VERCEL_ENV=production`; Preview no puede abrirlo.
 
