@@ -279,6 +279,16 @@ test('bounds, traversal, public Origin and non-administrative reads are denied',
   assert.equal((await call('teacherA','listUsers',{})).status,404);
   assert.equal((await call('teacherA','readProgress',{uid:f.actors.studentA.uid})).status,404);
 });
+test('CORS accepts the exact local origin and rejects methods/content types',async()=>{
+  const origin='http://127.0.0.1:5195';
+  const options=await fetch(`${base}/v1/roster`,{method:'OPTIONS',headers:{Origin:origin}});
+  assert.equal(options.status,204);assert.equal(options.headers.get('Access-Control-Allow-Origin'),origin);
+  const allowed=await fetch(`${base}/v1/roster`,{method:'POST',headers:{Authorization:`Bearer ${tokens.teacherA}`,'Content-Type':'application/json',Origin:origin},body:JSON.stringify(s())});
+  assert.equal(allowed.status,200);assert.equal(allowed.headers.get('Access-Control-Allow-Origin'),origin);
+  const wrongOrigin=await fetch(`${base}/v1/roster`,{method:'OPTIONS',headers:{Origin:'https://preview.example.test'}});assert.equal(wrongOrigin.status,403);
+  const wrongMethod=await fetch(`${base}/v1/roster`,{method:'GET'});assert.equal(wrongMethod.status,404);
+  const wrongType=await fetch(`${base}/v1/roster`,{method:'POST',headers:{Authorization:`Bearer ${tokens.teacherA}`,'Content-Type':'text/plain'},body:'{}'});assert.equal(wrongType.status,400);
+});
 test('rate limiting rejects before academic reads and writes',async()=>{
   let calls=0;
   const service=new AcademicService(new AcademicRepository(sdk.db),sdk,3600,{onMetrics:()=>calls++});

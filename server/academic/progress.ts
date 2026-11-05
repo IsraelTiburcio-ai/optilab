@@ -9,17 +9,17 @@ import {catalogGyms,gameById} from './catalog';
 
 type SignalKind='opened'|'declared'|'reported'|'completed';
 interface Activity {
-  opened:Set<string>;declared:Set<string>;reported:Set<string>;completed:Set<string>;last:number|null;
+  opened:Set<string>;declared:Set<string>;reported:Set<string>;completed:Set<string>;last:number|null;truncated:boolean;
 }
 interface ActiveMember {uid:string;label:string}
-const blankActivity=():Activity=>({opened:new Set(),declared:new Set(),reported:new Set(),completed:new Set(),last:null});
+const blankActivity=():Activity=>({opened:new Set(),declared:new Set(),reported:new Set(),completed:new Set(),last:null,truncated:false});
 const inPeriod=(at:number,from:number|null,to:number)=>Number.isFinite(at)&&(from===null||at>=from)&&at<=to;
 const countGames=(games:string[],set:Set<string>)=>games.reduce((total,id)=>total+(set.has(id)?1:0),0);
 const attemptId=/^[-A-Za-z0-9_:]{1,160}$/;
 const attemptResultKeys=['reason','correct','total','attempts','errors','durationMs','timeouts','score','accuracy','matchedPairs','totalPairs','elapsedMs','completed'];
 const attemptNumbers=['correct','total','attempts','errors','durationMs','timeouts','score','accuracy','matchedPairs','totalPairs','elapsedMs'];
 
-export async function groupProgress(repo:AcademicReadView,policy:Policy,actor:Actor,input:Input):Promise<Data> {
+export async function groupProgress(repo:AcademicReadView,policy:Policy,actor:Actor,input:Input,attemptLimit=200):Promise<Data> {
   const s:Scope={courseId:input.courseId!,termId:input.termId!,groupId:input.groupId!};
   await policy.group(repo,actor.uid,s,'readHistory');
   const now=Date.now(),days=input.periodDays??30;
@@ -27,7 +27,7 @@ export async function groupProgress(repo:AcademicReadView,policy:Policy,actor:Ac
   const period={days,from:from===null?null:new Date(from).toISOString(),to:new Date(now).toISOString()};
   const {members,truncated}=await activeMembers(repo,s);
   const students=await Promise.all(members.map(async member=>{
-    const [profile,activity]=await Promise.all([teacherProfile(repo,s,member.uid),readActivity(repo,member.uid,from,now)]);
+    const [profile,activity]=await Promise.all([teacherProfile(repo,s,member.uid),readActivity(repo,member.uid,from,now,attemptLimit)]);
     return {
       uid:member.uid,name:profile?.fullName??member.label,email:profile?.email??null,
       emailVerified:profile?.emailVerified===true,gamertag:profile?.gameIdentity?.nickname??null,
@@ -53,6 +53,7 @@ export async function groupProgress(repo:AcademicReadView,policy:Policy,actor:Ac
     generatedAt:period.to,
     studentsTotal:students.length,
     studentsActive:students.filter(student=>student.activity.last!==null||student.activity.opened.size||student.activity.declared.size||student.activity.reported.size||student.activity.completed.size).length,
+    activityDataTruncated:students.some(student=>student.activity.truncated),
     activities:{opened:opened.size,declared:declared.size,reported:reported.size,completed:completed.size,validated:0},
     gyms:catalogGyms.map(gym=>({gymId:gym.gymId,title:gym.title,totalGames:gym.totalGames,
       opened:countGames(gym.games,opened),practiced:countGames(gym.games,declared),reported:countGames(gym.games,reported),
@@ -80,12 +81,13 @@ async function activeMembers(repo:AcademicReadView,s:Scope):Promise<{members:Act
   }
 }
 
-async function readActivity(repo:AcademicReadView,uid:string,from:number|null,to:number):Promise<Activity> {
+async function readActivity(repo:AcademicReadView,uid:string,from:number|null,to:number,attemptLimit=200):Promise<Activity> {
   const result=blankActivity();
   const [head,attempts]=await Promise.all([
     repo.get(`users/${uid}/sync/current`),
-    repo.page(`users/${uid}/reportedAttempts`,2000),
+    repo.page(`users/${uid}/reportedAttempts`,attemptLimit),
   ]);
+  result.truncated=attempts.length===attemptLimit;
   const signal=(kind:SignalKind,gameId:string,at:number)=>{
     if(!inPeriod(at,from,to)||!gameById.has(gameId))return;
     result[kind].add(gameId);

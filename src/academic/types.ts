@@ -42,7 +42,7 @@ export interface PublishedActivities {gyms:Array<{gymId:number;activities:Publis
 
 export interface GroupProgress {
   scope:Scope;period:{days:number;from:string|null;to:string};generatedAt:string;
-  studentsTotal:number;studentsActive:number;
+  studentsTotal:number;studentsActive:number;activityDataTruncated:boolean;
   activities:{opened:number;declared:number;reported:number;completed:number;validated:number};
   gyms:GroupProgressGym[];students:GroupProgressStudent[];truncated:boolean;
 }

@@ -9,6 +9,7 @@ import {useAcademicPage} from './usePage';
 import {Students,Requests} from './Students';
 import {Invitations} from './Invitations';
 import {ClassDashboard} from './ClassDashboard';
+import {academicMode} from './config';
 import {Activities} from './Activities';
 import {Creation} from './Creation';
 import {GroupDirectory,teachingKey} from './GroupDirectory';
@@ -65,7 +66,7 @@ function TeacherSession({uid}:{uid:string}) {
     try {
       const result=await call(intent.operation,intent.input);
       if(!current())return;
-      intent.done?.(result);setIntent(null);setNotice(result.replayed?'Operación confirmada mediante su recibo; no se duplicó.':'Operación confirmada por el API local.');
+      intent.done?.(result);setIntent(null);setNotice(result.replayed?'Operación confirmada mediante su recibo; no se duplicó.':'Operación confirmada por el API académico.');
       setRefresh(v=>v+1);
       if(intent.operation==='createGroup'){
         const input=intent.input as Api['createGroup']['input'];setCreating(false);setSelected('');
@@ -77,7 +78,7 @@ function TeacherSession({uid}:{uid:string}) {
   }
   function cancel(){if(busy)return;setIntent(null);if(commandError){setRefresh(v=>v+1);if(commandError.status===403||commandError.status===401)void discover();}setCommandError(null);}
   return <section className="teacher-panel" aria-label="Administración académica local">
-    <header className="teacher-hero paper"><div><span className="eyebrow"><Compass size={17}/> CUADERNO DE EXPEDICIÓN · OPTIMIZACIÓN I</span><h1>Panel de la profesora</h1><p>Organiza tus grupos y acompaña su próxima aventura.</p><span className="teacher-badge"><Shield size={15}/> Solo emuladores · datos sintéticos</span></div><div className="teacher-actions"><Link className="button" to="/cuenta">Cuenta</Link><button className="button" onClick={()=>void auth.logout().catch(()=>{if(current())setError('No se pudo cerrar la sesión. Reintenta desde Cuenta.');})}>Cerrar sesión docente</button></div></header>
+    <header className="teacher-hero paper"><div><span className="eyebrow"><Compass size={17}/> CUADERNO DE EXPEDICIÓN · OPTIMIZACIÓN I</span><h1>Panel de la profesora</h1><p>Organiza tus grupos y acompaña su próxima aventura.</p><span className="teacher-badge"><Shield size={15}/> {academicMode==='emulator'?'Solo emuladores · datos sintéticos':'API académica configurada'}</span></div><div className="teacher-actions"><Link className="button" to="/cuenta">Cuenta</Link><button className="button" onClick={()=>void auth.logout().catch(()=>{if(current())setError('No se pudo cerrar la sesión. Reintenta desde Cuenta.');})}>Cerrar sesión docente</button></div></header>
     {notice&&<p ref={noticeRef} tabIndex={-1} className="teacher-success" role="status">{notice}</p>}
     {error&&<p className="teacher-error" role="alert">{error}</p>}
     <div className="teacher-toolbar"><button className="button" disabled={disabled||loading} onClick={()=>{setNotice('');setReset(v=>v+1);void discover(false,scope?scope:undefined);}}>Actualizar grupos y datos</button></div>

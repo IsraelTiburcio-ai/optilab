@@ -21,11 +21,12 @@ export interface ServiceOptions {
   /** Operator fixture hook to revoke a grant between preflight and transaction. */
   afterPreflight?:(operation:Operation,actor:Actor)=>Promise<void>;
   onMetrics?:(operation:string,metrics:Metrics)=>void;
+  progressAttemptLimit?:number;
 }
 export class AcademicService {
-  private policy:Policy;private clock:Clock;
+  private policy:Policy;private clock:Clock;private progressAttemptLimit:number;
   constructor(private repo:AcademicRepository,private sdk:EmulatorAdmin,private maxTtl:number,private options:ServiceOptions={}) {
-    this.policy=options.policy??defaultPolicy;this.clock={now:()=>Date.now(),time:sdk.time,timestamp:sdk.timestamp};
+    this.policy=options.policy??defaultPolicy;this.progressAttemptLimit=options.progressAttemptLimit??200;this.clock={now:()=>Date.now(),time:sdk.time,timestamp:sdk.timestamp};
   }
   private async authorize(r:Reader,actor:Actor,op:Operation,i:Input) {
     if(op==='requestMembership'||op==='updateAcademicProfile'||op==='savePlayerIdentity')return; // Own UID only.
@@ -41,7 +42,7 @@ export class AcademicService {
   private async perform(actor:Actor,name:string,value:unknown):Promise<Data> {
     const {operation:op,input:i}=parseInput(name,value,this.maxTtl);
     // Authorization, metadata and page rows share one read-only snapshot.
-    if(reads.has(op))return this.repo.readTransaction(view=>readOperation(view,this.policy,actor,op,i));
+    if(reads.has(op))return this.repo.readTransaction(view=>readOperation(view,this.policy,actor,op,i,this.progressAttemptLimit));
     await this.authorize(this.repo,actor,op,i);
     let identity:AuthIdentity|null=null;
     if(['updateAcademicProfile','savePlayerIdentity','redeemInvitation'].includes(op)){

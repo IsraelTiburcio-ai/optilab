@@ -159,3 +159,8 @@ Muestras sin retry de la suite (2026-10-23). Son intentos de documentos leídos 
 Referencia Spark Firestore: 50000 reads/día, 20000 writes/día, 20000 deletes/día, 1 GiB almacenado y 10 GiB salientes/mes. No son cuotas separadas por grupo ni garantías antiabuso. Estimación inicial de metadata 1–5 MiB/semestre requiere revisar crecimiento de recibos/eventos/índices y retención; no se activan TTL ni deletes automáticos. API no consulta status+fecha: usa ID y filtro status opcional. No necesita un índice compuesto nuevo para estas consultas; el emulador no valida requisitos de índices productivos. Revisar índices/exenciones y coste antes de una aprobación de producción.
 
 Hosting/TLS/CPU/disponibilidad de un servidor externo tienen presupuesto separado, sin cotización aprobada. Pasar tests locales no valida IAM/WIF, tokens firmados reales, seguridad TLS ni cuotas facturadas. Continúan abiertas las puertas productivas de #3/#4 y el alcance restante de #5 (UI, operación, políticas reales y lanzamiento).
+
+
+## Preparación Vercel
+
+El API local de este documento no es el despliegue de Vercel. La configuración cerrada por defecto, variables y activación controlada están en [VERCEL-ACADEMIC-PILOT.md](VERCEL-ACADEMIC-PILOT.md). No se desplegó ni se usó Firestore productivo.

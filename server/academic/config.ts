@@ -1,5 +1,5 @@
 export const PROJECT='demo-optilab-sync';
-export interface LocalConfig {projectId:typeof PROJECT;host:'127.0.0.1';port:number;rateLimit:number;maxTtlSeconds:number}
+export interface LocalConfig {projectId:typeof PROJECT;host:'127.0.0.1';port:number;rateLimit:number;maxTtlSeconds:number;progressAttemptLimit:number}
 /** Pure and synchronous. Must run before importing/initializing privileged SDKs. */
 export function localConfig(env:NodeJS.ProcessEnv):LocalConfig {
   const incompatible=Object.entries(env).some(([key,value])=>!!value&&(
@@ -9,8 +9,8 @@ export function localConfig(env:NodeJS.ProcessEnv):LocalConfig {
     env.ACADEMIC_ADMIN_HOST!=='127.0.0.1'||env.ACADEMIC_ADMIN_PROJECT!==PROJECT||
     env.FIREBASE_AUTH_EMULATOR_HOST!=='127.0.0.1:9099'||env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8085'||
     [env.GCLOUD_PROJECT,env.GOOGLE_CLOUD_PROJECT,env.GCP_PROJECT,env.FIREBASE_PROJECT_ID,env.VITE_FIREBASE_PROJECT_ID].some(v=>!!v&&v!==PROJECT))throw new Error('ACADEMIC_ENV_REJECTED');
-  const port=Number(env.ACADEMIC_ADMIN_PORT??5200),rateLimit=Number(env.ACADEMIC_RATE_LIMIT??60),maxTtlSeconds=Number(env.ACADEMIC_MAX_TTL_SECONDS??604800);
+  const port=Number(env.ACADEMIC_ADMIN_PORT??5200),rateLimit=Number(env.ACADEMIC_RATE_LIMIT??60),maxTtlSeconds=Number(env.ACADEMIC_MAX_TTL_SECONDS??604800),progressAttemptLimit=Number(env.ACADEMIC_PROGRESS_ATTEMPT_LIMIT??200);
   if(!Number.isInteger(port)||port<0||port>65535||!Number.isInteger(rateLimit)||rateLimit<1||rateLimit>10000||
-    !Number.isInteger(maxTtlSeconds)||maxTtlSeconds<1||maxTtlSeconds>604800)throw new Error('ACADEMIC_ENV_REJECTED');
-  return Object.freeze({projectId:PROJECT,host:'127.0.0.1',port,rateLimit,maxTtlSeconds});
+    !Number.isInteger(maxTtlSeconds)||maxTtlSeconds<1||maxTtlSeconds>604800||!Number.isInteger(progressAttemptLimit)||progressAttemptLimit<1||progressAttemptLimit>2000)throw new Error('ACADEMIC_ENV_REJECTED');
+  return Object.freeze({projectId:PROJECT,host:'127.0.0.1',port,rateLimit,maxTtlSeconds,progressAttemptLimit});
 }

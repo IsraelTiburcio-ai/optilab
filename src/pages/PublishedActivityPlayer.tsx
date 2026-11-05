@@ -6,12 +6,14 @@ import {gyms} from '../data';
 import {GameArena} from '../components/GameArena';
 import {iframePolicy} from '../activities/urls';
 import {academicClient} from '../academic/client';
+import {academicEnabled} from '../academic/config';
 import type {PublishedActivity} from '../academic/types';
 import './GamePlayer.css';
 import '../activities/external.css';
 const providerName={wordwall:'Wordwall',learningapps:'LearningApps'} as const;
 export default function PublishedActivityPlayer(){
   const {courseId,termId,groupId,activityId}=useParams(),auth=useAuth();
+  if(!academicEnabled)return <section className="paper"><h1>Actividad no disponible</h1><p>Las actividades de clase no están habilitadas en este entorno.</p><Link className="button" to="/mapa">Volver a los gimnasios</Link></section>;
   if(!courseId||!termId||!groupId||!activityId)return <Unavailable/>;
   if(auth.status==='loading')return <p role="status">Preparando la sesión antes de abrir la actividad…</p>;
   if(!auth.user)return <section className="paper"><h1>Inicia sesión para abrir esta actividad</h1><Link className="button" to="/cuenta">Ir a Cuenta</Link></section>;

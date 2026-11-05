@@ -169,3 +169,8 @@ Publicación inicial verificada: GitHub Actions [39733218496](https://github.com
 ## Próximas mejoras
 
 Validación docente de catálogo y reactivos; más diagnósticos por gimnasio; medición real de duración; exportación/importación de bitácora; pruebas de Safari y dispositivos físicos; integración optativa de resultados mediante un protocolo explícito entre juegos y OptiLab; evolución del arte de regiones y despliegue PWA.
+
+
+## Vercel académico
+
+Ver [docs/VERCEL-ACADEMIC-PILOT.md](docs/VERCEL-ACADEMIC-PILOT.md). El frontend sigue en GitHub Pages.

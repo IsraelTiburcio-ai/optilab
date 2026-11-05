@@ -78,7 +78,7 @@ test('teacherA sees active students with unique game counts in the selected peri
   await run(b,'system-lab',now-6*3600000);
   const result=await execute('teacherA','groupProgress',s());
   assert.equal(result.scope.groupId,f.groups.a);assert.equal(result.period.days,30);assert.ok(result.period.from);assert.equal(result.period.to,result.generatedAt);
-  assert.equal(result.studentsTotal,2);assert.equal(result.studentsActive,2);assert.equal(result.truncated,false);
+  assert.equal(result.studentsTotal,2);assert.equal(result.studentsActive,2);assert.equal(result.truncated,false);assert.equal(result.activityDataTruncated,false);
   assert.deepEqual(result.activities,{opened:2,declared:2,reported:3,completed:2,validated:0});
   const studentA=result.students.find((row:any)=>row.uid===a),studentB=result.students.find((row:any)=>row.uid===b);
   assert.equal(studentA.name,'Alumna Sintética A');assert.equal(studentA.email,f.actors.studentA.email);assert.equal(studentA.emailVerified,true);assert.equal(studentA.gamertag,'Sintetica_A');
@@ -191,4 +191,14 @@ test('reported attempts are visible without sync/current when they belong to the
   const student=result.students[0];
   assert.equal(result.studentsActive,1);assert.equal(student.reported,1);assert.equal(student.completedGames,1);assert.equal(student.opened,1);
   assert.equal(student.lastActivityAt,new Date(now-2000).toISOString());
+});
+
+test('limita la lectura de intentos por alumno y marca historial parcial',async()=>{
+  await admit('studentA','a');
+  const uid=f.actors.studentA.uid,now=Date.now();
+  for(let index=0;index<201;index++)await attempt(uid,'system-lab','opened',now-index);
+  const result=await execute('teacherA','groupProgress',s('a'));
+  assert.equal(result.activityDataTruncated,true);
+  assert.equal(result.students[0].opened,1);
+  assert.equal(result.truncated,false);
 });

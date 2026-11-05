@@ -3,7 +3,7 @@ import {AsyncLocalStorage} from 'node:async_hooks';
 import type {Firestore,Transaction,Query} from 'firebase-admin/firestore';
 import type {Data,Scope} from './contracts';
 import {identifier} from './validation';
-import {assertEmulatedDatabase} from './sdk';
+import {assertEmulatedDatabase,assertProductionDatabase} from './sdk';
 export const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 export const scopeKey=(s:Scope)=>hash(JSON.stringify([s.courseId,s.termId,s.groupId]));
 export interface Metrics {documentReadAttempts:number;queryDocumentsReturned:number;writeIntents:number;committedWrites:number;transactionAttempts:number}
@@ -38,7 +38,7 @@ function pageQuery(db:Firestore,path:string,limit:number,cursor?:string,status?:
 }
 export class AcademicRepository {
   private metrics=new AsyncLocalStorage<Metrics>();
-  constructor(private db:Firestore){assertEmulatedDatabase(db);}
+  constructor(private db:Firestore,boundary:'emulator'|'production'='emulator'){if(boundary==='emulator')assertEmulatedDatabase(db);else assertProductionDatabase(db);}
   private track=(key:keyof Metrics,n:number)=>{const m=this.metrics.getStore();if(m)m[key]+=n;};
   measure<T>(fn:()=>Promise<T>,done:(metrics:Metrics)=>void):Promise<T> {
     const m:Metrics={documentReadAttempts:0,queryDocumentsReturned:0,writeIntents:0,committedWrites:0,transactionAttempts:0};
