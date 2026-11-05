@@ -40,7 +40,8 @@
     "pilot:platform": "node scripts/pilot-platform.mjs",
     "single:prepare": "node scripts/single-operator-prepare.mjs",
     "single:snapshot": "node scripts/single-operator-snapshot.mjs",
-    "single:session": "node scripts/single-operator-session.mjs"
+    "single:session": "node scripts/single-operator-session.mjs",
+    "pilot:provision": "node scripts/pilot-provision.mjs"
   },
   "dependencies": {
     "firebase": "12.19.0",

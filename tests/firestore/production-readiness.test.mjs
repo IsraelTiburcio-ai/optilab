@@ -67,6 +67,17 @@ test('production deploy config has no emulator/service settings and indexes stay
   const indexes=JSON.parse(readFileSync(new URL('../../firestore.indexes.json',import.meta.url)));
   for(const group of ['sync','fields','receipts','gameRuns','diagnostics'])assert.ok(indexes.fieldOverrides.some(f=>f.collectionGroup===group&&f.fieldPath==='*'&&f.indexes.length===0));
   for(const group of ['gameRuns','diagnostics'])assert.deepEqual(indexes.fieldOverrides.find(f=>f.collectionGroup===group&&f.fieldPath==='date').indexes,[{order:'DESCENDING',queryScope:'COLLECTION'}]);
+  const wildcard=indexes.fieldOverrides.find(f=>f.collectionGroup==='reportedAttempts'&&f.fieldPath==='*');
+  assert.deepEqual(wildcard.indexes,[]);
+  const observedAt=indexes.fieldOverrides.find(f=>f.collectionGroup==='reportedAttempts'&&f.fieldPath==='observedAt');
+  assert.deepEqual(observedAt.indexes,[{order:'DESCENDING',queryScope:'COLLECTION'}]);
+  const repository=readFileSync(new URL('../../server/academic/repository.ts',import.meta.url),'utf8');
+  assert.match(repository,/orderBy\('observedAt','desc'\)/);
+  assert.match(repository,/where\('observedAt','>=',fromISO\)/);
+  assert.match(repository,/where\('observedAt','<=',toISO\)/);
+  assert.match(repository,/limit\(limit\)/);
+  const progress=readFileSync(new URL('../../server/academic/progress.ts',import.meta.url),'utf8');
+  assert.match(progress,/attemptLimit=200/);
   assert.ok(indexes.indexes.every(i=>i.queryScope==='COLLECTION'));
 });
 test('new Rules accept the maximum 122-write atomic import without relaxing data or receipt validation',async()=>{

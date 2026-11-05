@@ -202,3 +202,14 @@ test('limita la lectura de intentos por alumno y marca historial parcial',async(
   assert.equal(result.students[0].opened,1);
   assert.equal(result.truncated,false);
 });
+test('dashboard periods 7/30/90 and Todos use the filtered attempt query consistently',async()=>{
+  await admit('studentA','a');const uid=f.actors.studentA.uid,now=Date.now();
+  await head(uid);
+  await attempt(uid,'system-lab','opened',now-5*day);
+  await attempt(uid,'lp-factory','opened',now-20*day);
+  await attempt(uid,'ahorcado-simplex','opened',now-40*day);
+  for(const [days,opened] of [[7,1],[30,2],[90,3],[0,3]] as const){
+    const result=await execute('teacherA','groupProgress',{...s('a'),periodDays:days});
+    assert.equal(result.period.days,days);assert.equal(result.students[0].opened,opened);
+  }
+});
