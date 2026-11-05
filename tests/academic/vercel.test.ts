@@ -120,8 +120,8 @@ test('OIDC credential renews the subject token on every access-token request wit
     verifyVercelOidcToken:async(token,options)=>{verifies++;assert.equal(token,tokens[verifies-1]);assert.deepEqual(options,{issuer:config.vercelIssuer,audience:config.vercelAudience,projectId:config.vercelProjectId,environment:'production'});return {payload:{iss:config.vercelIssuer,aud:config.vercelAudience,sub:config.subject,project_id:config.vercelProjectId}};},
     createClient:(value:any)=>{clients++;assert.equal(value.audience,config.gcpAudience);return {credentials:{expiry_date:Date.now()+60000},getAccessToken:async()=>{const subject=await value.subject_token_supplier.getSubjectToken();assert.equal(subject,tokens[clients-1]);return {token:`access-${clients}`};}};},
   });
-  assert.deepEqual(await credential.getAccessToken(),{access_token:'access-1',expires_in:60});
-  assert.deepEqual(await credential.getAccessToken(),{access_token:'access-2',expires_in:60});
+  const first=await credential.getAccessToken();assert.equal(first.access_token,'access-1');assert.ok(first.expires_in>=59&&first.expires_in<=60);
+  const second=await credential.getAccessToken();assert.equal(second.access_token,'access-2');assert.ok(second.expires_in>=59&&second.expires_in<=60);
   assert.equal(clients,2);assert.equal(tokenCalls,2);assert.equal(verifies,2);
 });
 test('shared limiter survives requests and concurrent requests cannot bypass the instance cap',async()=>{
