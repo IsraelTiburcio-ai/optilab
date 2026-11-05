@@ -1,8 +1,8 @@
-import {readFileSync} from 'node:fs';
+import catalog from '../../catalogo_optimizacion_gimnasios_1_a_5.json';
 export interface CatalogGame {gameId:string;gymId:number;title:string}
 export interface CatalogGym {gymId:number;title:string;totalGames:number;games:string[]}
 const titles:Record<number,string>={1:'Bosque de Sistemas',2:'Valle Lineal',3:'Fortaleza Simplex',4:'Santuario Dual',5:'Cumbre de Metas'};
-const raw=JSON.parse(readFileSync(new URL('../../catalogo_optimizacion_gimnasios_1_a_5.json',import.meta.url),'utf8')) as {juegos?:unknown};
+const raw=catalog as {juegos?:unknown};
 if(!raw||!Array.isArray(raw.juegos))throw new Error('INVALID_GAME_CATALOG');
 const seen=new Set<string>();
 export const catalogGames:CatalogGame[]=raw.juegos.map(entry=>{

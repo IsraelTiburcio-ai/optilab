@@ -73,7 +73,7 @@ No se creó ni solicitó una llave real. Si el propietario autoriza producción,
 
 Se ejecutó `vercel dev --local` (CLI 65.11.0, sin link ni deploy) con `ACADEMIC_ADMIN_MODE=vercel-preview`. `POST /api/v1/roster` llegó a la función dinámica y respondió `503 ACADEMIC_DISABLED` con `server: Vercel`, antes de inicializar Firebase Admin/Firestore. Evidencia: `docs/evidence/vercel-preview-smoke.txt`.
 
-La validación de cuerpo JSON y el handler abierto se cubren con la prueba compartida `tests/academic/vercel.test.ts` (cuerpo válido llega al servicio; JSON inválido devuelve 400) y las pruebas HTTP locales. `vercel build --standalone` no se pudo ejecutar porque el CLI exige login/proyecto; no se creó un proyecto ni se desplegó. El bundle de la función carga `server/academic/service` → `queries` → `progress` → `catalog` y el catálogo JSON; el smoke no mostró error de módulo.
+La validación de cuerpo JSON y el handler abierto se cubren con la prueba compartida `tests/academic/vercel.test.ts` (cuerpo válido llega al servicio; JSON inválido devuelve 400) y las pruebas HTTP locales. `vercel build --standalone` no se pudo ejecutar porque el CLI exige login/proyecto; no se creó un proyecto ni se desplegó. El catálogo JSON es un import ESM estático y `@vercel/nft print` lo incluyó en la traza de archivos de la función; el smoke no mostró error de módulo.
 
 ## Activación productiva futura (requiere aprobación separada)
 

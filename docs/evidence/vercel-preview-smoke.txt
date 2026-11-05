@@ -21,7 +21,9 @@ Response:
 Notes:
   - Dynamic route /api/v1/[operation].ts was reached.
   - The response was produced before any Firebase Admin/Firestore initialization.
-  - The function module graph imports the server service/queries/progress/catalog; a missing catalog JSON would fail module loading instead of returning this 503.
+  - The function module graph imports the server service/queries/progress/catalog. The catalog JSON is now a static ESM import (not a runtime readFileSync), so Vercel's dependency tracer includes it.
+  - @vercel/nft print of the emitted catalog module listed catalogo_optimizacion_gimnasios_1_a_5.json in its FILELIST.
+  - A missing catalog JSON would fail module loading instead of returning this 503.
   - `vercel build --standalone` was attempted but the CLI requires a saved Vercel login/project; it was not executed and no deployment was made.
   - No FIREBASE_SERVICE_ACCOUNT_JSON or production Firebase variables were supplied.
 
