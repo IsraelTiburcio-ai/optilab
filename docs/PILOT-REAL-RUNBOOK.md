@@ -40,19 +40,29 @@ El manifiesto y los UIDs nunca se guardan en el repositorio. El dry-run no impor
 
 ### A.2 Credenciales Vercel/Firebase
 
-**Estado real:** el adaptador OIDC/WIF ya está implementado en código, pero **no está configurado ni activado**. `productionAdmin()` selecciona el modo con `ACADEMIC_CREDENTIAL_MODE=oidc` y usa `@vercel/oidc` + `ExternalAccountClient`; no se aplicaron IAM ni credenciales. El fallback `FIREBASE_SERVICE_ACCOUNT_JSON` sigue disponible solo como secreto Sensitive y también está cerrado por defecto.
+**Estado real:** infraestructura confirmada manualmente por el operador: proyecto `optilab-cd829` (`401863964479`), pool `optilab-vercel`, provider `optilab-vercel-oidc`, service account `optilab-api@optilab-cd829.iam.gserviceaccount.com`, issuer `https://oidc.vercel.com/optilab`, audiencia `https://vercel.com/optilab` y subject Production. La identidad federada está vinculada a la service account; la cuenta tiene `roles/datastore.user` y `roles/firebaseauth.viewer`. El adaptador está implementado en código y cerrado por defecto. **No se ha probado un token/credencial temporal real de extremo a extremo desde Vercel Production**, y la producción académica sigue deshabilitada. El fallback `FIREBASE_SERVICE_ACCOUNT_JSON` sigue disponible solo como secreto Sensitive y también está cerrado por defecto.
 
-Estrategia recomendada e implementada en código: **Vercel OIDC + Google Cloud Workload Identity Federation**, disponible en todos los planes de Vercel. El token OIDC es de corta vida; `productionAdmin()` lo obtiene por solicitud, verifica firma/JWKS, `iss=https://oidc.vercel.com/optilab`, `aud=https://vercel.com/optilab` y el subject exacto `owner:optilab:project:optilab-api:environment:production`, y lo intercambia por una identidad federada con una service account mínima. La audiencia del recurso WIF se deriva por separado como `//iam.googleapis.com/projects/401863964479/locations/global/workloadIdentityPools/optilab-vercel/providers/optilab-vercel-oidc`. No está configurado, no se aplicó IAM y el modo queda cerrado hasta aprobación. La app Firebase/Firestore y el rate limiter se reutilizan por instancia; la credencial crea un cliente OIDC nuevo en cada solicitud de access token y no conserva el JWT OIDC. El limiter es best-effort y no distribuido. Si Google exigiera facturación, se mantiene el fallback JSON Sensitive; no se activó Blaze.
+Estrategia recomendada e implementada en código: **Vercel OIDC + Google Cloud Workload Identity Federation**, disponible en todos los planes de Vercel. El token OIDC es de corta vida; `productionAdmin()` lo obtiene por solicitud, verifica firma/JWKS, `iss=https://oidc.vercel.com/optilab`, `aud=https://vercel.com/optilab` y el subject exacto `owner:optilab:project:optilab-api:environment:production`, y lo intercambia por una identidad federada con una service account mínima. La audiencia del recurso WIF se deriva por separado como `//iam.googleapis.com/projects/401863964479/locations/global/workloadIdentityPools/optilab-vercel/providers/optilab-vercel-oidc`. La configuración de infraestructura ya existe según confirmación del operador, pero no se ha validado el intercambio real; el modo sigue cerrado hasta completar el smoke y la aprobación. No se aplicaron cambios IAM adicionales. La app Firebase/Firestore y el rate limiter se reutilizan por instancia; la credencial crea un cliente OIDC nuevo en cada solicitud de access token y no conserva el JWT OIDC. El limiter es best-effort y no distribuido. Si Google exigiera facturación, se mantiene el fallback JSON Sensitive; no se activó Blaze.
 
-Configuración futura, solo después de aprobación:
+Configuración de Vercel Production (la infraestructura GCP ya está configurada; las variables de Vercel aún deben configurarse solo en Production):
 
-- Activar Secure backend access con OIDC en el proyecto `optilab-api`.
+- Verificar que Secure backend access con OIDC esté activo en el proyecto `optilab-api`.
 - Configurar `ACADEMIC_CREDENTIAL_MODE=oidc`, `GCP_PROJECT_NUMBER`, `GCP_SERVICE_ACCOUNT_EMAIL`, `GCP_WORKLOAD_IDENTITY_POOL_ID`, `GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID`, `VERCEL_OIDC_ISSUER=https://oidc.vercel.com/optilab`, `VERCEL_OIDC_AUDIENCE=https://vercel.com/optilab` y `ACADEMIC_VERCEL_SUBJECT=owner:optilab:project:optilab-api:environment:production`. `VERCEL_PROJECT_ID` lo proporciona Vercel automáticamente.
-- Crear Workload Identity Pool/Provider con issuer de Vercel.
-- Condicionar el provider a `assertion.environment == "production"`, `assertion.aud == "https://vercel.com/optilab"`, `assertion.sub == "owner:optilab:project:optilab-api:environment:production"` y al proyecto/equipo exactos; Preview no recibe el token productivo.
-- Service account dedicada con `roles/datastore.user` (Firestore) y los permisos mínimos de lectura de Auth necesarios (`roles/firebaseauth.viewer`; revisar antes de aplicar).
-- `roles/iam.workloadIdentityUser` sobre la service account para el provider; sin llaves persistentes.
+- Verificar el Workload Identity Pool/Provider existente con issuer de Vercel.
+- Verificar que el provider esté condicionado a `assertion.environment == "production"`, `assertion.aud == "https://vercel.com/optilab"`, `assertion.sub == "owner:optilab:project:optilab-api:environment:production"` y al proyecto/equipo exactos; Preview no recibe el token productivo.
+- Verificar la service account dedicada con `roles/datastore.user` y `roles/firebaseauth.viewer`; no ampliar permisos sin justificación.
+- Verificar `roles/iam.workloadIdentityUser` sobre la service account para el provider; sin llaves persistentes.
 - No usar la misma identidad en Preview/Development ni compartir credenciales.
+
+Pendiente de verificación real (no declarar producción operativa):
+
+- Obtener un token OIDC de Vercel Production con audiencia `https://vercel.com/optilab` y verificar firma/JWKS, `iss`, `aud`, `project_id`, `environment` y `sub`.
+- Confirmar que el intercambio STS/WIF produce una credencial temporal de la service account y que Firestore/Auth funcionan con ella.
+- Confirmar que Preview/Development no reciben ni aceptan el token productivo.
+- Verificar el índice `reportedAttempts.observedAt` en el proyecto real.
+- Mantener `ACADEMIC_PRODUCTION_ENABLED=false` hasta completar el smoke y la aprobación.
+
+Compatibilidad revisada contra `@vercel/oidc@4.0.6`: `getVercelOidcToken(options?)` acepta `audience` y devuelve un token; `verifyVercelOidcToken(token, {issuer,audience,projectId,environment})` verifica firma contra JWKS remoto y los claims. La prueba local ejecuta el verificador real de `@vercel/oidc` con un JWT/JWKS de prueba, interceptando solo `https.get`, para validar criptográficamente el flujo sin red ni credenciales; no sustituye el smoke real.
 
 Fallback actualmente implementado, pero desactivado: `FIREBASE_SERVICE_ACCOUNT_JSON` como variable **Sensitive** de Vercel producción, service account mínima y aprobación explícita. No se creó, copió ni solicitó ninguna credencial. El código de producción sigue cerrado y el fallback existente solo se activa con `ACADEMIC_PRODUCTION_ENABLED=true` y `VERCEL_ENV=production`; Preview no puede abrirlo.
 
@@ -107,7 +117,7 @@ No es facturación medida. Cada montaje/cambio de periodo/refresco puede repetir
 
 Lista exacta que requiere autorización escrita:
 
-1. Aprobar e implementar OIDC/WIF **o**, alternativamente, crear la variable Sensitive de service account; desplegar el índice `reportedAttempts.observedAt` con aprobación.
+1. Aprobar la verificación E2E de OIDC/WIF **o**, alternativamente, usar la variable Sensitive de service account; desplegar el índice `reportedAttempts.observedAt` con aprobación.
 
 Comando de ejecución real del plan, solo después de la aprobación (no ejecutado):
 
@@ -130,7 +140,7 @@ El script verifica el UID docente en Auth, exige correo verificado, escribe exac
 
 ## Etapa C — Activación (no ejecutada)
 
-1. Completar WIF/OIDC o el fallback aprobado; desplegar/verificar el índice de Firestore y que Preview sigue cerrada.
+1. Completar la verificación E2E de WIF/OIDC o usar el fallback aprobado; desplegar/verificar el índice de Firestore y que Preview sigue cerrada.
 2. Desplegar la API con producción explícita; no cambiar `optilab.club` de Pages a Vercel.
 3. Crear/verificar la cuenta de la profesora en Firebase Auth; aplicar el plan aprobado con un procedimiento de escritura separado (no habilitado aquí).
 4. La profesora crea invitaciones y aprueba a los dos alumnos.

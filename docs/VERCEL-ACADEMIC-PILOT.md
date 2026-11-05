@@ -59,14 +59,15 @@ VITE_ACADEMIC_APP_ORIGIN=https://optilab.club
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | **secreta** | fallback Admin; no se creó ni se incluyó aquí |
 | `VERCEL_ENV` | automática de Vercel | `preview`/`production`; no se falsifica |
 
-El adaptador OIDC/WIF está implementado en código, pero no configurado ni activado. Si se autoriza, configurar Vercel OIDC + Workload Identity Federation, la audiencia Vercel `https://vercel.com/optilab`, el emisor `https://oidc.vercel.com/optilab` y el subject `owner:optilab:project:optilab-api:environment:production`; la audiencia WIF de Google se deriva por separado. No se aplicaron IAM ni credenciales. El fallback `FIREBASE_SERVICE_ACCOUNT_JSON` solo puede usarse como variable Sensitive con aprobación; nunca commitear JSON, PEM, tokens o `.env` con secretos.
+El adaptador OIDC/WIF está implementado en código. La infraestructura GCP fue configurada manualmente y confirmada por el operador (pool `optilab-vercel`, provider `optilab-vercel-oidc`, service account `optilab-api@optilab-cd829.iam.gserviceaccount.com`, issuer `https://oidc.vercel.com/optilab`, audiencia `https://vercel.com/optilab`, subject Production). **La credencial temporal todavía no se ha probado de extremo a extremo desde Vercel y producción académica sigue deshabilitada.** Las variables de Vercel Production aún deben configurarse; no se modificaron IAM ni credenciales en esta PR. El fallback `FIREBASE_SERVICE_ACCOUNT_JSON` solo puede usarse como variable Sensitive con aprobación; nunca commitear JSON, PEM, tokens o `.env` con secretos.
+
+Compatibilidad verificada con `@vercel/oidc@4.0.6`: `getVercelOidcToken({audience})` y `verifyVercelOidcToken(token,{issuer,audience,projectId,environment})` existen con esas firmas; `VERCEL_PROJECT_ID` es automática en Production. La prueba local ejecuta el verificador real de `@vercel/oidc` con un JWT/JWKS de prueba, interceptando solo `https.get`, para validar firma y claims sin red; el intercambio STS/WIF real sigue pendiente.
 
 ## Despliegue del API (no ejecutado)
 
 1. En Vercel: **Add New → Project → Import Git Repository**. No reutilizar el proyecto de GitHub Pages.
 2. Configurar Node.js 22, `npm ci` y mantener el directorio raíz del repositorio. El proyecto es de API, no del frontend; no asignar `optilab.club` ni un dominio de producción al deployment de la API.
 3. No hace falta configurar un build estático para las funciones; Vercel detecta `api/v1/[operation].ts`. `vercel.json` limita la función a `maxDuration: 15`; no se declara `memory` porque Vercel Hobby administra la memoria. El handler limita body a 16 KiB y el rate limiter es por instancia (no distribuido).
-4. En Preview, usar `ACADEMIC_ADMIN_MODE=vercel-preview` o dejarlo vacío. No agregar credenciales Firebase.
 4. En Preview, usar `ACADEMIC_ADMIN_MODE=vercel-preview` o dejarlo vacío. No agregar credenciales Firebase.
 5. Verificar cierre: `POST https://<preview>/api/v1/roster` → 503 `ACADEMIC_DISABLED`. No debe aparecer ninguna llamada a Firestore.
 6. Comprobar HTTPS y CORS: una petición `OPTIONS /api/v1/roster` desde el origen autorizado devuelve 204 y `Access-Control-Allow-Origin`; el mismo origen no autorizado devuelve 403. Sin token, `POST` devuelve 401 antes de tocar Firestore.

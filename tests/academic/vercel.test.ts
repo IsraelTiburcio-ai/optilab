@@ -156,3 +156,45 @@ test('OIDC verifier rejects wrong issuer, audience, project or subject before cr
     await assert.rejects(credential.getAccessToken(),/ACADEMIC_ENV_REJECTED/);assert.equal(created,1);assert.equal(access,false);
   }
 });
+test('actual @vercel/oidc verifier validates locally signed JWTs and rejects tampered, expired or wrong claims',async()=>{
+  const {createRequire}=await import('node:module'),{EventEmitter}=await import('node:events'),{Readable}=await import('node:stream');
+  const {generateKeyPair,exportJWK,SignJWT}=await import('jose');
+  const {createOidcCredential,PILOT_VERCEL_SUBJECT,PILOT_VERCEL_ISSUER,PILOT_VERCEL_AUDIENCE}=await import('../../server/academic/sdk');
+  const {publicKey,privateKey}=await generateKeyPair('RS256');
+  const jwk=await exportJWK(publicKey);jwk.kid='test-key';jwk.use='sig';jwk.alg='RS256';
+  const jwks={keys:[jwk]};
+  const https=createRequire(import.meta.url)('node:https'),originalGet=https.get;
+  https.get=((_url:unknown,_options:unknown)=>{
+    const req=new EventEmitter() as any;req.destroy=()=>{};req.setTimeout=()=>req;
+    const res=Readable.from([Buffer.from(JSON.stringify(jwks))]) as any;res.statusCode=200;
+    queueMicrotask(()=>req.emit('response',res));return req;
+  }) as typeof https.get;
+  const issue=async(claims:Record<string,unknown>,expiresIn:number|string='5m')=>new SignJWT(claims)
+    .setProtectedHeader({alg:'RS256',kid:'test-key'}).setIssuedAt().setExpirationTime(expiresIn as any).sign(privateKey);
+  const config={projectNumber:'401863964479',serviceAccountEmail:'optilab-api@optilab-cd829.iam.gserviceaccount.com',poolId:'optilab-vercel',providerId:'optilab-vercel-oidc',vercelProjectId:'prj_test123',vercelIssuer:PILOT_VERCEL_ISSUER,vercelAudience:PILOT_VERCEL_AUDIENCE,gcpAudience:'//iam.googleapis.com/projects/401863964479/locations/global/workloadIdentityPools/optilab-vercel/providers/optilab-vercel-oidc',subject:PILOT_VERCEL_SUBJECT};
+  try{
+    const {verifyVercelOidcToken}=await import('@vercel/oidc');
+    const claims={iss:PILOT_VERCEL_ISSUER,aud:PILOT_VERCEL_AUDIENCE,sub:PILOT_VERCEL_SUBJECT,project_id:'prj_test123',environment:'production'};
+    const valid=await issue(claims);
+    assert.equal((await verifyVercelOidcToken(valid,{issuer:PILOT_VERCEL_ISSUER,audience:PILOT_VERCEL_AUDIENCE,projectId:'prj_test123',environment:'production'})).payload.sub,PILOT_VERCEL_SUBJECT);
+    let accesses=0;
+    const credential=createOidcCredential(config,{
+      getVercelOidcToken:async()=>valid,
+      verifyVercelOidcToken:(token,options)=>verifyVercelOidcToken(token,options),
+      createClient:(value:any)=>({credentials:{expiry_date:Date.now()+60000},getAccessToken:async()=>{accesses++;await value.subject_token_supplier.getSubjectToken();return {token:'access-local'};}}),
+    });
+    const localAccess=await credential.getAccessToken();assert.equal(localAccess.access_token,'access-local');assert.ok(localAccess.expires_in>=59&&localAccess.expires_in<=60);assert.equal(accesses,1);
+    const tampered=valid.slice(0,-4)+'AAAA';
+    await assert.rejects(verifyVercelOidcToken(tampered,{issuer:PILOT_VERCEL_ISSUER,audience:PILOT_VERCEL_AUDIENCE,projectId:'prj_test123',environment:'production'}),/signature|verification/i);
+    const expired=await issue(claims,Math.floor(Date.now()/1000)-60);
+    await assert.rejects(verifyVercelOidcToken(expired,{issuer:PILOT_VERCEL_ISSUER,audience:PILOT_VERCEL_AUDIENCE,projectId:'prj_test123',environment:'production'}),/expired|exp/i);
+    const badIssuer=await issue({...claims,iss:'https://oidc.vercel.com/other'});
+    await assert.rejects(verifyVercelOidcToken(badIssuer,{issuer:PILOT_VERCEL_ISSUER,audience:PILOT_VERCEL_AUDIENCE,projectId:'prj_test123',environment:'production'}),/issuer|claim/i);
+    const badAudience=await issue({...claims,aud:'https://vercel.com/other'});
+    await assert.rejects(verifyVercelOidcToken(badAudience,{issuer:PILOT_VERCEL_ISSUER,audience:PILOT_VERCEL_AUDIENCE,projectId:'prj_test123',environment:'production'}),/audience|claim/i);
+    const badProject=await issue({...claims,project_id:'prj_other'});
+    await assert.rejects(verifyVercelOidcToken(badProject,{issuer:PILOT_VERCEL_ISSUER,audience:PILOT_VERCEL_AUDIENCE,projectId:'prj_test123',environment:'production'}),/project_id|claim/i);
+    const preview=await issue({...claims,environment:'preview'});
+    await assert.rejects(verifyVercelOidcToken(preview,{issuer:PILOT_VERCEL_ISSUER,audience:PILOT_VERCEL_AUDIENCE,projectId:'prj_test123',environment:'production'}),/environment|claim/i);
+  }finally{https.get=originalGet;}
+});
