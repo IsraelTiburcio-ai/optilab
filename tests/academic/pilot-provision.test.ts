@@ -41,8 +41,9 @@ test('owner CLI is dry-run and execute is closed until separate authorization',(
   const dry=spawnSync(process.execPath,['scripts/pilot-provision.mjs','--manifest',file],{encoding:'utf8'});
   assert.equal(dry.status,0,dry.stderr);const plan=JSON.parse(dry.stdout);assert.equal(plan.mode,'DRY-RUN');assert.equal(plan.network,false);
   const execute=spawnSync(process.execPath,['scripts/pilot-provision.mjs','--manifest',file,'--execute'],{encoding:'utf8'});
-  assert.notEqual(execute.status,0);assert.match(execute.stderr,/PILOT_APPROVAL_REQUIRED/);assert.equal(execute.stdout,'');
-  const noConfirm=spawnSync(process.execPath,['scripts/pilot-provision.mjs','--manifest',file,'--execute'],{encoding:'utf8',env:{...process.env,PILOT_PROVISION_APPROVAL:'apply:optilab-cd829'}});
+  assert.notEqual(execute.status,0);assert.match(execute.stderr,/PILOT_(EXECUTION_CI_FORBIDDEN|APPROVAL_REQUIRED)/);assert.equal(execute.stdout,'');
+  const noCi={...process.env};delete noCi.CI;
+  const noConfirm=spawnSync(process.execPath,['scripts/pilot-provision.mjs','--manifest',file,'--execute'],{encoding:'utf8',env:{...noCi,PILOT_PROVISION_APPROVAL:'apply:optilab-cd829'}});
   assert.notEqual(noConfirm.status,0);assert.match(noConfirm.stderr,/PILOT_CONFIRMATION_REQUIRED/);assert.equal(noConfirm.stdout,'');
   assert.doesNotMatch(dry.stdout+execute.stdout+execute.stderr,/private_key|BEGIN RSA|FIREBASE_SERVICE_ACCOUNT/);
 });
