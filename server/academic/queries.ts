@@ -1,14 +1,14 @@
-import type {Actor,Input,Operation,Scope,Data} from './contracts';
-import {scopeOf,identifier,exact,integer} from './validation';
-import {activeContext,contextData,grant,type Policy} from './authorization';
-import {type AcademicReadView,coursePath,groupPath,scopeKey,hash} from './repository';
-import {ownProfile,teacherProfile} from './profiles';
-import {ownPlayer,tagAvailability} from './players';
-import {currentEnrollmentLink} from './enrollmentLinks';
-import {invitation,request,publicInvite,publicRequest,scoped,roster,millis,details} from './models';
-import {ApiError,denied,conflict} from './errors';
-import {groupProgress} from './progress';
-import {activityWorkspace,publishedGroupActivities,publishedActivity} from './activities';
+import type {Actor,Input,Operation,Scope,Data} from './contracts.js';
+import {scopeOf,identifier,exact,integer} from './validation.js';
+import {activeContext,contextData,grant,type Policy} from './authorization.js';
+import {type AcademicReadView,coursePath,groupPath,scopeKey,hash} from './repository.js';
+import {ownProfile,teacherProfile} from './profiles.js';
+import {ownPlayer,tagAvailability} from './players.js';
+import {currentEnrollmentLink} from './enrollmentLinks.js';
+import {invitation,request,publicInvite,publicRequest,scoped,roster,millis,details} from './models.js';
+import {ApiError,denied,conflict} from './errors.js';
+import {groupProgress} from './progress.js';
+import {activityWorkspace,publishedGroupActivities,publishedActivity} from './activities.js';
 export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Actor,operation:Operation,input:Input,progressAttemptLimit=200):Promise<Data> {
   if(operation==='getAcademicProfile')return ownProfile(repo,actor.uid);
   if(operation==='getPlayerIdentity')return ownPlayer(repo,actor.uid);

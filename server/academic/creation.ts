@@ -1,9 +1,9 @@
-import type {Actor,Input,Scope} from './contracts';
-import type {Reader} from './authorization';
-import {contextData} from './authorization';
-import {coursePath,groupPath,hash,scopeKey,termPath} from './repository';
-import {conflict,denied} from './errors';
-import {plan,type Plan} from './plans';
+import type {Actor,Input,Scope} from './contracts.js';
+import type {Reader} from './authorization.js';
+import {contextData} from './authorization.js';
+import {coursePath,groupPath,hash,scopeKey,termPath} from './repository.js';
+import {conflict,denied} from './errors.js';
+import {plan,type Plan} from './plans.js';
 export async function createTerm(r:Reader,actor:Actor,input:Input,commandId:string):Promise<Plan> {
   const termId=`t_${hash(commandId).slice(0,32)}`,path=termPath(input.courseId!,termId);
   if(await r.get(path))throw conflict();

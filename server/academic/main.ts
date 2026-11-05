@@ -1,9 +1,9 @@
-import {localConfig} from './config';
+import {localConfig} from './config.js';
 if(process.argv.length!==2)throw new Error('ACADEMIC_ENV_REJECTED');
 // Guard executes BEFORE even loading the SDK initialization module.
 const config=localConfig(process.env);
 const [{emulatorAdmin},{AcademicRepository},{AcademicService},{httpServer}]=await Promise.all([
-  import('./sdk'),import('./repository'),import('./service'),import('./http'),
+  import('./sdk.js'),import('./repository.js'),import('./service.js'),import('./http.js'),
 ]);
 const sdk=await emulatorAdmin(),service=new AcademicService(new AcademicRepository(sdk.db),sdk,config.maxTtlSeconds,{progressAttemptLimit:config.progressAttemptLimit});
 const server=httpServer(config,sdk,service);

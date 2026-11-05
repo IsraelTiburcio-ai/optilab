@@ -1,20 +1,20 @@
-import type {Actor,Input,Operation,Data} from './contracts';
-import {reads} from './contracts';
-import {scopeOf,parseInput,exact,isRecord,identifier,integer} from './validation';
-import {AcademicRepository,groupPath,hash,type Metrics} from './repository';
-import {policy as defaultPolicy,type Policy,type Reader} from './authorization';
-import {ApiError,conflict} from './errors';
-import {createInvitation,revokeInvitation,requestMembership,type Clock} from './invitations';
-import {decideMembership,revokeMembership,transferMembership} from './memberships';
-import {createTerm,createGroup} from './creation';
-import {readOperation} from './queries';
-import {commitPlan} from './audit';
-import {request} from './models';
-import type {EmulatorAdmin} from './sdk';
-import {updateProfile,type AuthIdentity} from './profiles';
-import {savePlayer} from './players';
-import {rotateEnrollmentLink,revokeEnrollmentLink,redeemInvitation,validateRedemption} from './enrollmentLinks';
-import {saveActivityDraft,publishActivities,reorderActivities,moveActivity,setActivityStatus} from './activities';
+import type {Actor,Input,Operation,Data} from './contracts.js';
+import {reads} from './contracts.js';
+import {scopeOf,parseInput,exact,isRecord,identifier,integer} from './validation.js';
+import {AcademicRepository,groupPath,hash,type Metrics} from './repository.js';
+import {policy as defaultPolicy,type Policy,type Reader} from './authorization.js';
+import {ApiError,conflict} from './errors.js';
+import {createInvitation,revokeInvitation,requestMembership,type Clock} from './invitations.js';
+import {decideMembership,revokeMembership,transferMembership} from './memberships.js';
+import {createTerm,createGroup} from './creation.js';
+import {readOperation} from './queries.js';
+import {commitPlan} from './audit.js';
+import {request} from './models.js';
+import type {EmulatorAdmin} from './sdk.js';
+import {updateProfile,type AuthIdentity} from './profiles.js';
+import {savePlayer} from './players.js';
+import {rotateEnrollmentLink,revokeEnrollmentLink,redeemInvitation,validateRedemption} from './enrollmentLinks.js';
+import {saveActivityDraft,publishActivities,reorderActivities,moveActivity,setActivityStatus} from './activities.js';
 export interface ServiceOptions {
   /** Test-only policy seam for mutation control. Never configured from HTTP/env. */
   policy?:Policy;

@@ -1,7 +1,7 @@
-import {localConfig} from './config';
-import type {EmulatorAdmin} from './sdk';
-import {assertEmulatedDatabase} from './sdk';
-import {scopeKey} from './repository';
+import {localConfig} from './config.js';
+import type {EmulatorAdmin} from './sdk.js';
+import {assertEmulatedDatabase} from './sdk.js';
+import {scopeKey} from './repository.js';
 export interface FixtureActor {uid:string;email:string}
 export interface Fixtures {
   courseId:string;termId:string;groups:{a:string;b:string};

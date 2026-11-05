@@ -1,8 +1,8 @@
 import type {IncomingMessage,ServerResponse} from 'node:http';
-import {authenticate} from './authentication';
-import {ApiError,publicError} from './errors';
-import type {EmulatorAdmin} from './sdk';
-import type {AcademicService} from './service';
+import {authenticate} from './authentication.js';
+import {ApiError,publicError} from './errors.js';
+import type {EmulatorAdmin} from './sdk.js';
+import type {AcademicService} from './service.js';
 
 export interface HandlerPolicy {
   allowedOrigins:string[];

@@ -1,0 +1,36 @@
+Vercel ESM hotfix — local verification
+Date: 2026-11-05
+Incident: ERR_MODULE_NOT_FOUND Cannot find module '/var/task/server/academic/vercel'
+Impact: production Vercel function only; local tsx/Vite paths were masking the missing ESM extensions.
+
+Root cause:
+- package.json has "type": "module".
+- Vercel transpiles API TypeScript to .js but preserves relative import specifiers.
+- Node ESM does not resolve extensionless paths like ./server/academic/vercel.
+
+Fix:
+- Added .js to every relative import in server/academic/**/*.ts and api/v1/[operation].ts (145 imports).
+- Catalog JSON remains a static JSON import with `with {type:'json'}`; no runtime readFileSync.
+- No Firebase, authorization, academic logic, Rules, IAM, billing or vercel.json behavior changed.
+
+Verification:
+1. `npx tsc -p tsconfig.academic.json --noEmit false ...` emitted .js with relative imports ending in .js.
+2. Running the emitted API handler under Node ESM returned:
+   HTTP/1.1 503 Service Unavailable
+   {"error":{"code":"ACADEMIC_DISABLED", ...}}
+   No ERR_MODULE_NOT_FOUND.
+3. `@vercel/nft print api/v1/[operation].js` listed:
+   - server/academic/vercel.js
+   - all transitively imported server/academic/*.js
+   - catalogo_optimizacion_gimnasios_1_a_5.json
+4. `vercel dev --local` (CLI 65.11.0) reached POST /api/v1/roster:
+   HTTP/1.1 503 Service Unavailable
+   server: Vercel
+   {"error":{"code":"ACADEMIC_DISABLED", ...}}
+5. `npm run test:academic:api`: 98/98.
+6. `npm run typecheck:academic`: PASS.
+7. `npm run build`: PASS.
+
+Not executed:
+- Vercel production deployment. The owner must redeploy after merge; this hotfix does not deploy or enable production.
+- No real Firebase/Firestore, no credentials, no Rules/IAM/billing changes.

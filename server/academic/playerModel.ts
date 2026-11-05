@@ -1,6 +1,6 @@
-import type {Data} from './contracts';
-import {hash} from './repository';
-import {conflict} from './errors';
+import type {Data} from './contracts.js';
+import {hash} from './repository.js';
+import {conflict} from './errors.js';
 // Unicode NFKC compatibility normalization, then locale-independent lowercase.
 // The resulting namespace is deliberately ASCII: 3–20 letters/digits/underscore.
 export function normalizeGamertag(value:unknown):{display:string;normalized:string} {

@@ -1,4 +1,4 @@
-import {ApiError} from './errors';
+import {ApiError} from './errors.js';
 
 export type AcademicRuntimeMode='off'|'vercel-preview'|'vercel-production';
 export interface AcademicRuntime {

@@ -1,10 +1,10 @@
-import type {Actor,Input,Scope,Data} from './contracts';
-import {grant,type Reader} from './authorization';
-import {context,details,invitation,request,membershipIndex,multipleGroups,millis,roster as rosterData} from './models';
-import {coursePath,groupPath,scopeKey} from './repository';
-import {conflict,denied} from './errors';
-import {plan,type Plan} from './plans';
-import {liveInvite,type Clock} from './invitations';
+import type {Actor,Input,Scope,Data} from './contracts.js';
+import {grant,type Reader} from './authorization.js';
+import {context,details,invitation,request,membershipIndex,multipleGroups,millis,roster as rosterData} from './models.js';
+import {coursePath,groupPath,scopeKey} from './repository.js';
+import {conflict,denied} from './errors.js';
+import {plan,type Plan} from './plans.js';
+import {liveInvite,type Clock} from './invitations.js';
 const memberGrant=(s:Scope,uid:string,status:string)=>({schemaVersion:1,...s,uid,status});
 const pointer=(s:Scope,uid:string,status:string)=>({...context(s),uid,status});
 export async function membershipState(r:Reader,s:Scope,uid:string) {

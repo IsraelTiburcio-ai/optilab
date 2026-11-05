@@ -1,9 +1,9 @@
 import {createHash} from 'node:crypto';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import type {Firestore,Transaction,Query} from 'firebase-admin/firestore';
-import type {Data,Scope} from './contracts';
-import {identifier} from './validation';
-import {assertEmulatedDatabase,assertProductionDatabase} from './sdk';
+import type {Data,Scope} from './contracts.js';
+import {identifier} from './validation.js';
+import {assertEmulatedDatabase,assertProductionDatabase} from './sdk.js';
 export const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 export const scopeKey=(s:Scope)=>hash(JSON.stringify([s.courseId,s.termId,s.groupId]));
 export interface Metrics {documentReadAttempts:number;queryDocumentsReturned:number;writeIntents:number;committedWrites:number;transactionAttempts:number}

@@ -1,12 +1,12 @@
-import type {Actor,Data,Input,Scope} from './contracts';
-import type {Reader} from './authorization';
-import {grant} from './authorization';
-import {coursePath,groupPath} from './repository';
-import {exact,integer,parseInput} from './validation';
-import {millis,invitation,details} from './models';
-import {conflict} from './errors';
-import {plan,type Plan} from './plans';
-import {playerDocument} from './playerModel';
+import type {Actor,Data,Input,Scope} from './contracts.js';
+import type {Reader} from './authorization.js';
+import {grant} from './authorization.js';
+import {coursePath,groupPath} from './repository.js';
+import {exact,integer,parseInput} from './validation.js';
+import {millis,invitation,details} from './models.js';
+import {conflict} from './errors.js';
+import {plan,type Plan} from './plans.js';
+import {playerDocument} from './playerModel.js';
 export interface AuthIdentity {email:string|null;emailVerified:boolean}
 export function profileDocument(raw:Data|null,uid:string):Data|null {
   if(!raw)return null;

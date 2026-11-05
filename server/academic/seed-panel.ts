@@ -1,7 +1,7 @@
-import {localConfig} from './config';
+import {localConfig} from './config.js';
 const config=localConfig(process.env);
 if(process.argv.length!==2||process.env.ACADEMIC_BOOTSTRAP!=='synthetic-v1'||(process.env.ACADEMIC_FIXTURE_PASSWORD??'').length<12)throw new Error('ACADEMIC_BOOTSTRAP_REJECTED');
-const [{emulatorAdmin},{seedFixtures},{AcademicRepository},{AcademicService}]=await Promise.all([import('./sdk'),import('./bootstrap'),import('./repository'),import('./service')]);
+const [{emulatorAdmin},{seedFixtures},{AcademicRepository},{AcademicService}]=await Promise.all([import('./sdk.js'),import('./bootstrap.js'),import('./repository.js'),import('./service.js')]);
 const sdk=await emulatorAdmin();
 try {
   const f=await seedFixtures(sdk,process.env.ACADEMIC_FIXTURE_PASSWORD!),service=new AcademicService(new AcademicRepository(sdk.db),sdk,config.maxTtlSeconds);

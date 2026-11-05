@@ -1,4 +1,4 @@
-import {localConfig,PROJECT} from './config';
+import {localConfig,PROJECT} from './config.js';
 import type {Auth} from 'firebase-admin/auth';
 import type {Firestore} from 'firebase-admin/firestore';
 import {createConnection} from 'node:net';

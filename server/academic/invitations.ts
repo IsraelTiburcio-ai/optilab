@@ -1,11 +1,11 @@
 import {randomBytes,timingSafeEqual} from 'node:crypto';
-import type {Actor,Input,Scope} from './contracts';
-import type {Reader} from './authorization';
-import {activeContext,grant} from './authorization';
-import {context,details,invitation,request,millis} from './models';
-import {conflict,unavailableInvite} from './errors';
-import {coursePath,groupPath,hash} from './repository';
-import {plan,type Plan} from './plans';
+import type {Actor,Input,Scope} from './contracts.js';
+import type {Reader} from './authorization.js';
+import {activeContext,grant} from './authorization.js';
+import {context,details,invitation,request,millis} from './models.js';
+import {conflict,unavailableInvite} from './errors.js';
+import {coursePath,groupPath,hash} from './repository.js';
+import {plan,type Plan} from './plans.js';
 export interface Clock {now:()=>number;time:()=>unknown;timestamp:(n:number)=>unknown}
 export function liveInvite(d:Record<string,any>,clock:Clock) {
   if(d.status!=='active'||millis(d.expiresAt)<=clock.now()||d.acceptedCount>=d.maxUses)throw unavailableInvite();
