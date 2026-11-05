@@ -27,7 +27,7 @@ Notes:
 
 Follow-up checks (same revision before final commit):
   - vercel.json: maxDuration=15, no memory field (Hobby-managed).
-  - Runtime dependencies: firebase-admin 14.5.0 and google-auth-library 11.3.1 moved to dependencies; npm ci completed.
+  - Runtime dependencies: firebase-admin 14.5.0 and google-auth-library 11.3.1 moved to dependencies; npm ci completed; npm audit --omit=dev = 0 vulnerabilities with glob 14.0.3/minimatch 11.0.4 overrides.
   - Open-path test: valid JSON reaches service; malformed JSON returns 400 INVALID_INPUT (tests/academic/vercel.test.ts).
   - Proxy rate-key test: first x-forwarded-for client is used, not the proxy socket address.
   - Dashboard truncated flag has an explicit role=status warning; partial counts are not labeled exact totals.

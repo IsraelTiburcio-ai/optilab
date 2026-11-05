@@ -40,7 +40,7 @@ VITE_ACADEMIC_APP_ORIGIN=https://optilab.club
 
 ### Dependencias runtime
 
-`firebase-admin` y `google-auth-library` están en `dependencies` (no en `devDependencies`) para el bundle de Vercel. El lockfile se actualizó con npm; no se migró a otro gestor. `@types/node`, `tsx`, Playwright y Vite permanecen de desarrollo.
+`firebase-admin` y `google-auth-library` están en `dependencies` (no en `devDependencies`) para el bundle de Vercel. El lockfile se actualizó con npm; no se migró a otro gestor. `npm audit --omit=dev` queda en 0 vulnerabilidades; los overrides `glob@14.0.3` y `minimatch@11.0.4` corrigen transitivas runtime sin añadir servicios. `@types/node`, `tsx`, Playwright y Vite permanecen de desarrollo.
 
 ### Backend Vercel
 
