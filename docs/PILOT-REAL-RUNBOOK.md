@@ -47,7 +47,7 @@ Estrategia recomendada e implementada en código: **Vercel OIDC + Google Cloud W
 Configuración de Vercel Production (la infraestructura GCP ya está configurada; las variables de Vercel aún deben configurarse solo en Production):
 
 - Verificar que Secure backend access con OIDC esté activo en el proyecto `optilab-api`.
-- Configurar `ACADEMIC_CREDENTIAL_MODE=oidc`, `GCP_PROJECT_NUMBER`, `GCP_SERVICE_ACCOUNT_EMAIL`, `GCP_WORKLOAD_IDENTITY_POOL_ID`, `GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID`, `VERCEL_OIDC_ISSUER=https://oidc.vercel.com/optilab`, `VERCEL_OIDC_AUDIENCE=https://vercel.com/optilab` y `ACADEMIC_VERCEL_SUBJECT=owner:optilab:project:optilab-api:environment:production`. `VERCEL_PROJECT_ID` lo proporciona Vercel automáticamente.
+- Configurar `ACADEMIC_CREDENTIAL_MODE=oidc`, `GCP_PROJECT_NUMBER`, `GCP_SERVICE_ACCOUNT_EMAIL`, `GCP_WORKLOAD_IDENTITY_POOL_ID`, `GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID`, `VERCEL_OIDC_ISSUER=https://oidc.vercel.com/optilab`, `VERCEL_OIDC_AUDIENCE=https://vercel.com/optilab` y `ACADEMIC_VERCEL_SUBJECT=owner:optilab:project:optilab-api:environment:production`. `VERCEL_PROJECT_ID` lo proporciona Vercel en build/runtime cuando el acceso a System Environment Variables está habilitado; el código falla cerrado si falta.
 - Verificar el Workload Identity Pool/Provider existente con issuer de Vercel.
 - Verificar que el provider esté condicionado a `assertion.environment == "production"`, `assertion.aud == "https://vercel.com/optilab"`, `assertion.sub == "owner:optilab:project:optilab-api:environment:production"` y al proyecto/equipo exactos; Preview no recibe el token productivo.
 - Verificar la service account dedicada con `roles/datastore.user` y `roles/firebaseauth.viewer`; no ampliar permisos sin justificación.
