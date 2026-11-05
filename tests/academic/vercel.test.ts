@@ -90,3 +90,20 @@ test('proxy-aware rate keys use the forwarded client, not the Vercel proxy addre
   assert.equal(rateLimitKey(forwarded,false),'10.0.0.1');
   assert.equal(rateLimitKey({headers:{'x-forwarded-for':'not-an-ip'},socket:{remoteAddress:'10.0.0.1'}} as unknown as IncomingMessage,true),'10.0.0.1');
 });
+test('OIDC configuration is explicit, production-only and validates the Vercel subject shape',async()=>{
+  const {credentialMode,oidcConfig,productionAdmin}=await import('../../server/academic/sdk');
+  assert.equal(credentialMode({}),'none');
+  assert.equal(credentialMode({FIREBASE_SERVICE_ACCOUNT_JSON:'{}'}),'service-account');
+  assert.equal(credentialMode({ACADEMIC_CREDENTIAL_MODE:'oidc',FIREBASE_SERVICE_ACCOUNT_JSON:'{}'}),'oidc');
+  const env={GCP_PROJECT_NUMBER:'123456789012',GCP_SERVICE_ACCOUNT_EMAIL:'vercel@optilab-cd829.iam.gserviceaccount.com',
+    GCP_WORKLOAD_IDENTITY_POOL_ID:'vercel',GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID:'vercel',
+    GCP_AUDIENCE:'https://iam.googleapis.com/projects/123456789012/locations/global/workloadIdentityPools/vercel/providers/vercel',
+    ACADEMIC_VERCEL_SUBJECT:'owner:Optilab:project:optilab-api:environment:production'};
+  const config=oidcConfig(env);assert.equal(config.subject,'owner:Optilab:project:optilab-api:environment:production');
+  for(const patch of [{GCP_PROJECT_NUMBER:'bad'},{GCP_SERVICE_ACCOUNT_EMAIL:'nope'},{GCP_WORKLOAD_IDENTITY_POOL_ID:''},
+    {GCP_AUDIENCE:'http://iam.googleapis.com/x'},{ACADEMIC_VERCEL_SUBJECT:'owner:Optilab:project:optilab-api:environment:preview'},
+    {ACADEMIC_VERCEL_SUBJECT:'owner:Other:project:other:environment:production'}])assert.throws(()=>oidcConfig({...env,...patch}),/ACADEMIC_ENV_REJECTED/);
+  const original={...process.env};delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;delete process.env.FIREBASE_AUTH_EMULATOR_HOST;delete process.env.FIRESTORE_EMULATOR_HOST;
+  process.env.ACADEMIC_PRODUCTION_ENABLED='false';process.env.VERCEL_ENV='production';
+  try{await assert.rejects(productionAdmin('optilab-cd829','oidc'),/ACADEMIC_ENV_REJECTED/);}finally{process.env=original;}
+});

@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {buildPilotPlan,validatePilotManifest,PILOT_PROJECT} from '../../server/pilot/provision.mjs';
+import {applyPilotPlan,assertProvisionApproval} from '../../server/pilot/apply.mjs';
 const manifest={projectId:PILOT_PROJECT,teacherUid:'synthetic_teacher_uid_001',
   course:{id:'synthetic-course',title:'Optimización I'},term:{id:'synthetic-term',title:'2026-2'},
   group:{id:'synthetic-group',title:'Grupo piloto'},students:[{uid:'synthetic_student_uid_001',label:'Alumno 1'},{uid:'synthetic_student_uid_002',label:'Alumno 2'}]};
@@ -40,6 +41,24 @@ test('owner CLI is dry-run and execute is closed until separate authorization',(
   const dry=spawnSync(process.execPath,['scripts/pilot-provision.mjs','--manifest',file],{encoding:'utf8'});
   assert.equal(dry.status,0,dry.stderr);const plan=JSON.parse(dry.stdout);assert.equal(plan.mode,'DRY-RUN');assert.equal(plan.network,false);
   const execute=spawnSync(process.execPath,['scripts/pilot-provision.mjs','--manifest',file,'--execute'],{encoding:'utf8'});
-  assert.notEqual(execute.status,0);assert.match(execute.stderr,/PILOT_EXECUTION_DISABLED/);assert.equal(execute.stdout,'');
+  assert.notEqual(execute.status,0);assert.match(execute.stderr,/PILOT_APPROVAL_REQUIRED/);assert.equal(execute.stdout,'');
+  const noConfirm=spawnSync(process.execPath,['scripts/pilot-provision.mjs','--manifest',file,'--execute'],{encoding:'utf8',env:{...process.env,PILOT_PROVISION_APPROVAL:'apply:optilab-cd829'}});
+  assert.notEqual(noConfirm.status,0);assert.match(noConfirm.stderr,/PILOT_CONFIRMATION_REQUIRED/);assert.equal(noConfirm.stdout,'');
   assert.doesNotMatch(dry.stdout+execute.stdout+execute.stderr,/private_key|BEGIN RSA|FIREBASE_SERVICE_ACCOUNT/);
+});
+
+test('real bootstrap guards approval, CI, Auth verification and existing documents',async()=>{
+  const plan=buildPilotPlan(manifest);
+  assert.throws(()=>assertProvisionApproval({CI:'true'},{execute:true,confirm:'provision:optilab-cd829'}),/CI_FORBIDDEN/);
+  assert.throws(()=>assertProvisionApproval({},{execute:true,confirm:'provision:optilab-cd829'}),/APPROVAL_REQUIRED/);
+  assert.throws(()=>assertProvisionApproval({PILOT_PROVISION_APPROVAL:'apply:optilab-cd829'},{execute:true,confirm:'wrong'}),/CONFIRMATION_REQUIRED/);
+  assert.equal(assertProvisionApproval({PILOT_PROVISION_APPROVAL:'apply:optilab-cd829'},{execute:true,confirm:'provision:optilab-cd829'}),true);
+  const makeAdmin=(exists=false,emailVerified=true)=>{
+    const writes:any[]=[];
+    return {writes,auth:{getUser:async()=>({disabled:false,emailVerified})},
+      db:{doc:(path:string)=>path,runTransaction:async(fn:any)=>fn({get:async()=>({exists}),set:(path:string,data:any)=>writes.push({path,data})})}};
+  };
+  const unverified=makeAdmin(false,false);await assert.rejects(applyPilotPlan(plan,unverified),/TEACHER_AUTH_REJECTED/);assert.equal(unverified.writes.length,0);
+  const existing=makeAdmin(true);await assert.rejects(applyPilotPlan(plan,existing),/EXISTING_DOCUMENT_REJECTED/);assert.equal(existing.writes.length,0);
+  const clean=makeAdmin(false);const result=await applyPilotPlan(plan,clean);assert.equal(result.mode,'EXECUTED');assert.equal(result.teacherUidVerified,true);assert.equal(result.documentsWritten,10);assert.equal(clean.writes.length,10);
 });

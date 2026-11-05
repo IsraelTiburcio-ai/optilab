@@ -34,19 +34,20 @@ El owner usa un manifiesto **privado, fuera de Git**, con IDs y UIDs de prueba/v
 node scripts/pilot-provision.mjs --manifest /ruta/privada/pilot.manifest.json
 ```
 
-Resultado: `mode: DRY-RUN`, `network: false`, `productionWrites: false`, diez documentos exactos para curso, settings, staff/administration de curso y grupo, periodo, grupo, settings y `teachingScopes` de la profesora. Los UIDs de alumnos se validan como participantes esperados, pero **no se escriben**: la inscripción sigue siendo invitación + aprobación. `--execute` permanece cerrado (`PILOT_EXECUTION_DISABLED`) hasta una autorización y un procedimiento de aplicación separados.
+Resultado: `mode: DRY-RUN`, `network: false`, `productionWrites: false`, diez documentos exactos para curso, settings, staff/administration de curso y grupo, periodo, grupo, settings y `teachingScopes` de la profesora. Los UIDs de alumnos se validan como participantes esperados, pero **no se escriben**: la inscripción sigue siendo invitación + aprobación. La ejecución real ya tiene una ruta exclusiva de propietario: exige `PILOT_PROVISION_APPROVAL=apply:optilab-cd829`, `--confirm provision:optilab-cd829`, credenciales ADC/Admin, UID docente existente con correo verificado y una transacción que rechaza cualquier documento existente. **No se ejecutó en esta PR**.
 
 El manifiesto y los UIDs nunca se guardan en el repositorio. El dry-run no importa Firebase Admin, no abre red y no verifica todavía que el UID exista en Auth (esa comprobación pertenece a la aplicación autorizada).
 
 ### A.2 Credenciales Vercel/Firebase
 
-**Estado real:** OIDC/WIF es la estrategia objetivo, no una integración terminada. `productionAdmin()` solo acepta el secreto JSON; no hay intercambio OIDC ni impersonación implementados. No presentar WIF como operativo ni activarlo en esta PR.
+**Estado real:** el adaptador OIDC/WIF ya está implementado en código, pero **no está configurado ni activado**. `productionAdmin()` selecciona el modo con `ACADEMIC_CREDENTIAL_MODE=oidc` y usa `@vercel/oidc` + `ExternalAccountClient`; no se aplicaron IAM ni credenciales. El fallback `FIREBASE_SERVICE_ACCOUNT_JSON` sigue disponible solo como secreto Sensitive y también está cerrado por defecto.
 
-Estrategia objetivo, **aún no implementada**: **Vercel OIDC + Google Cloud Workload Identity Federation**, disponible en todos los planes de Vercel. El token OIDC es de corta vida y se intercambiaría por una identidad federada con una service account mínima. `productionAdmin()` todavía **solo** lee `FIREBASE_SERVICE_ACCOUNT_JSON`; OIDC/WIF no puede seleccionarse como mecanismo operativo hasta implementar el adaptador, probarlo y aplicar IAM con aprobación. No se aplican cambios IAM en esta PR.
+Estrategia recomendada e implementada en código: **Vercel OIDC + Google Cloud Workload Identity Federation**, disponible en todos los planes de Vercel. El token OIDC es de corta vida; `productionAdmin()` lo obtiene por solicitud, valida `ACADEMIC_VERCEL_SUBJECT` y lo intercambia por una identidad federada con una service account mínima. No está configurado, no se aplicó IAM y el modo queda cerrado hasta aprobación. Si Google exigiera facturación, se mantiene el fallback JSON Sensitive; no se activó Blaze.
 
 Configuración futura, solo después de aprobación:
 
 - Activar Secure backend access con OIDC en el proyecto `optilab-api`.
+- Configurar `ACADEMIC_CREDENTIAL_MODE=oidc`, `GCP_PROJECT_NUMBER`, `GCP_SERVICE_ACCOUNT_EMAIL`, `GCP_WORKLOAD_IDENTITY_POOL_ID`, `GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID`, `GCP_AUDIENCE` y `ACADEMIC_VERCEL_SUBJECT=owner:Optilab:project:optilab-api:environment:production`.
 - Crear Workload Identity Pool/Provider con issuer de Vercel.
 - Condicionar el provider a `assertion.environment == "production"` y al proyecto/equipo exactos; Preview no recibe el token productivo.
 - Service account dedicada con `roles/datastore.user` (Firestore) y los permisos mínimos de lectura de Auth necesarios (`roles/firebaseauth.viewer`; revisar antes de aplicar).
@@ -55,7 +56,15 @@ Configuración futura, solo después de aprobación:
 
 Fallback actualmente implementado, pero desactivado: `FIREBASE_SERVICE_ACCOUNT_JSON` como variable **Sensitive** de Vercel producción, service account mínima y aprobación explícita. No se creó, copió ni solicitó ninguna credencial. El código de producción sigue cerrado y el fallback existente solo se activa con `ACADEMIC_PRODUCTION_ENABLED=true` y `VERCEL_ENV=production`; Preview no puede abrirlo.
 
-### A.3 Pruebas
+### A.3 Preflight
+
+```sh
+npm run pilot:preflight
+```
+
+Comprueba índice, ESM, Pages, API 503 y el plan dry-run. Para Auth, dominios autorizados, Rules y usuarios, revisar la consola/Admin y el manifiesto privado; no se ejecutan escrituras.
+
+### A.4 Pruebas
 
 ```sh
 npm run test:academic:api
@@ -69,13 +78,13 @@ Cobertura sintética: docente autorizado, dos alumnos, alumno/docente ajeno, usu
 
 El flujo real de referencia es `tests/teacher/ui/dashboard-real-flow.spec.ts` (B completa Memorama, C practica, A ve el dashboard) y `tests/teacher/ui/activities.spec.ts` (A publica, B ve). Las pruebas de los 28 juegos están en `tests/activities/ui/player.spec.ts`.
 
-### A.4 Índice de Firestore
+### A.5 Índice de Firestore
 
 La consulta `reportedAttempts` usa `orderBy('observedAt','desc')`, filtros `>=`/`<=` y `limit(200)`. `firestore.indexes.json` conserva la exención global de la colección y añade una excepción específica `reportedAttempts.observedAt` con alcance `COLLECTION` y orden `DESCENDING`.
 
 **No se despliega el índice en esta PR.** Antes de activar el dashboard productivo, el propietario deberá aprobar `firebase deploy --only firestore:indexes` y verificar en Firebase Console que el índice esté `READY`; si falta o está fallando, el dashboard productivo debe permanecer desactivado. Prueba de regresión: `tests/firestore/production-readiness.test.mjs`.
 
-### A.5 Coste
+### A.6 Coste
 
 `groupProgress` limita a 200 intentos por alumno y ahora consulta `reportedAttempts` por periodo (`observedAt >= from` y `<= to`) en lugar de traer todo el historial para filtrar en memoria. El periodo 7/30/90 reduce lecturas; «Todo» usa el cap de 200 y marca `activityDataTruncated` con advertencia visible.
 
@@ -99,6 +108,18 @@ No es facturación medida. Cada montaje/cambio de periodo/refresco puede repetir
 Lista exacta que requiere autorización escrita:
 
 1. Aprobar e implementar OIDC/WIF **o**, alternativamente, crear la variable Sensitive de service account; desplegar el índice `reportedAttempts.observedAt` con aprobación.
+
+Comando de ejecución real del plan, solo después de la aprobación (no ejecutado):
+
+```sh
+unset CI
+PILOT_PROVISION_APPROVAL=apply:optilab-cd829 \
+GOOGLE_APPLICATION_CREDENTIALS=/ruta/privada/adc.json \
+node scripts/pilot-provision.mjs --manifest /ruta/privada/pilot.manifest.json \
+  --execute --confirm provision:optilab-cd829
+```
+
+El script verifica el UID docente en Auth, exige correo verificado, escribe exactamente diez documentos y rechaza cualquier documento existente. No ejecutar en CI.
 2. Aprobar el proyecto Firebase `optilab-cd829` y la service account mínima.
 3. Aprobar el UID real de la profesora y los dos UIDs de alumnos de prueba.
 4. Aprobar el manifiesto privado y el plan dry-run.
