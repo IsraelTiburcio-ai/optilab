@@ -72,7 +72,7 @@ export function Activities({scope,scopes,call,refresh,disabled=false}:{scope:Tea
         if(!saved.activityId||typeof saved.revision!=='number')throw new Error('El API no devolvió la actividad guardada.');
         await call('publishActivities',{...scopeInput(scope),groupIds:form.groupIds,activityId:saved.activityId,expectedVersion:saved.revision,idempotencyKey:key()});
       }
-      closeEditor();refreshWorkspace();report(publishNow?'Actividad publicada. Ya aparece en las tarjetas del gimnasio.':'Borrador guardado. Puedes publicarlo cuando quieras.');
+      closeEditor();refreshWorkspace();report(publishNow?'Actividad publicada. Ya aparece en las tarjetas del gimnasio.':'Borrador guardado. Ya puedes publicarlo cuando quieras.');
     }catch(e){setEditorError(e instanceof Error?e.message:'No se pudo guardar la actividad.');}finally{setBusy(false);}
   }
   function openPreview(state:FormState){
