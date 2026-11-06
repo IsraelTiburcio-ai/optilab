@@ -16,5 +16,7 @@ test('allowlist rechaza esquemas, credenciales, puertos, subdominios, hash, PII 
     ['wordwall','source','https://wordwall.net/resource/22610275/metodo-de-m-grande?x=1',word],
   ] as const)assert.equal(approvedActivityUrl(provider,value,kind,resource),null,`${provider} ${kind} ${value}`);
   assert.ok(approvedActivityUrl('learningapps','https://learningapps.org/watch?v=pznycxd7t21','source',id));
+  assert.ok(approvedActivityUrl('wordwall','https://wordwall.net/es/resource/22610275/metodo-de-m-grande','source','22610275'));
+  assert.equal(approvedActivityUrl('wordwall','https://wordwall.net/es/resource/22610275/metodo-de-m-grande','source','22610276'),null);
   assert.ok(approvedActivityUrl('wordwall','https://wordwall.net/es/embed/cc167dda64954e3dbb379706dd8348c8?themeId=66&templateId=35&fontStackId=0','embed',word));
 });

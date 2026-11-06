@@ -72,7 +72,7 @@ export function parseInput(name:string,value:unknown,maxTtl:number):{operation:O
   if('provider' in value&&!['wordwall','learningapps'].includes(value.provider))throw invalid();
   if('resourceId' in value&&(typeof value.resourceId!=='string'||value.resourceId.length>80))throw invalid();
   if('sourceUrl' in value&&(typeof value.sourceUrl!=='string'||value.sourceUrl.length>1000))throw invalid();
-  if('embedUrl' in value&&(typeof value.embedUrl!=='string'||value.embedUrl.length>1000))throw invalid();
+  if('embedUrl' in value&&value.embedUrl!==null&&(typeof value.embedUrl!=='string'||value.embedUrl.length>1000))throw invalid();
   if('description' in value&&(typeof value.description!=='string'||value.description.length>500||/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value.description)))throw invalid();
   if('instructions' in value&&(typeof value.instructions!=='string'||value.instructions.length>1000||/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value.instructions)))throw invalid();
   if(operation==='saveActivityDraft'&&(!('groupIds' in value)||!('gymId' in value)||!('title' in value)||!('description' in value)||!('instructions' in value)||!('provider' in value)||!('resourceId' in value)||!('sourceUrl' in value)||!('embedUrl' in value)))throw invalid();

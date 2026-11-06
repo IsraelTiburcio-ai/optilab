@@ -34,7 +34,7 @@ export function definition(d:Data|null,courseId:string,activityId:string):Data {
     !identifier(d.createdBy,128)||!Number.isFinite(millis(d.createdAt))||!Number.isFinite(millis(d.updatedAt))||
     !(d.publishedAt===null||Number.isFinite(millis(d.publishedAt))))throw conflict();
   if(!approvedActivityUrl(d.provider as ActivityProvider,d.sourceUrl,'source',d.resourceId)||
-    !approvedActivityUrl(d.provider as ActivityProvider,d.embedUrl,'embed',d.resourceId))throw conflict();
+    (d.embedUrl!==null&&!approvedActivityUrl(d.provider as ActivityProvider,d.embedUrl,'embed',d.resourceId)))throw conflict();
   return d;
 }
 export function revision(d:Data|null,courseId:string,activityId:string,number:number):Data {
@@ -44,7 +44,7 @@ export function revision(d:Data|null,courseId:string,activityId:string,number:nu
     typeof d.instructions!=='string'||d.instructions.length>1000||!validIds(d.groupIds,20)||!validTelemetry(d.telemetry)||
     !identifier(d.publishedBy,128)||!Number.isFinite(millis(d.publishedAt))||
     !approvedActivityUrl(d.provider as ActivityProvider,d.sourceUrl,'source',d.resourceId)||
-    !approvedActivityUrl(d.provider as ActivityProvider,d.embedUrl,'embed',d.resourceId))throw conflict();
+    (d.embedUrl!==null&&!approvedActivityUrl(d.provider as ActivityProvider,d.embedUrl,'embed',d.resourceId)))throw conflict();
   return d;
 }
 export function assignment(d:Data|null,s:Scope,activityId:string):Data {
@@ -122,12 +122,12 @@ export async function saveActivityDraft(r:Reader,policy:Policy,actor:Actor,input
   if(input.activityId&&!existing)throw conflict();
   if(existing&&!existing.groupIds.includes(input.groupId!))throw denied();
   if(existing&&input.expectedVersion!==existing.revision)throw conflict();
-  const urls={sourceUrl:approvedActivityUrl(input.provider as ActivityProvider,input.sourceUrl!,'source',input.resourceId!),
-    embedUrl:approvedActivityUrl(input.provider as ActivityProvider,input.embedUrl!,'embed',input.resourceId!)};
-  if(!urls.sourceUrl||!urls.embedUrl)throw invalid();
+  const sourceUrl=approvedActivityUrl(input.provider as ActivityProvider,input.sourceUrl!,'source',input.resourceId!),
+    embedUrl=input.embedUrl===null?null:approvedActivityUrl(input.provider as ActivityProvider,input.embedUrl!,'embed',input.resourceId!);
+  if(!sourceUrl||(input.embedUrl!==null&&!embedUrl))throw invalid();
   const revisionNumber=(existing?.revision??0)+1;
   const data={schemaVersion:1,courseId:input.courseId!,activityId:id,provider:input.provider,resourceId:input.resourceId,
-    ...urls,title:input.title,description:input.description,instructions:input.instructions,groupIds:groups.map(group=>group.groupId),
+    sourceUrl,embedUrl,title:input.title,description:input.description,instructions:input.instructions,groupIds:groups.map(group=>group.groupId),
     telemetry:providerTelemetry(),status:'draft',revision:revisionNumber,
     publishedRevision:existing?.publishedRevision??null,createdBy:existing?.createdBy??actor.uid,
     createdAt:existing?.createdAt??now,updatedAt:now,publishedAt:existing?.publishedAt??null};

@@ -25,7 +25,7 @@ import {syncEnabled} from './progress/config';
 import {academicEnabled} from './academic/config';
 import {useAcademicAccess} from './academic/AcademicAccess';
 import {ExternalActivityCards} from './activities/ExternalActivityCards';
-import {GroupActivityCards} from './activities/GroupActivityCards';
+import {GymGameGrid} from './academic/GymGameGrid';
 import './styles/sync.css';
 const SyncPanel=lazy(()=>import('./progress/SyncPanel'));
 const Account=lazy(()=>import('./pages/Account'));
@@ -75,8 +75,8 @@ function GymDetail() {
     </section>
     <div className="section-heading"><h2>Tu campo de entrenamiento</h2><span>{list.length} actividades disponibles</span></div>
     <p className="muted">{gym.id === 3 ? 'Los cinco juegos se juegan dentro de OptiLab. Memorama conserva su registro de finalización. Los demás tienen un conector de informes temporales de sesión, sin cambios en progreso ni recompensas. La práctica manual sigue disponible en todas las fichas.' : 'Todos los juegos de este gimnasio se juegan dentro de OptiLab y tienen un conector de informes temporales de sesión, sin cambios en progreso ni recompensas. La apertura independiente sigue disponible como alternativa.'}</p>
-    <div className="game-grid">{list.map((g,i)=><GameCard key={g.repo} game={g} index={i}/>)}</div>
-    <ExternalActivityCards gymId={gym.id}/><GroupActivityCards gymId={gym.id}/>
+    <GymGameGrid gymId={gym.id}/>
+    <ExternalActivityCards gymId={gym.id}/>
   </>;
 }
 function OptiDex(){const [query,setQuery]=useState('');const [gym,setGym]=useState(0);const [pending,setPending]=useState(false);const {state}=useProgress();const list=games.filter(g=>(!gym||g.gimnasio===gym)&&normalize(g.nombre+' '+g.tema).includes(normalize(query))&&(!pending||!state.practiced[g.repo]));return <><PageTitle kicker="ENCICLOPEDIA DE MICROAVENTURAS" title="OptiDex" description="28 juegos reales. Muchas formas de conectar con lo que aprendes."/><div className="catalog-tools"><label className="search"><Search size={20}/><input aria-label="Buscar por nombre o tema" placeholder="Busca un juego, un tema, una idea…" value={query} onChange={e=>setQuery(e.target.value)}/>{query&&<button onClick={()=>setQuery('')} aria-label="Limpiar búsqueda"><X size={18}/></button>}</label><label className="pending-filter"><input type="checkbox" checked={pending} onChange={e=>setPending(e.target.checked)}/> Solo pendientes</label></div><div className="filters" aria-label="Filtrar por gimnasio">{[0,1,2,3,4,5].map(n=><button key={n} aria-pressed={gym===n} className={gym===n?'active':''} onClick={()=>setGym(n)}>{n?`Gimnasio ${n}`:'Todos'} <span>{n?gymGames(n).length:28}</span></button>)}</div><p className="muted" aria-live="polite">{list.length} juegos encontrados · Práctica registrada por ti, no una medida de dominio.</p><div className="game-grid">{list.map((g,i)=><GameCard key={g.repo} game={g} index={i}/>)}</div>{!list.length&&<div className="empty-state"><Compass/><h2>No hay juegos en este rincón.</h2><p>Prueba con otro tema o cambia los filtros.</p><button className="button" onClick={()=>{setQuery('');setGym(0);setPending(false)}}>Ver todos los juegos</button></div>}</>}

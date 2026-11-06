@@ -11,7 +11,7 @@ export interface Input extends Partial<Scope> {
   destinationGroupId?:string;title?:string;limit?:number;cursor?:string;kind?:'student'|'teacher';status?:string;
   fullName?:string;shareGameIdentity?:boolean;nickname?:string|null;avatarId?:string|null;companionId?:string|null;
   gamertag?:string;expectedProfileVersion?:number;
-  groupIds?:string[];activityId?:string;provider?:string;resourceId?:string;sourceUrl?:string;embedUrl?:string;
+  groupIds?:string[];activityId?:string;provider?:string;resourceId?:string;sourceUrl?:string;embedUrl?:string|null;
   description?:string;instructions?:string;gymId?:number;orderedActivityIds?:string[];
 }
 export const reads=new Set<Operation>(['myScopes','roster','requestStatus','groupInvitations','membershipEvents','groupRequests','getAcademicProfile','getPlayerIdentity','gamertagAvailability','groupEnrollmentLink','groupProgress','activityWorkspace','publishedGroupActivities','publishedActivity']);

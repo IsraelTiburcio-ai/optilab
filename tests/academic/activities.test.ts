@@ -48,6 +48,15 @@ test('docente crea borrador Wordwall, previsualiza datos, publica y el alumno lo
   assert.equal((await execute('studentA','publishedActivity',{...s('a'),activityId:draft.activityId})).embedUrl,wordwall.embedUrl);
 });
 
+test('Wordwall sin embed se publica como apertura externa segura',async()=>{
+  await admit('studentA','a');
+  const external={provider:'wordwall',resourceId:'22610275',sourceUrl:'https://wordwall.net/es/resource/22610275/metodo-de-m-grande',embedUrl:null};
+  const draft=await saved({...external,title:'Wordwall externa'});
+  await execute('teacherA','publishActivities',{...s('a'),groupIds:[f.groups.a],activityId:draft.activityId,expectedVersion:1,idempotencyKey:key()});
+  const row=(await execute('studentA','publishedGroupActivities',s('a'))).gyms.find((g:any)=>g.gymId===3).activities[0];
+  assert.equal(row.embedUrl,null);assert.equal(row.sourceUrl,external.sourceUrl);
+  assert.equal((await execute('studentA','publishedActivity',{...s('a'),activityId:draft.activityId})).embedUrl,null);
+});
 test('asigna una definición a dos grupos, permite gimnasios distintos y aísla docentes/alumnos',async()=>{
   await admit('studentA','a');await admit('studentB','b');
   const draft=await saved({...wordwall,groupIds:[f.groups.a,f.groups.b]},'teacherBoth');
