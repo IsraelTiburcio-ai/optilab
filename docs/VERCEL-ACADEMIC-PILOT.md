@@ -146,3 +146,13 @@ Vercel transpila TypeScript a `.js` pero conserva los especificadores relativos;
 ## Piloto real
 
 El procedimiento de aprovisionamiento dry-run, activación y reversión está en [PILOT-REAL-RUNBOOK.md](PILOT-REAL-RUNBOOK.md).
+
+## Diagnóstico sanitizado de `503 ACADEMIC_DISABLED`
+
+Los cierres de `server/academic/vercel.ts` emiten únicamente logs estructurados con banderas booleanas y códigos seguros:
+
+- `runtime_config_closed`: `vercelRuntimeConfig()` no abrió. Incluye banderas como `modeOff`, `modeProduction`, `vercelEnvProduction`, `nodeEnvProduction`, `productionEnabled`, `projectConfigured`, `noAuthEmulator`, `noFirestoreEmulator` y `allowedOriginsValid`. No incluye valores de variables, orígenes, proyecto, correos ni secretos.
+- `missing_oidc_header`: el runtime está abierto en modo OIDC, pero la petición no trae `x-vercel-oidc-token`. No registra el header ni sus valores.
+- `production_admin_init_failed`: falló la inicialización de `productionAdmin`. Registra `stage: "production_admin"` y un código de la lista segura (`ACADEMIC_ENV_REJECTED`, `firestore/invalid-credential`, etc.); los errores desconocidos se reportan como `UNCLASSIFIED`. No registra el mensaje original.
+
+Las respuestas HTTP no cambian: ambos POST y OPTIONS siguen devolviendo `503 ACADEMIC_DISABLED` mientras el runtime esté cerrado.
