@@ -1,5 +1,9 @@
 # Smoke OIDC de Vercel Production → Google STS → IAM Credentials
 
+## Nota de vigencia
+
+Este documento conserva el historial del primer smoke OIDC. La API académica de Production ya está activa (`OPTIONS` 204; `POST` sin token 401); las referencias a `503 ACADEMIC_DISABLED` describen el estado del primer intento, no el estado actual del API.
+
 ## Estado operativo actual
 
 - La **PR #44 sí se desplegó en Production** y el smoke se habilitó para el primer intento real.

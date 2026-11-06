@@ -6,6 +6,8 @@ Base: `f5b30f0773f7efd91508ff4e4274944dd8476829`, PR #16 fusionada. Esta fase ag
 
 La siguiente fase [STUDENT-ENROLLMENT.md](STUDENT-ENROLLMENT.md) incorpora inscripción visual, enlace local y perfil consentido; sustituye la limitación inicial de código sin pantalla de alumno y amplía la proyección/presupuesto del roster. Los resultados/capturas de este documento corresponden a la fase v1 original.
 
+**Activación productiva:** el frontend de Pages se publica con el workflow de deploy en modo `production`; la API de Production ya responde `OPTIONS` 204 y `POST` 401 sin token. El acceso docente sigue dependiendo de los grants de Firestore por UID, nunca de correo/dominio. La sincronización de progreso continúa deshabilitada. La verificación del UID y una asignación aditiva autorizada están en [PILOT-REAL-RUNBOOK.md](PILOT-REAL-RUNBOOK.md).
+
 La revisión actual de PR #18 incorpora «Invita a tus alumnos» y alta automática con correo verificado. Las solicitudes manuales descritas abajo son históricas, no pasos normales del nuevo producto. Accesos docentes solo se muestran tras myScopes autorizado; el alcance de simplificación general siguiente está registrado en #5, sin otra PR implementada.
 
 ## Arranque en Mac (Node 22, Java 21, zsh)

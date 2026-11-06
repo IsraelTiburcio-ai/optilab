@@ -2,14 +2,14 @@
 
 Rama `codex/vercel-academic`, base `main` `8c780fe1a095087afa672329f0a16ee141442195`. Fecha: 4 de noviembre de 2026.
 
-**Estado actual:** PR #44 desplegada en Production; primer smoke real falló con `502 OIDC_TOKEN_UNAVAILABLE` antes de STS. Smoke desactivado (`404 OIDC_SMOKE_DISABLED`), API académica cerrada (`503 ACADEMIC_DISABLED`), 10 variables OIDC/GCP configuradas y secreto temporal pendiente de retirar/rotar. La corrección está en PR #45, no desplegada. El frontend sigue en GitHub Pages/`optilab.club`; Vercel solo se prepara para el API.
+**Estado actual:** API académica de Production activa: `OPTIONS /api/v1/roster` devuelve `204` y `POST` sin token `401 UNAUTHENTICATED`. El smoke temporal sigue desactivado (`404 OIDC_SMOKE_DISABLED`). La PR de este cambio activa el frontend de GitHub Pages con `VITE_ACADEMIC_API_MODE=production`; hasta el merge/redeploy, el bundle público sigue sin el módulo académico. Preview de Vercel permanece cerrada. El secreto temporal anterior debe retirarse/rotarse.
 
 ## Arquitectura
 
 - `api/v1/[operation].ts` es la función Vercel. No llama `listen()`; delega en `server/academic/vercel.ts`.
 - Reutiliza `AcademicService`, `AcademicRepository`, contratos, validadores, autorización, CAS, idempotencia, auditoría y métricas existentes.
 - El handler HTTP compartido (`server/academic/handler.ts`) también sirve al proceso local de 5200.
-- `vercelRuntimeConfig` es **cerrado por defecto**. Preview devuelve 503 antes de cargar Firebase Admin. Producción solo abre con activación explícita y credencial protegida.
+- `vercelRuntimeConfig` es **cerrado por defecto**. Preview devuelve 503 antes de cargar Firebase Admin. Producción ya está abierta con activación explícita y credencial protegida; el frontend productivo se activa en el build de Pages, no en Preview.
 - El frontend usa `VITE_ACADEMIC_API_MODE`; una URL por sí sola no habilita nada.
 
 ## Matriz de entornos
@@ -19,7 +19,7 @@ Rama `codex/vercel-academic`, base `main` `8c780fe1a095087afa672329f0a16ee141442
 | Local | `localhost:5195` → `127.0.0.1:5200` | `VITE_ACADEMIC_API_MODE=emulator` (lo fija `teacher-env`) | Emulador `demo-optilab-sync` | Flujo docente actual |
 | Vercel Preview | URL preview estable | `ACADEMIC_ADMIN_MODE=vercel-preview` | Ninguno | **503 ACADEMIC_DISABLED** |
 | Vercel Preview sin variables | — | `off`/vacío | Ninguno | **503 ACADEMIC_DISABLED** |
-| Producción futura | `optilab.club` → API autorizado | `vercel-production` + habilidad explícita | `optilab-cd829` | Solo tras aprobación |
+| Producción | `optilab.club` → API autorizado | `vercel-production` + build Pages con modo `production` | `optilab-cd829` | API activa; frontend se activa con esta PR tras merge/redeploy |
 | Emergencia | cualquiera | `off`/`ACADEMIC_PRODUCTION_ENABLED=false` | Ninguno | 503 |
 
 ## Variables
@@ -32,7 +32,7 @@ VITE_ACADEMIC_API_URL=https://<api-autorizado>/api
 VITE_ACADEMIC_APP_ORIGIN=https://optilab.club
 ```
 
-- `off`/ausente es el default. `VITE_ACADEMIC_API_URL` sola no activa el panel.
+- `off`/ausente es el default en local. El workflow de Pages fija `production`, URL y origen para el build público; `VITE_ACADEMIC_API_URL` sola no activa el panel.
 - En local, `scripts/teacher-env.mjs` fija `emulator` y `http://127.0.0.1:5200`.
 - En preview/producción se exige HTTPS, URL sin credenciales/query/hash, path `/api` (o raíz) y `VITE_ACADEMIC_APP_ORIGIN` exactamente igual al origen actual.
 - Producción exige que el proyecto Firebase del build sea `optilab-cd829`; preview rechaza `demo-*`.
@@ -59,17 +59,17 @@ VITE_ACADEMIC_APP_ORIGIN=https://optilab.club
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | **secreta** | fallback Admin; no se creó ni se incluyó aquí |
 | `VERCEL_ENV` | automática de Vercel | `preview`/`production`; no se falsifica |
 
-El adaptador OIDC/WIF está implementado. La infraestructura GCP fue configurada manualmente y las 10 variables OIDC/GCP ya están en Vercel Production. El primer smoke real (PR #44) falló con `502 OIDC_TOKEN_UNAVAILABLE` antes de STS; el smoke está desactivado y la producción académica sigue cerrada. La corrección #45 incorpora lectura directa de `x-vercel-oidc-token`, verificación estricta y Firestore directo por petición. El secreto temporal anterior debe retirarse/rotarse; no se modificaron IAM ni credenciales en esta PR. El fallback `FIREBASE_SERVICE_ACCOUNT_JSON` solo puede usarse como variable Sensitive con aprobación; nunca commitear JSON, PEM, tokens o `.env` con secretos.
+El adaptador OIDC/WIF está implementado. La infraestructura GCP fue configurada manualmente y las 10 variables OIDC/GCP ya están en Vercel Production. La corrección #45 incorpora lectura directa de `x-vercel-oidc-token`, verificación estricta y Firestore directo por petición; la API de Production ya responde `OPTIONS` 204 y `POST` sin token 401. El smoke temporal sigue desactivado y el secreto anterior debe retirarse/rotarse. No se modificaron IAM ni credenciales en esta PR. El fallback `FIREBASE_SERVICE_ACCOUNT_JSON` solo puede usarse como variable Sensitive con aprobación; nunca commitear JSON, PEM, tokens o `.env` con secretos.
 
 Compatibilidad verificada con `@vercel/oidc@4.0.6`: `getVercelOidcToken({audience})` y `verifyVercelOidcToken(token,{issuer,audience,projectId,environment})` existen con esas firmas; `VERCEL_PROJECT_ID` está disponible en build/runtime cuando el acceso a System Environment Variables está habilitado. En el handler Node, el runtime debe leer `x-vercel-oidc-token` directamente de `IncomingMessage`; `getVercelOidcToken` depende del contexto global de Vercel y no de `req.headers`. La prueba local ejecuta el verificador real de `@vercel/oidc` con un JWT/JWKS de prueba, interceptando solo `https.get`, para validar firma y claims sin red; el smoke real posterior a #45 sigue pendiente.
 
-## Despliegue del API (no ejecutado)
+## Despliegue del API (histórico)
 
 1. En Vercel: **Add New → Project → Import Git Repository**. No reutilizar el proyecto de GitHub Pages.
 2. Configurar Node.js 22, `npm ci` y mantener el directorio raíz del repositorio. El proyecto es de API, no del frontend; no asignar `optilab.club` ni un dominio de producción al deployment de la API.
 3. No hace falta configurar un build estático para las funciones; Vercel detecta `api/v1/[operation].ts`. `vercel.json` limita la función a `maxDuration: 15`; no se declara `memory` porque Vercel Hobby administra la memoria. El handler limita body a 16 KiB y el rate limiter es por instancia (no distribuido).
 4. En Preview, usar `ACADEMIC_ADMIN_MODE=vercel-preview` o dejarlo vacío. No agregar credenciales Firebase.
-5. Verificar cierre: `POST https://<preview>/api/v1/roster` → 503 `ACADEMIC_DISABLED`. No debe aparecer ninguna llamada a Firestore.
+5. La Preview de Vercel permanece cerrada: `POST https://<preview>/api/v1/roster` → 503 `ACADEMIC_DISABLED`. No debe aparecer ninguna llamada a Firestore. La URL de Pages/Production no es una Preview.
 6. Comprobar HTTPS y CORS: una petición `OPTIONS /api/v1/roster` desde el origen autorizado devuelve 204 y `Access-Control-Allow-Origin`; el mismo origen no autorizado devuelve 403. Sin token, `POST` devuelve 401 antes de tocar Firestore.
 7. No activar una Preview con Firestore productivo. Si se necesita una API de prueba, usar un proyecto/emulador aprobado fuera de Vercel o un mock; una Preview de Vercel no alcanza `127.0.0.1`.
 
@@ -86,8 +86,17 @@ La validación de cuerpo JSON y el handler abierto se cubren con la prueba compa
 3. Configurar `ACADEMIC_ADMIN_MODE=vercel-production`, `ACADEMIC_PRODUCTION_ENABLED=true`, `ACADEMIC_ADMIN_PROJECT=optilab-cd829`, `ACADEMIC_ALLOWED_ORIGINS=https://optilab.club`.
 4. Agregar el origen exacto a CORS del API y el dominio a Firebase Auth Authorized domains.
 5. Desplegar primero Preview cerrada; probar `OPTIONS`, token válido, token de otro proyecto, usuario revocado, matrícula revocada y CORS denegado.
-6. Solo después de la aprobación del propietario, desplegar la API de producción y luego cambiar el frontend de Pages a `VITE_ACADEMIC_API_MODE=production`, URL y origen; reconstruir Pages.
+6. El frontend de Pages se activa en `.github/workflows/deploy.yml` para el build de `main`: `VITE_ACADEMIC_API_MODE=production`, URL y origen exactos. No activar esas variables en Preview.
 7. Verificar que la Preview no tenga las variables productivas y que CI no haya realizado escrituras reales.
+
+## Rollback del frontend
+
+El workflow de Pages fija el modo producción de forma persistente. Para revertir:
+
+1. Cambiar `VITE_ACADEMIC_API_MODE` a `off` y vaciar URL/origen en `.github/workflows/deploy.yml`.
+2. Hacer merge del cambio y esperar el redeploy de Pages.
+3. Verificar que `#/docente` ya no aparece y que el API no recibe peticiones del frontend.
+4. Mantener la API cerrada si además se revierte el backend.
 
 ## Apagado de emergencia
 
@@ -149,13 +158,13 @@ El procedimiento de aprovisionamiento dry-run, activación y reversión está en
 
 ## Diagnóstico sanitizado de `503 ACADEMIC_DISABLED`
 
-Los cierres de `server/academic/vercel.ts` emiten únicamente logs estructurados con banderas booleanas y códigos seguros:
+Actualmente Production está abierta; el 503 corresponde a Preview o a un runtime cerrado. Los cierres de `server/academic/vercel.ts` emiten únicamente logs estructurados con banderas booleanas y códigos seguros:
 
 - `runtime_config_closed`: `vercelRuntimeConfig()` no abrió. Incluye banderas como `modeOff`, `modeProduction`, `vercelEnvProduction`, `nodeEnvProduction`, `productionEnabled`, `projectConfigured`, `noAuthEmulator`, `noFirestoreEmulator` y `allowedOriginsValid`. No incluye valores de variables, orígenes, proyecto, correos ni secretos.
 - `missing_oidc_header`: el runtime está abierto en modo OIDC, pero la petición no trae `x-vercel-oidc-token`. No registra el header ni sus valores.
 - `production_admin_init_failed`: falló la inicialización de `productionAdmin`. Registra `stage: "production_admin"` y un código de la lista segura (`ACADEMIC_ENV_REJECTED`, `firestore/invalid-credential`, etc.); los errores desconocidos se reportan como `UNCLASSIFIED`. No registra el mensaje original.
 
-Las respuestas HTTP no cambian: ambos POST y OPTIONS siguen devolviendo `503 ACADEMIC_DISABLED` mientras el runtime esté cerrado.
+Las respuestas HTTP no cambian: mientras el runtime esté cerrado, ambos POST y OPTIONS siguen devolviendo `503 ACADEMIC_DISABLED`; en Production abierta, OPTIONS devuelve 204 y POST sin token 401.
 
 ## Subetapas de inicialización de `productionAdmin`
 

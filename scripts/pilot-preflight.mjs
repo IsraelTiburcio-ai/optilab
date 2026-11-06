@@ -20,7 +20,7 @@ export async function runPreflight({remote=true,manifest=null}={}){
   check('production API configuration',JSON.parse(await read('firebase.production.json')).firestore?.indexes==='firestore.indexes.json');
   check('Pages CNAME', (await read('public/CNAME')).trim()==='optilab.club');
   const deploy=await read('.github/workflows/deploy.yml');
-  check('Pages workflow keeps academic production off',/VITE_PROGRESS_SYNC: disabled/.test(deploy)&&!/VITE_ACADEMIC_API_MODE:\s*production/.test(deploy));
+  check('Pages workflow enables academic production',/VITE_PROGRESS_SYNC: disabled/.test(deploy)&&/VITE_ACADEMIC_API_MODE:\s*production/.test(deploy)&&/VITE_ACADEMIC_API_URL:\s*https:\/\/optilab-api\.vercel\.app\/api/.test(deploy)&&/VITE_ACADEMIC_APP_ORIGIN:\s*https:\/\/optilab\.club/.test(deploy));
   check('ESM relative imports carry extensions',(await Promise.all((await sourceFiles('server/academic')).concat(await sourceFiles('api')).map(async file=>{
     const source=await read(file);const matches=[...source.matchAll(/(?:from\s+|import\(\s*)['"](\.{1,2}\/[^'"]+)['"]/g)].map(match=>match[1]);
     return matches.filter(spec=>!spec.endsWith('.js')&&!spec.endsWith('.json')&&!spec.endsWith('.mjs')&&!spec.endsWith('.cjs'));
@@ -29,10 +29,12 @@ export async function runPreflight({remote=true,manifest=null}={}){
   if(manifest){const plan=buildPilotPlan(manifest);check('pilot plan is exactly 10 documents and dry-run',plan.mode==='DRY-RUN'&&plan.writes.length===10);}
   if(remote){
     try{
-      const response=await fetch('https://optilab-api.vercel.app/api/v1/roster',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(8000)});
+      const options=await fetch('https://optilab-api.vercel.app/api/v1/roster',{method:'OPTIONS',headers:{Origin:'https://optilab.club','Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'authorization,content-type'},signal:AbortSignal.timeout(8000)});
+      check('production API CORS preflight',options.status===204&&options.headers.get('access-control-allow-origin')==='https://optilab.club',`HTTP ${options.status}`);
+      const response=await fetch('https://optilab-api.vercel.app/api/v1/roster',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://optilab.club'},body:'{}',signal:AbortSignal.timeout(8000)});
       const body=await response.json().catch(()=>({}));
-      check('production API is disabled',response.status===503&&body?.error?.code==='ACADEMIC_DISABLED',`HTTP ${response.status}`);
-    }catch(error){check('production API is disabled',false,error instanceof Error?error.message:'network error');}
+      check('production API requires authentication',response.status===401&&body?.error?.code==='UNAUTHENTICATED',`HTTP ${response.status}`);
+    }catch(error){check('production API checks',false,error instanceof Error?error.message:'network error');}
   }
   return {ok:checks.every(item=>item.ok),checks};
 }
