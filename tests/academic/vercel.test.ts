@@ -31,6 +31,34 @@ test('Vercel production open only with explicit activation and exact HTTPS origi
   assert.equal(runtime({ACADEMIC_ALLOWED_ORIGINS:'https://optilab.club/path'}).open,false);
   assert.equal(runtime({FIREBASE_AUTH_EMULATOR_HOST:'127.0.0.1:9099'}).open,false);
 });
+test('failed production initialization terminates Firestore and deletes the Firebase app',async()=>{
+  const [{initializeApp,getApps},{cleanupProductionApp}]=await Promise.all([import('firebase-admin/app'),import('../../server/academic/sdk')]);
+  const app=initializeApp({projectId:'optilab-cd829',credential:{getAccessToken:async()=>({access_token:'test',expires_in:3600})}},'failed-init-cleanup-test');
+  let terminated=false;
+  await cleanupProductionApp(app,{terminate:async()=>{terminated=true;}} as any);
+  assert.equal(terminated,true);assert.equal(getApps().some(candidate=>candidate.name==='failed-init-cleanup-test'),false);
+});
+test('production OIDC admin builds direct Firestore auth without Firebase Admin custom-credential rejection',async()=>{
+  const original={...process.env};delete process.env.FIREBASE_AUTH_EMULATOR_HOST;delete process.env.FIRESTORE_EMULATOR_HOST;
+  Object.assign(process.env,base,{ACADEMIC_CREDENTIAL_MODE:'oidc',GCP_PROJECT_NUMBER:'401863964479',
+    GCP_SERVICE_ACCOUNT_EMAIL:'optilab-api@optilab-cd829.iam.gserviceaccount.com',GCP_WORKLOAD_IDENTITY_POOL_ID:'optilab-vercel',
+    GCP_WORKLOAD_IDENTITY_POOL_PROVIDER_ID:'optilab-vercel-oidc',VERCEL_PROJECT_ID:'prj_test123',
+    VERCEL_OIDC_ISSUER:'https://oidc.vercel.com/optilab',VERCEL_OIDC_AUDIENCE:'https://vercel.com/optilab',
+    ACADEMIC_VERCEL_SUBJECT:'owner:optilab:project:optilab-api:environment:production'});
+  try{
+    const {productionAdmin}=await import('../../server/academic/sdk');
+    const admin=await productionAdmin('optilab-cd829','oidc');
+    assert.equal(admin.db.databaseId,'(default)');await admin.close();
+  }finally{process.env=original;}
+});
+test('production OIDC handler fails closed before backend initialization when Vercel header is absent',async()=>{
+  const original={...process.env};delete process.env.FIREBASE_AUTH_EMULATOR_HOST;delete process.env.FIRESTORE_EMULATOR_HOST;
+  Object.assign(process.env,base,{ACADEMIC_CREDENTIAL_MODE:'oidc'});
+  try{
+    const res=response();await vercelHandler(request(),res as unknown as ServerResponse);
+    assert.equal(res.status,503);assert.equal(JSON.parse(res.body).error.code,'ACADEMIC_DISABLED');
+  }finally{process.env=original;}
+});
 test('Vercel Preview and off never open; handler closes without a backend',async()=>{
   for(const mode of ['vercel-preview','off'] as const){
     const original={...process.env};delete process.env.FIREBASE_AUTH_EMULATOR_HOST;delete process.env.FIRESTORE_EMULATOR_HOST;Object.assign(process.env,base,{VERCEL_ENV:'preview',ACADEMIC_ADMIN_MODE:mode,ACADEMIC_PRODUCTION_ENABLED:'false'});

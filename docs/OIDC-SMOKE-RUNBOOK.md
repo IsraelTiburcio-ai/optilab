@@ -1,15 +1,30 @@
 # Smoke OIDC de Vercel Production → Google STS → IAM Credentials
 
-Estado: **preparación únicamente**. El smoke real **no se ha ejecutado**, el endpoint **no se desplegó en Production**, no se tocaron variables de Production, IAM, WIF, Firebase, Firestore ni Rules, y el backend académico permanece cerrado con `ACADEMIC_ADMIN_MODE=off`. Una Preview automática de Vercel, si existe, no tiene la identidad ni la configuración de Production y no puede ejecutar el smoke.
+## Estado operativo actual
+
+- La **PR #44 sí se desplegó en Production** y el smoke se habilitó para el primer intento real.
+- El primer smoke devolvió **`502 OIDC_TOKEN_UNAVAILABLE`**.
+- El fallo ocurrió **antes del intercambio con Google STS**; no llegó a IAM Credentials.
+- El smoke se **desactivó** y Production volvió a responder **`404 OIDC_SMOKE_DISABLED`**.
+- La API académica permaneció cerrada con **`503 ACADEMIC_DISABLED`**.
+- El secreto temporal anterior debe **retirarse o rotarse**; no reutilizarlo.
+- La **PR #45** corrige la recuperación del token; **no está desplegada** y el smoke sigue desactivado.
+- Las 10 variables OIDC/GCP ya están configuradas en Vercel Production; no se modifican en esta PR.
+
+La corrección #45 no se ha ejecutado en Production. Una Preview automática de Vercel, si existe, no tiene la identidad ni la configuración de Production y no puede ejecutar el smoke.
 
 ## 1. Decisión
 
 - **Preparar y revisar este mecanismo:** GO.
-- **Ejecutar el smoke ahora:** **NO-GO**. Falta autorización independiente del operador para desplegar el commit de smoke y agregar el secreto temporal en Production.
+- **Ejecutar el smoke ahora:** **NO-GO**. La corrección #45 requiere revisión, despliegue autorizado y un secreto nuevo; el endpoint de Production está actualmente en `404`.
 - **Activar el backend académico:** **NO-GO** y fuera del alcance de este smoke.
-- **Después de la autorización de ejecución:** GO solo si se cumplen todas las compuertas de la sección 5.
+- **Después de revisar y desplegar #45 con autorización separada:** GO condicionado a todas las compuertas de la sección 5.
 
 La autorización para preparar o revisar este código **no autoriza** desplegarlo en Production ni ejecutar el smoke.
+
+### Historial del primer intento
+
+La PR #44 se desplegó con `OIDC_SMOKE_ENABLED=true`. La invocación real devolvió `502 OIDC_TOKEN_UNAVAILABLE` antes de contactar Google. El endpoint se desactivó y Production respondió `404`; la API académica se mantuvo en `503`. No se obtuvo token OIDC, no se hizo STS y no se obtuvo access token.
 
 ## 2. Diseño recomendado
 
@@ -40,14 +55,48 @@ La autorización se compara con SHA-256 y `timingSafeEqual`. El secreto es indep
 
 ### Validaciones
 
-1. `getVercelOidcToken({audience:'https://vercel.com/optilab'})`.
-2. `verifyVercelOidcToken` contra el JWKS de Vercel.
+1. Lectura del token desde `x-vercel-oidc-token` del `IncomingMessage`.
+2. `verifyVercelOidcToken` contra el JWKS de Vercel **antes** de usar el token.
 3. Claims exactos: `iss=https://oidc.vercel.com/optilab`, `aud=https://vercel.com/optilab`, `project_id=VERCEL_PROJECT_ID`, `environment=production` y `sub=owner:optilab:project:optilab-api:environment:production`.
 4. `ExternalAccountClient` con:
    `//iam.googleapis.com/projects/401863964479/locations/global/workloadIdentityPools/optilab-vercel/providers/optilab-vercel-oidc`.
 5. Suplantación de `optilab-api@optilab-cd829.iam.gserviceaccount.com`.
 6. Access token no vacío y expiración futura; solo se devuelve `accessTokenExpiresInSeconds`.
 7. Sin escrituras, sin persistencia y sin logs de credenciales.
+
+### Causa raíz del 502
+
+`getVercelOidcToken()` no lee `IncomingMessage.headers`. Lee el contexto global de Vercel:
+
+`globalThis[Symbol.for('@vercel/request-context')].headers['x-vercel-oidc-token']`
+
+El handler Node de `api/internal/oidc-smoke.ts` no rellena ese contexto, aunque Vercel sí entrega la cabecera en `req.headers`. Por eso la versión anterior terminaba en `OIDC_TOKEN_UNAVAILABLE` antes de verificar nada.
+
+La opción `{audience}` existe en los tipos instalados de `@vercel/oidc@4.0.6`, pero el problema era la recuperación del token. Además, el token de función ya usa por defecto `aud=https://vercel.com/optilab`, según la referencia oficial de Vercel. La corrección no intercambia el token: lee la cabecera, lo verifica criptográficamente y valida claims exactos. Si la audiencia no coincide, falla cerrado.
+
+### Ciclo de vida del backend
+
+La primera revisión detectó además que Firebase Admin `getFirestore()` rechaza credenciales personalizadas (`firestore/invalid-credential`). Por eso el backend OIDC usa Firestore directo con `GoogleAuth` + `ExternalAccountClient` por petición, no `getFirestore(app)`.
+
+- Admin/Firestore OIDC se crean por petición y se cierran en `finally`; no se reutilizan entre solicitudes.
+- El contexto de `AsyncLocalStorage` contiene `{token, active}` y se invalida en `finally` al terminar la petición.
+- `currentRequestOidcToken()` y `verifiedRequestOidcToken()` rechazan contextos inactivos.
+- `verifiedRequestOidcToken()` revalida `active` después del `await` de verificación; una validación pendiente que termina después del cierre no entrega token.
+- Cada access token se renueva bajo demanda; nunca se guarda un JWT vencido.
+- Si un recurso intenta renovar después de terminar la petición, el contexto está inactivo y falla cerrado; no hay mezcla de identidades.
+- Las solicitudes concurrentes usan objetos de contexto distintos: cerrar una no invalida la otra.
+- Si `productionAdmin()` falla después de crear la Firebase App, termina el Firestore creado y elimina la App antes de relanzar.
+- El access token temporal no se devuelve ni se registra.
+
+El mismo patrón se aplica al backend académico: `vercelHandler` guarda el token de la cabecera en `AsyncLocalStorage` durante la petición y `productionAdmin()` lo consume desde ahí, sin depender del contexto global de Vercel.
+
+### Pruebas de regresión
+
+- Simulan la entrega de `x-vercel-oidc-token` en un `IncomingMessage`.
+- Demuestran que `getVercelOidcToken()` no ve esa cabecera sin el contexto global.
+- Verifican que el token de cabecera se valida antes de usarse.
+- Rechazan claims/audiencia/subject incorrectos, ausencia de contexto y concurrencia entre peticiones.
+- Confirman que no se devuelven tokens ni cabeceras.
 
 ## 3. Archivos de la preparación
 
@@ -65,10 +114,10 @@ Solo si el operador autoriza la ejecución:
 
 | Variable | Entorno | Tipo | Uso |
 |---|---|---|---|
-| `OIDC_SMOKE_ENABLED` | Production | configuración | `true` solo durante la ventana de smoke |
-| `OIDC_SMOKE_TOKEN` | Production | **Sensitive** | secreto aleatorio de al menos 32 bytes |
+| `OIDC_SMOKE_ENABLED` | Production | configuración | Actualmente `false`; `true` solo durante una ventana autorizada |
+| `OIDC_SMOKE_TOKEN` | Production | **Sensitive** | Retirar el anterior y generar uno nuevo de al menos 32 bytes |
 
-No agregarlas a Preview ni Development. No reutilizar `ACADEMIC_PRODUCTION_ENABLED` como interruptor del smoke. Las 10 variables OIDC/GCP existentes no se modifican.
+No agregarlas a Preview ni Development. No reutilizar `ACADEMIC_PRODUCTION_ENABLED` como interruptor del smoke. Las 10 variables OIDC/GCP existentes ya están configuradas y no se modifican. El secreto anterior debe rotarse/retirarse antes de una nueva ventana.
 
 El backend debe seguir exactamente así:
 
@@ -105,14 +154,14 @@ curl -sS -o /tmp/optilab-academic-before.json -w '%{http_code}\n' \
 
 2. Confirmar en Vercel Production:
    - System Environment Variables habilitado.
-   - Las 10 variables OIDC/GCP existentes.
+   - Las 10 variables OIDC/GCP ya configuradas.
    - `ACADEMIC_ADMIN_MODE=off`.
    - `ACADEMIC_PRODUCTION_ENABLED` ausente o distinto de `true`.
-3. Generar `OIDC_SMOKE_TOKEN` en un gestor de secretos, nunca en el repositorio. No guardar el valor en la shell history, tickets, capturas ni evidencia.
+3. Retirar/rotar el `OIDC_SMOKE_TOKEN` anterior y generar uno nuevo en un gestor de secretos, nunca en el repositorio. No guardar el valor en la shell history, tickets, capturas ni evidencia.
 
 ### 6.2 Desplegar el mecanismo temporal
 
-Solo con autorización de deploy Production. El deploy debe ser reversible y quedar registrado con commit SHA y deployment ID. No cambiar el dominio de Pages.
+Solo con autorización de deploy Production. Debe desplegarse la corrección #45 (no la versión #44 que produjo el 502). El deploy debe ser reversible y quedar registrado con commit SHA y deployment ID. No cambiar el dominio de Pages.
 
 ### 6.3 Ejecutar el smoke
 
@@ -174,8 +223,11 @@ No se deben usar tokens reales manipulados contra Vercel: manipular un JWT no de
 
 ## 8. Criterios PASS/FAIL
 
+Las pruebas locales son **130/130 PASS**; no sustituyen el smoke real.
+
 ### PASS
 
+- La corrección #45 está desplegada y el smoke se habilitó con un secreto nuevo.
 - Un único `200` con los siete estados esperados.
 - `academicBackend: CLOSED`.
 - Expiración del access token entre 1 y 3600 segundos.
@@ -187,6 +239,8 @@ No se deben usar tokens reales manipulados contra Vercel: manipular un JWT no de
 ### FAIL
 
 - Cualquier `200` sin todos los estados.
+- `404` durante la ventana autorizada significa que el smoke no está habilitado o que Production aún ejecuta la versión #44 sin corrección.
+- `502 OIDC_TOKEN_UNAVAILABLE` significa que no se obtuvo la cabecera OIDC; revisar que Production ejecute #45 y que la cabecera llegue al handler.
 - `OIDC_TOKEN_UNAVAILABLE`: no se obtuvo el token OIDC de Production.
 - `OIDC_TOKEN_INVALID`: JWKS/firma/issuer/audiencia.
 - `OIDC_CLAIMS_MISMATCH`: subject, project, environment o audiencia.
