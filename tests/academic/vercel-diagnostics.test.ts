@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {academicRuntimeFlags,safeErrorCode,vercelHandler} from '../../server/academic/vercel';
+import {ProductionInitError} from '../../server/academic/sdk';
 
 const base:Record<string,string>={NODE_ENV:'production',VERCEL_ENV:'production',ACADEMIC_ADMIN_MODE:'vercel-production',
   ACADEMIC_PRODUCTION_ENABLED:'true',ACADEMIC_ADMIN_PROJECT:'optilab-cd829',ACADEMIC_ALLOWED_ORIGINS:'https://optilab.club',
@@ -43,7 +44,7 @@ test('production admin failure reports only stage and safe code',async()=>{
   const {logs}=await withWarn(()=>withEnv({},async()=>{
     const res=response();await vercelHandler(request('POST',{'x-vercel-oidc-token':'header-token-marker'}),res as unknown as ServerResponse);assert.equal(res.status,503);
   }));
-  const log=entry(logs);assert.equal(log.reason,'production_admin_init_failed');assert.equal(log.stage,'production_admin');assert.equal(log.code,'ACADEMIC_ENV_REJECTED');
+  const log=entry(logs);assert.equal(log.reason,'production_admin_init_failed');assert.equal(log.stage,'OIDC_CONFIG');assert.equal(log.code,'ACADEMIC_ENV_REJECTED');
   const serialized=JSON.stringify(log);assert.doesNotMatch(serialized,/header-token-marker|secret|private|@|https:/i);
 });
 test('safe runtime flags and error codes do not include configuration values',()=>{
@@ -51,6 +52,14 @@ test('safe runtime flags and error codes do not include configuration values',()
   assert.equal(flags.modeProduction,true);assert.equal(flags.allowedOriginsValid,true);assert.equal(flags.projectConfigured,true);
   assert.doesNotMatch(JSON.stringify(flags),/private\.example|optilab-cd829/);
   assert.equal(safeErrorCode(Object.assign(new Error('raw secret'),{code:'firestore/invalid-credential'})),'firestore/invalid-credential');
+  const staged=Object.assign(new Error('ACADEMIC_INIT_FAILED'),{stage:'FIRESTORE_CONSTRUCT',code:'firestore/invalid-credential'});
+  assert.equal(safeErrorCode(staged),'firestore/invalid-credential');
   assert.equal(safeErrorCode(new Error('raw secret without code')),'UNCLASSIFIED');
   assert.equal(safeErrorCode(new Error('ACADEMIC_ENV_REJECTED')),'ACADEMIC_ENV_REJECTED');
+});
+
+test('production initialization errors expose only static stage and safe code',()=>{
+  const error=new ProductionInitError('FIRESTORE_CONSTRUCT','firestore/invalid-credential');
+  assert.equal(error.message,'ACADEMIC_INIT_FAILED');assert.equal(error.stage,'FIRESTORE_CONSTRUCT');assert.equal(error.code,'firestore/invalid-credential');
+  assert.doesNotMatch(JSON.stringify(error),/private|token|email|secret/i);
 });

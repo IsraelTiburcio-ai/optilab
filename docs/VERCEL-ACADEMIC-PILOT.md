@@ -156,3 +156,29 @@ Los cierres de `server/academic/vercel.ts` emiten únicamente logs estructurados
 - `production_admin_init_failed`: falló la inicialización de `productionAdmin`. Registra `stage: "production_admin"` y un código de la lista segura (`ACADEMIC_ENV_REJECTED`, `firestore/invalid-credential`, etc.); los errores desconocidos se reportan como `UNCLASSIFIED`. No registra el mensaje original.
 
 Las respuestas HTTP no cambian: ambos POST y OPTIONS siguen devolviendo `503 ACADEMIC_DISABLED` mientras el runtime esté cerrado.
+
+## Subetapas de inicialización de `productionAdmin`
+
+Si `production_admin_init_failed` persiste, el campo `stage` identifica la subetapa estática:
+
+- `OIDC_CONFIG`: validación de variables OIDC/GCP.
+- `GOOGLE_AUTH_IMPORT`: import de `google-auth-library`.
+- `CREDENTIAL_BUILD`: construcción de la credencial OIDC.
+- `FIREBASE_IMPORT`: import de Firebase Admin App/Auth.
+- `FIREBASE_APP_INIT`: `initializeApp`.
+- `FIRESTORE_IMPORT`: import de `@google-cloud/firestore`/Auth.
+- `EXTERNAL_CLIENT`: creación del cliente externo WIF.
+- `GOOGLE_AUTH`: creación de `GoogleAuth`.
+- `FIRESTORE_CONSTRUCT`: construcción de Firestore directo.
+- `AUTH_INIT`: creación de Firebase Auth.
+- `SERVICE_CONSTRUCT`: construcción de repositorio/servicio académico.
+
+El código asociado solo puede ser un valor de la lista segura o `UNCLASSIFIED`; no se registra el mensaje original.
+
+### Node.js 22 vs 26
+
+La construcción local de `productionAdmin` con configuración OIDC válida terminó correctamente tanto en Node.js 22 como en Node.js 26. La suite académica completa en Node 26 solo mostró una diferencia de entorno: `tsx` emite `DEP0205` en stderr y una prueba que exige stderr vacío falla por ese warning; no es un fallo de `productionAdmin`. Vercel no usa `tsx` para ejecutar la función.
+
+No se encontró evidencia local de incompatibilidad de Node 26. La subetapa real debe confirmarse con el nuevo log de Production.
+
+`@google-cloud/firestore` es una dependencia opcional transitiva de `firebase-admin`. Si el nuevo log indica `stage: "FIRESTORE_IMPORT"`, la recomendación es declararla como dependencia directa fijada a la versión instalada, sin cambiar aún package.json hasta confirmar el log.

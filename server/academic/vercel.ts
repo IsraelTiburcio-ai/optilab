@@ -1,7 +1,7 @@
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {handleAcademicRequest,Limiter,type HandlerPolicy} from './handler.js';
 import {parseAllowedOrigins,vercelRuntimeConfig,type AcademicRuntime} from './runtime.js';
-import {productionAdmin,type EmulatorAdmin} from './sdk.js';
+import {ProductionInitError,productionAdmin,safeInitCode,type EmulatorAdmin} from './sdk.js';
 import {oidcTokenFromRequest,withRequestOidcToken} from '../vercel-oidc.js';
 import {AcademicRepository} from './repository.js';
 import {AcademicService} from './service.js';
@@ -35,6 +35,7 @@ export function academicRuntimeFlags(env:NodeJS.ProcessEnv=process.env):Academic
 }
 const safeErrorCodes=new Set(['ACADEMIC_ENV_REJECTED','firestore/invalid-credential','firestore/invalid-argument','firestore/failed-precondition','app/invalid-credential','app/invalid-app-name','app/duplicate-app','app/app-deleted','app/no-app']);
 export function safeErrorCode(error:unknown):string {
+  if(error instanceof ProductionInitError)return error.code;
   if(error instanceof Error){
     const code=(error as Error&{code?:unknown}).code;
     if(typeof code==='string'&&safeErrorCodes.has(code))return code;
@@ -61,12 +62,19 @@ function operationFrom(req:IncomingMessage):string|undefined {
 async function backend(runtime:AcademicRuntime) {
   if(!runtime.open||runtime.mode!=='vercel-production'||!runtime.projectId)throw new Error('ACADEMIC_ENV_REJECTED');
   if(runtime.credentialMode!=='oidc'&&cached&&cached.runtime.credentialMode===runtime.credentialMode&&cached.runtime.projectId===runtime.projectId&&cached.runtime.allowedOrigins.join('|')===runtime.allowedOrigins.join('|'))return cached;
-  const admin=await productionAdmin(runtime.projectId,runtime.credentialMode);
-  const service=new AcademicService(new AcademicRepository(admin.db,'production'),admin,runtime.maxTtlSeconds,{progressAttemptLimit:runtime.progressAttemptLimit});
-  const limiter=runtime.credentialMode==='oidc'?(oidcLimiter??=new Limiter(runtime.rateLimit)):new Limiter(runtime.rateLimit);
-  const result={admin,service,limiter,runtime};
-  if(runtime.credentialMode!=='oidc')cached=result;
-  return result;
+  let admin:EmulatorAdmin|undefined;
+  try{
+    admin=await productionAdmin(runtime.projectId,runtime.credentialMode);
+    const service=new AcademicService(new AcademicRepository(admin.db,'production'),admin,runtime.maxTtlSeconds,{progressAttemptLimit:runtime.progressAttemptLimit});
+    const limiter=runtime.credentialMode==='oidc'?(oidcLimiter??=new Limiter(runtime.rateLimit)):new Limiter(runtime.rateLimit);
+    const result={admin,service,limiter,runtime};
+    if(runtime.credentialMode!=='oidc')cached=result;
+    return result;
+  }catch(error){
+    if(runtime.credentialMode==='oidc'&&admin){try{await admin.close();}catch{}}
+    if(error instanceof ProductionInitError)throw error;
+    throw new ProductionInitError('SERVICE_CONSTRUCT',safeInitCode(error));
+  }
 }
 export interface VercelTestDependencies {runtime:AcademicRuntime;admin:Pick<EmulatorAdmin,'auth'>;service:AcademicService;limiter:Limiter}
 export async function vercelHandler(req:IncomingMessage,res:ServerResponse,test?:VercelTestDependencies):Promise<void> {
@@ -76,7 +84,7 @@ export async function vercelHandler(req:IncomingMessage,res:ServerResponse,test?
   if(!test&&runtime.credentialMode==='oidc'&&!raw){logAcademicClosed('missing_oidc_header','request_header',academicRuntimeFlags());closed(res);return;}
   const run=async()=>{
     let ready:{admin:Pick<EmulatorAdmin,'auth'>;service:AcademicService;limiter:Limiter;runtime:AcademicRuntime};
-    try{ready=test??await backend(runtime);}catch(error){logAcademicClosed('production_admin_init_failed','production_admin',academicRuntimeFlags(),safeErrorCode(error));closed(res);return;}
+    try{ready=test??await backend(runtime);}catch(error){const stage=error instanceof ProductionInitError?error.stage:'production_admin';logAcademicClosed('production_admin_init_failed',stage,academicRuntimeFlags(),safeErrorCode(error));closed(res);return;}
     const policy:HandlerPolicy={allowedOrigins:runtime.allowedOrigins,requireLoopback:false,rateLimit:runtime.rateLimit,
       maxBodyBytes:runtime.maxBodyBytes,projectId:runtime.projectId!,health:false,mode:runtime.mode,trustProxy:true};
     try{await handleAcademicRequest(req,res,policy,ready.admin,ready.service,ready.limiter,operationFrom(req));}
