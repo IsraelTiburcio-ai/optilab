@@ -32,6 +32,9 @@ jobs:
           VITE_PROGRESS_SYNC_RELEASE: ''
           VITE_PROGRESS_SYNC_PROJECT_ID: ''
           VITE_PROGRESS_SYNC_ORIGIN: ''
+          VITE_ACADEMIC_API_MODE: production
+          VITE_ACADEMIC_API_URL: https://optilab-api.vercel.app/api
+          VITE_ACADEMIC_APP_ORIGIN: https://optilab.club
           VITE_FIREBASE_AUTH_EMULATOR_URL: ''
           VITE_FIRESTORE_EMULATOR_HOST: ''
           VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
