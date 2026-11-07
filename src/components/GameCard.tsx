@@ -9,7 +9,7 @@ import {embeddedOriginalGame} from '../integration/originalGames';
 import {isResultPilot} from '../integration/originalResults';
 import {SimplexCover} from './SimplexCover';
 
-export function GameCard({game, index = 0}: {game: Game; index?: number}) {
+export function GameCard({game, index = 0,academicScope}: {game: Game; index?: number;academicScope?:{courseId:string;termId:string;groupId:string}}) {
   const attempts=useAttempts();
   const {state, toggle} = useProgress();
   const [details, setDetails] = useState(false);
@@ -28,7 +28,7 @@ export function GameCard({game, index = 0}: {game: Game; index?: number}) {
     <div className="cartridge-body">
       <h3>{game.nombre}</h3><p>{game.tema}</p>
       <div className="game-actions">
-        {integrated ? <Link className="button play" to={`${memorama?'/jugar':'/jugar-original'}/${game.repo}`}>Jugar <ArrowRight size={17}/><span className="sr-only"> {game.nombre} dentro de OptiLab</span></Link> :
+        {integrated ? <Link className="button play" to={`${memorama?'/jugar':'/jugar-original'}/${game.repo}${academicScope?'?'+new URLSearchParams(academicScope):''}`}>Jugar <ArrowRight size={17}/><span className="sr-only"> {game.nombre} dentro de OptiLab</span></Link> :
           <a className="button play" href={game.juego_url} target="_blank" rel="noopener noreferrer">Jugar <ArrowUpRight size={17}/><span className="sr-only"> {game.nombre}, nueva pestaña</span></a>}
         <button className="text-button" onClick={() => setDetails(!details)} aria-expanded={details}>{details ? 'Cerrar' : 'Detalles'}</button>
       </div>

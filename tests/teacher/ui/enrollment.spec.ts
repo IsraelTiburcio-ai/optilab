@@ -1,7 +1,7 @@
 import {test,expect,password,type Fixture} from './fixtures';
 import type {Page} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-const base='http://127.0.0.1:5195/optilab/';
+const base=()=>test.info().project.use.baseURL as string;
 const uniqueTag=()=>`Piv_${crypto.randomUUID().replaceAll('-','').slice(0,12)}`;
 async function invite(f:Fixture,extra:Record<string,unknown>={}){
   const meta=(await f.call('teacherBoth','groupEnrollmentLink',f.scope('b'))).body;
@@ -9,7 +9,7 @@ async function invite(f:Fixture,extra:Record<string,unknown>={}){
   expect(r.status).toBe(200);return {...f.scope('b'),inviteId:r.body.inviteId as string,token:r.body.token as string};
 }
 async function open(page:Page,input:Awaited<ReturnType<typeof invite>>){
-  await page.goto(base+'#/unirse');await page.evaluate(fragment=>{location.hash=fragment;},'#/unirse?'+new URLSearchParams(input).toString());
+  await page.goto(base()+'#/unirse');await page.evaluate(fragment=>{location.hash=fragment;},'#/unirse?'+new URLSearchParams(input).toString());
   await expect.poll(()=>page.url().includes('token=')).toBe(false);
 }
 async function account(page:Page,f:Fixture,actor:keyof Fixture['f']['actors']='studentB',old=false){
@@ -46,7 +46,7 @@ test('jugador: registro por correo personaliza antes de verificar, pero solo se 
   await page.getByRole('button',{name:'Ya verifiqué mi correo · reintentar inscripción'}).click();await expect(page.getByText('¡Ya estás dentro de tu grupo! Matrícula activa confirmada.',{exact:true})).toBeVisible();
 });
 test('jugador: registro Google emulado entra a bienvenida sin segundo sistema de cuentas',async({page,fixture})=>{
-  await page.goto(base+'#/cuenta');const popupPromise=page.waitForEvent('popup');await page.getByRole('button',{name:'Continuar con Google'}).click();const popup=await popupPromise;await popup.waitForLoadState('domcontentloaded');
+  await page.goto(base()+'#/cuenta');const popupPromise=page.waitForEvent('popup');await page.getByRole('button',{name:'Continuar con Google'}).click();const popup=await popupPromise;await popup.waitForLoadState('domcontentloaded');
   const add=popup.getByRole('button',{name:/Add new account/i});if(await add.isVisible())await add.click();await popup.getByRole('button',{name:'Auto-generate user information',exact:false}).click();
   await popup.getByLabel('Email',{exact:false}).fill(`google-${crypto.randomUUID()}@example.test`);await popup.getByRole('button',{name:/Sign in with Google/i}).click();
   await expect(page.getByRole('heading',{name:'¿Cómo te llamas?'})).toBeVisible();await wizard(page);await page.getByRole('link',{name:'Comenzar aventura',exact:true}).click();await expect(page.getByRole('heading',{name:'Mi aventura',exact:true})).toBeVisible();
@@ -66,7 +66,7 @@ for(const state of ['expired','revoked'] as const)test(`jugador: enlace ${state}
 test('jugador: el mismo enlace inscribe a distintos alumnos, sin cupos ni aprobaciones',async({page,fixture,browser})=>{
   await preparePlayer(fixture,'studentB');await preparePlayer(fixture,'studentC');const inv=await invite(fixture);
   await open(page,inv);await account(page,fixture,'studentB',true);await expect(page.getByText('¡Ya estás dentro de tu grupo! Matrícula activa confirmada.',{exact:true})).toBeVisible();
-  const peer=await browser.newContext({baseURL:base});await fixture.attach(peer);
+  const peer=await browser.newContext({baseURL:base()});await fixture.attach(peer);
   try{const other=await peer.newPage();await open(other,inv);await account(other,fixture,'studentC',true);await expect(other.getByText('¡Ya estás dentro de tu grupo! Matrícula activa confirmada.',{exact:true})).toBeVisible();}finally{await peer.close();}
   expect((await fixture.call('teacherBoth','roster',fixture.scope('b'))).body.items.length).toBe(2);
 });
@@ -77,11 +77,11 @@ test('jugador: enlace abierto dos veces conserva una matrícula y no reingresa d
   await open(page,inv);await expect(page.getByRole('alert')).toContainText('Este enlace de invitación ya no está disponible. Pide uno nuevo a tu profesora');expect((await fixture.call('teacherBoth','roster',fixture.scope('b'))).body.items[0].status).toBe('revoked');
 });
 test('jugador: gamertag ocupado y variantes de mayúsculas no pasan disponibilidad',async({page,fixture})=>{
-  const tag=await preparePlayer(fixture,'studentA');await page.goto(base+'#/cuenta');await account(page,fixture);await page.getByRole('button',{name:'Continuar',exact:true}).click();
+  const tag=await preparePlayer(fixture,'studentA');await page.goto(base()+'#/cuenta');await account(page,fixture);await page.getByRole('button',{name:'Continuar',exact:true}).click();
   await page.getByLabel('Gamertag',{exact:true}).fill(tag.toUpperCase());await expect(page.getByText('Ese gamertag ya está ocupado. Elige otro.',{exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Continuar',exact:true})).toBeDisabled();
 });
 test('jugador: cambiar gamertag libera anterior y conserva equipo y progreso',async({page,fixture})=>{
-  await page.goto(base+'#/cuenta');await account(page,fixture);const beforeTag=await wizard(page);await page.getByRole('link',{name:'Comenzar aventura',exact:true}).click();
+  await page.goto(base()+'#/cuenta');await account(page,fixture);const beforeTag=await wizard(page);await page.getByRole('link',{name:'Comenzar aventura',exact:true}).click();
   await expect(page.locator('#nickname')).toHaveValue(beforeTag);await expect(page.locator('#nickname')).toHaveAttribute('readonly','');await page.getByRole('link',{name:'Cambiar gamertag y equipo',exact:true}).click();
   await page.getByRole('button',{name:'Continuar',exact:true}).click();const next=uniqueTag();await page.getByLabel('Gamertag',{exact:true}).fill(next);await expect(page.getByText('Disponible. Se reservará al confirmar.',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Continuar',exact:true}).click();
   await expect(page.getByRole('radio',{name:'Mika',exact:true})).toBeChecked();await page.getByRole('button',{name:'Continuar',exact:true}).click();await expect(page.getByRole('radio',{name:'Piv',exact:true})).toBeChecked();await page.getByRole('button',{name:'Confirmar mi aventura'}).click();
@@ -91,11 +91,11 @@ test('jugador: cambiar gamertag libera anterior y conserva equipo y progreso',as
 test('jugador: elecciones previas de entrenador y criatura se conservan al migrar al onboarding',async({page,fixture})=>{
   const uid=fixture.f.actors.studentA.uid;
   for(const [field,value] of [['avatarId','avatar-06'],['companionId','dua']])await fixture.sdk.db.doc(`users/${uid}/epochs/1/fields/${field}`).set({schemaVersion:2,uid,epoch:1,revision:1,operationId:crypto.randomUUID(),value});
-  await page.goto(base+'#/cuenta');await account(page,fixture,'studentA');await page.getByRole('button',{name:'Continuar',exact:true}).click();await page.getByLabel('Gamertag',{exact:true}).fill(uniqueTag());await expect(page.getByText('Disponible. Se reservará al confirmar.',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Continuar',exact:true}).click();
+  await page.goto(base()+'#/cuenta');await account(page,fixture,'studentA');await page.getByRole('button',{name:'Continuar',exact:true}).click();await page.getByLabel('Gamertag',{exact:true}).fill(uniqueTag());await expect(page.getByText('Disponible. Se reservará al confirmar.',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Continuar',exact:true}).click();
   await expect(page.getByRole('radio',{name:'Nova',exact:true})).toBeChecked();await page.getByRole('button',{name:'Continuar',exact:true}).click();await expect(page.getByRole('radio',{name:'Dua',exact:true})).toBeChecked();
 });
 test('jugador: no ve Docente ni botón administrativo; profesor solo con ámbitos autorizados',async({page,fixture})=>{
-  await page.goto(base+'#/cuenta');await account(page,fixture);
+  await page.goto(base()+'#/cuenta');await account(page,fixture);
   await expect(page.getByRole('navigation',{name:'Navegación principal'}).getByRole('link',{name:'Docente',exact:true})).toHaveCount(0);await expect(page.getByRole('link',{name:'Abrir panel de la profesora'})).toHaveCount(0);
   await page.goto('#/docente');await expect(page.getByRole('heading',{name:'Sin acceso docente autorizado'})).toBeVisible();
 });
@@ -112,7 +112,7 @@ test('jugador: oculta su identidad de juego sin liberar gamertag ni perder matr�
   expect((await fixture.call('studentC','gamertagAvailability',{gamertag:tag})).body.available).toBe(false);
 });
 for(const width of [390,820,1180,1440])test(`jugador: responsive ${width}, personajes reales, teclado y accesibilidad`,async({page,fixture})=>{
-  await page.setViewportSize({width,height:900});await page.goto(base+'#/cuenta');await account(page,fixture);await page.getByLabel('Nombre completo académico').focus();await expect(page.getByLabel('Nombre completo académico')).toBeFocused();
+  await page.setViewportSize({width,height:900});await page.goto(base()+'#/cuenta');await account(page,fixture);await page.getByLabel('Nombre completo académico').focus();await expect(page.getByLabel('Nombre completo académico')).toBeFocused();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   const result=await new AxeBuilder({page}).include('.onboarding').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(result.violations.map(v=>v.id)).toEqual([]);
   await page.getByRole('button',{name:'Continuar',exact:true}).click();await page.getByLabel('Gamertag',{exact:true}).fill(uniqueTag());await expect(page.getByText('Disponible. Se reservará al confirmar.',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Continuar',exact:true}).click();await expect(page.getByRole('radio')).toHaveCount(6);

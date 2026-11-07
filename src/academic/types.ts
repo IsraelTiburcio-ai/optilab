@@ -35,10 +35,11 @@ export interface ActivityAssignment {
   createdBy:string;updatedAt:string;publishedAt:string|null;
 }
 export interface ActivityPlacement {schemaVersion:1;courseId:string;termId:string;groupId:string;gymId:number;orderedActivityIds:string[];revision:number;updatedBy:string|null;updatedAt:string|null}
-export interface ActivityWorkspace {definitions:ActivityDefinition[];assignments:ActivityAssignment[];placements:ActivityPlacement[]}
+export interface GymLayout {schemaVersion:1;courseId:string;termId:string;groupId:string;gymId:number;orderedActivityIds:string[];hiddenOriginalGameIds:string[];revision:number;updatedBy:string|null;updatedAt:string|null}
+export interface ActivityWorkspace {definitions:ActivityDefinition[];assignments:ActivityAssignment[];placements:ActivityPlacement[];layouts:GymLayout[]}
 export interface PublishedActivity {activityId:string;provider:ActivityProvider;sourceUrl:string;embedUrl:string|null;title:string;description:string;instructions:string;
   telemetry:ActivityTelemetry;gymId:number;revision:number}
-export interface PublishedActivities {gyms:Array<{gymId:number;activities:PublishedActivity[]}>}
+export interface PublishedActivities {gyms:Array<{gymId:number;activities:PublishedActivity[];layout:GymLayout}>}
 
 export interface GroupProgress {
   scope:Scope;period:{days:number;from:string|null;to:string};generatedAt:string;
@@ -79,6 +80,7 @@ export interface Api {
   publishedActivity:{input:Scope&{activityId:string};output:PublishedActivity};
   saveActivityDraft:{input:Scope&Command&{groupIds:string[];activityId?:string;expectedVersion?:number;provider:ActivityProvider;resourceId:string;sourceUrl:string;embedUrl:string|null;title:string;description:string;instructions:string;gymId:number};output:MutationResult};
   publishActivities:{input:Scope&Command&{groupIds:string[];activityId:string;expectedVersion:number};output:MutationResult};
+  saveGymLayout:{input:Scope&Command&{gymId:number;orderedActivityIds:string[];hiddenOriginalGameIds:string[];externalVisibility?:{activityId:string;expectedVersion:number;visible:boolean}[];expectedVersion:number};output:MutationResult};
   reorderActivities:{input:Scope&Command&{gymId:number;orderedActivityIds:string[];expectedVersion:number};output:MutationResult};
   moveActivity:{input:Scope&Command&{activityId:string;gymId:number;expectedVersion:number};output:MutationResult};
   setActivityStatus:{input:Scope&Command&{activityId:string;status:'hidden'|'archived';expectedVersion:number};output:MutationResult};

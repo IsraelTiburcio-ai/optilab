@@ -7,6 +7,7 @@ const shapes:Record<Operation,string[]>={
   activityWorkspace:['courseId','termId','groupId'],publishedGroupActivities:['courseId','termId','groupId'],publishedActivity:['courseId','termId','groupId','activityId'],
   saveActivityDraft:['courseId','termId','groupId','groupIds','activityId','expectedVersion','idempotencyKey','provider','resourceId','sourceUrl','embedUrl','title','description','instructions','gymId'],
   publishActivities:['courseId','termId','groupId','groupIds','activityId','expectedVersion','idempotencyKey'],
+  saveGymLayout:['courseId','termId','groupId','gymId','orderedActivityIds','hiddenOriginalGameIds','externalVisibility','expectedVersion','idempotencyKey'],
   reorderActivities:['courseId','termId','groupId','gymId','orderedActivityIds','expectedVersion','idempotencyKey'],
   moveActivity:['courseId','termId','groupId','activityId','gymId','expectedVersion','idempotencyKey'],
   setActivityStatus:['courseId','termId','groupId','activityId','status','expectedVersion','idempotencyKey'],
@@ -36,7 +37,7 @@ export function parseInput(name:string,value:unknown,maxTtl:number):{operation:O
   if(!Object.hasOwn(shapes,name))throw new ApiError(404,'NOT_FOUND','Operación no disponible.');
   const operation=name as Operation,keys=shapes[operation];
   if(!isRecord(value)||Object.keys(value).some(k=>!keys.includes(k)))throw invalid();
-  const optional=['limit','cursor','kind','status','periodDays',...(operation==='myScopes'?['courseId']:[]),...(operation==='requestStatus'?['requestId','inviteId']:[]),...(operation==='saveActivityDraft'?['activityId','expectedVersion']:[])];
+  const optional=[...(operation==='saveGymLayout'?['externalVisibility']:[]),'limit','cursor','kind','status','periodDays',...(operation==='myScopes'?['courseId']:[]),...(operation==='requestStatus'?['requestId','inviteId']:[]),...(operation==='saveActivityDraft'?['activityId','expectedVersion']:[])];
   for(const key of keys)if(!optional.includes(key)&&!Object.hasOwn(value,key))throw invalid();
   for(const key of ['courseId','termId','groupId','destinationGroupId','inviteId','requestId'])if(key in value&&!identifier(value[key]))throw invalid();
   for(const key of ['uid','cursor'])if(key in value&&!identifier(value[key],128))throw invalid();
@@ -67,7 +68,9 @@ export function parseInput(name:string,value:unknown,maxTtl:number):{operation:O
   if('token' in value&&(typeof value.token!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(value.token)||Buffer.from(value.token,'base64url').length!==32))throw invalid();
   if('activityId' in value&&(typeof value.activityId!=='string'||!identifier(value.activityId,128)))throw invalid();
   if('groupIds' in value&&(!Array.isArray(value.groupIds)||value.groupIds.length<1||value.groupIds.length>20||new Set(value.groupIds).size!==value.groupIds.length||value.groupIds.some(id=>typeof id!=='string'||!identifier(id))))throw invalid();
-  if('orderedActivityIds' in value&&(!Array.isArray(value.orderedActivityIds)||value.orderedActivityIds.length>50||new Set(value.orderedActivityIds).size!==value.orderedActivityIds.length||value.orderedActivityIds.some(id=>typeof id!=='string'||!identifier(id))))throw invalid();
+  if('orderedActivityIds' in value&&(!Array.isArray(value.orderedActivityIds)||value.orderedActivityIds.length>(operation==='saveGymLayout'?60:50)||new Set(value.orderedActivityIds).size!==value.orderedActivityIds.length||value.orderedActivityIds.some(id=>typeof id!=='string'||!identifier(id))))throw invalid();
+  if('hiddenOriginalGameIds' in value&&(!Array.isArray(value.hiddenOriginalGameIds)||value.hiddenOriginalGameIds.length>20||new Set(value.hiddenOriginalGameIds).size!==value.hiddenOriginalGameIds.length||value.hiddenOriginalGameIds.some(id=>typeof id!=='string'||!identifier(id))))throw invalid();
+  if('externalVisibility' in value&&(!Array.isArray(value.externalVisibility)||value.externalVisibility.length>50||new Set(value.externalVisibility.map((v:any)=>v?.activityId)).size!==value.externalVisibility.length||value.externalVisibility.some((v:any)=>!exact(v,['activityId','expectedVersion','visible'])||!identifier(v.activityId)||!integer(v.expectedVersion,1,2147483646)||typeof v.visible!=='boolean')))throw invalid();
   if('gymId' in value&&!integer(value.gymId,1,5))throw invalid();
   if('provider' in value&&!['wordwall','learningapps'].includes(value.provider))throw invalid();
   if('resourceId' in value&&(typeof value.resourceId!=='string'||value.resourceId.length>80))throw invalid();
