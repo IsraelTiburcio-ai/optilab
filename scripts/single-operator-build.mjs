@@ -13,9 +13,9 @@ export function buildContext(action,context){
 }
 export function frontendEnvironment(action,{context,manifest,sources,approval,receipt,digest,now=Date.now()}){
   buildContext(action,context);
-  const env={OPTILAB_PAGES_TARGET:'optilab.club',VITE_PROGRESS_SYNC:'disabled',VITE_PROGRESS_SYNC_RELEASE:'',VITE_SYNC_PILOT:'',
+  const env={VITE_INTEGRATED_PROGRESS:'',OPTILAB_PAGES_TARGET:'optilab.club',VITE_PROGRESS_SYNC:'disabled',VITE_PROGRESS_SYNC_RELEASE:'',VITE_SYNC_PILOT:'',
     VITE_PROGRESS_SYNC_PROJECT_ID:'',VITE_PROGRESS_SYNC_ORIGIN:'',VITE_FIREBASE_AUTH_EMULATOR_URL:'',VITE_FIRESTORE_EMULATOR_HOST:'',
-    VITE_SINGLE_OPERATOR_DIGEST:'',VITE_SINGLE_OPERATOR_START:'',VITE_SINGLE_OPERATOR_END:'',VITE_ACADEMIC_ADMIN:'disabled'};
+    VITE_SINGLE_OPERATOR_DIGEST:'',VITE_SINGLE_OPERATOR_START:'',VITE_SINGLE_OPERATOR_END:'',VITE_ACADEMIC_ADMIN:'production',VITE_ACADEMIC_API_MODE:'production',VITE_ACADEMIC_API_URL:'https://optilab-api.vercel.app/api',VITE_ACADEMIC_APP_ORIGIN:'https://optilab.club'};
   let windowDigest=null,rulesSha256=null;
   if(action==='on'){
     const checked=requireExecutionApproval(manifest,sources,approval,now);
@@ -25,7 +25,7 @@ export function frontendEnvironment(action,{context,manifest,sources,approval,re
     must(now>=checked.start&&now+60000<checked.end,'Publication requires a current window with at least one minute remaining');
     verifyOperationalReceipts(manifest,sources,approval,receipt,now);
     must(receipt.control.status==='PAUSED','Publish while server control is paused; open afterwards');
-    Object.assign(env,{VITE_PROGRESS_SYNC:'production',VITE_PROGRESS_SYNC_RELEASE:'single-operator-test-v1',VITE_SYNC_PILOT:'single-operator-test-v1',
+    Object.assign(env,{VITE_INTEGRATED_PROGRESS:'pilot-v1',VITE_PROGRESS_SYNC:'production',VITE_PROGRESS_SYNC_RELEASE:'single-operator-test-v1',VITE_SYNC_PILOT:'single-operator-test-v1',
       VITE_PROGRESS_SYNC_PROJECT_ID:'optilab-cd829',VITE_PROGRESS_SYNC_ORIGIN:'https://optilab.club',
       VITE_SINGLE_OPERATOR_DIGEST:digest,VITE_SINGLE_OPERATOR_START:manifest.startAt,VITE_SINGLE_OPERATOR_END:manifest.endAt});
     windowDigest=digest;rulesSha256=checked.bundle.plan.rulesSha256;

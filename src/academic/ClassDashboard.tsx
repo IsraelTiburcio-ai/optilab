@@ -1,3 +1,4 @@
+import {integratedBuild} from '../integration/features';
 import {useEffect,useState} from 'react';
 import type {AcademicCall} from './client';
 import type {GroupProgress} from './types';
@@ -31,7 +32,7 @@ export function ClassDashboard({scope,call,refresh,disabled=false,showStudents}:
     ['Alumnos inscritos',data.studentsTotal,'integrantes activos en el grupo'],
     ['Alumnos con actividad',data.studentsActive,'con actividad en el periodo'],
     ['Actividades abiertas',data.activities.opened,'actividades únicas abiertas'],
-    ['Actividades practicadas',data.activities.declared,'declaradas por el alumno'],
+    ['Actividades practicadas',integratedBuild?(data.activities.practiced??data.activities.declared):data.activities.declared,integratedBuild?'práctica registrada y finalizaciones; no acredita dominio':'declaradas por el alumno'],
     ['Resultados informados',data.activities.reported,'informe del cliente; no validados'],
     ['Finalizaciones reportadas',data.activities.completed,'result.completed=true; no validadas'],
     ['Validación',data.activities.validated,'sin evidencia validada'],
@@ -44,7 +45,9 @@ export function ClassDashboard({scope,call,refresh,disabled=false,showStudents}:
     {data?.activityDataTruncated&&<p className="teacher-dashboard-warning" role="status">Historial truncado: algunos alumnos superan el límite de lectura de 200 eventos. Los conteos mostrados son parciales, no totales exactos del historial completo.</p>}
     {loading?<p role="status">Consultando el progreso del grupo…</p>:error?<div className="teacher-error" role="alert"><p>{error}</p><button className="button" onClick={()=>setAttempt(value=>value+1)}>Reintentar resumen</button></div>:data?<>
       <div className="teacher-summary teacher-dashboard-summary" aria-label="Resumen del periodo">{cards.map(([label,value,detail])=><div className="paper" key={label}><strong>{value}</strong><span>{label}</span><small>{detail}</small></div>)}</div>
-      <p className="muted teacher-dashboard-meta">{period} · Generado {dateLabel(data.generatedAt)}{data.truncated?' · La lista de alumnos se truncó en el servidor':''}</p>
+      <button className="button" onClick={()=>setAttempt(n=>n+1)} disabled={disabled||loading}>Actualizar avance del grupo</button><p className="muted teacher-dashboard-meta">{period} · Generado {dateLabel(data.generatedAt)}{data.truncated?' · La lista de alumnos se truncó en el servidor':''}</p>
+      {integratedBuild&&<p>Prácticas declaradas explícitamente: {data.activities.manualDeclared??0}. Los registros antiguos de práctica sin evento conservan su origen no clasificado. Las finalizaciones y los informes del cliente permanecen separados de resultados validados.</p>}
+      {integratedBuild&&!!data.externalActivities?.length&&<section aria-label="Actividades externas del grupo"><h3>Actividades externas del grupo</h3><ul>{data.externalActivities.map(a=><li key={a.activityId}><strong>{a.title}</strong> · {a.opened} alumnos con apertura · {a.reported} con informe · {a.completed} con finalización informada · 0 resultados validados</li>)}</ul><p>Wordwall aporta aperturas; solo las señales probadas de LearningApps aportan finalización. Estos recursos no alteran las insignias originales.</p></section>}
       {noStudents?<div className="teacher-empty" role="status"><h3>Sin alumnos activos</h3><p>No hay integrantes activos en este grupo. Cuando se inscriban, su actividad aparecerá aquí.</p>{showStudents&&<button className="button" onClick={showStudents}>Ir a Alumnos</button>}</div>:
         noActivity?<div className="teacher-empty" role="status"><h3>Sin actividad registrada en este periodo</h3><p>No hay aperturas, prácticas declaradas ni informes del cliente para este rango. Prueba con un periodo más amplio o con «Todo».</p>{showStudents&&<button className="button" onClick={showStudents}>Ir a Alumnos</button>}</div>:null}
       {!!data.gyms.length&&<section className="teacher-dashboard-gyms" aria-labelledby="teacher-dashboard-gyms-title"><h3 id="teacher-dashboard-gyms-title">Progreso por gimnasio</h3><p className="muted">Juegos practicados sobre el total del gimnasio. Los resultados y finalizaciones son informes del cliente, no resultados validados.</p>
@@ -70,7 +73,7 @@ export function ClassDashboard({scope,call,refresh,disabled=false,showStudents}:
             <td data-label="Actividad practicada (declarada)">{student.declared}</td>
             <td data-label="Resultado informado (cliente)">{student.reported}</td>
             <td data-label="Finalización reportada (cliente)">{student.completedGames}</td>
-            <td data-label="Juegos practicados">{student.practicedGames}</td>
+            <td data-label="Juegos practicados">{student.practicedGames}{integratedBuild&&<small> · {student.pendingGames??28-student.practicedGames} pendientes · {student.manualDeclaredGames??0} declaraciones explícitas</small>}</td>
             <td data-label="Por gimnasio">{student.gyms.length?<ul className="teacher-progress-gyms">{student.gyms.map(activity=>{const gym=gyms.get(activity.gymId),title=gym?.title??`Gimnasio ${activity.gymId}`;return <li key={activity.gymId}><span className="teacher-progress-gym-name">{title}</span><span className="teacher-progress-gym-counts" aria-label={`${title}: ${activity.opened} actividades abiertas, ${activity.declared} declaradas, ${activity.reported} resultados informados, ${activity.completed} finalizaciones reportadas`}>A {activity.opened} · D {activity.declared} · R {activity.reported} · C {activity.completed}</span></li>;})}</ul>:<span className="muted">Sin actividad por gimnasio</span>}</td>
             <td data-label="Validado: sin evidencia">{student.validated}</td>
           </tr>)}</tbody>

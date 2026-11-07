@@ -1,8 +1,10 @@
+import {useIntegratedFeatures} from '../integration/features';
 import {Link} from 'react-router-dom';
 import {Check, Trophy} from 'lucide-react';
 import {type SavedGameResult} from '../integration/protocol';
 
 export function GameResultPanel({result, live = false}: {result: SavedGameResult; live?: boolean}) {
+  const integrated=useIntegratedFeatures();
   const seconds = Math.floor(result.elapsedMs / 1000);
   return <section className="game-result-panel paper" aria-label="Resultado de Memorama Simplex" aria-live={live ? 'polite' : undefined}>
     <div className="game-result-heading"><Trophy size={30}/><div>
@@ -16,7 +18,7 @@ export function GameResultPanel({result, live = false}: {result: SavedGameResult
       <div><dt>Tiempo activo</dt><dd>{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}</dd></div>
     </dl>
     <p className="muted">Resultado informado por el juego al encontrar sus ocho parejas. Precisión = parejas ÷ intentos; no es una calificación de dominio.</p>
-    <small>Registrado el {new Date(result.date).toLocaleString('es-MX')}. La práctica manual y las insignias se conservan por separado.</small>
+    <small>Registrado el {new Date(result.date).toLocaleString('es-MX')}. {integrated?'La finalización marca esta actividad como practicada. Las insignias de exploración conservan sus criterios históricos; no acreditan dominio.':'La práctica manual y las insignias se conservan por separado.'}</small>
     <Link className="button" to="/gimnasio/3">Regresar a Fortaleza Simplex</Link>
   </section>;
 }

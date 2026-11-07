@@ -10,4 +10,6 @@ if(!generated||typeof generated!=='object'||Object.keys(generated).length!==3||O
 const env={...process.env};delete env.FIREBASE_CONFIG;
 const suite=env.ACADEMIC_TEST_SUITE??'api';if(!['api','teacher'].includes(suite))throw new Error('ACADEMIC_ENV_REJECTED');
 const result=spawnSync('npm',['run',suite==='teacher'?'test:teacher:ui':'test:academic:api'],{stdio:'inherit',env:academicEnvironment(env)});
-process.exit(result.status??1);
+if(result.status!==0)process.exit(result.status??1);
+if(suite==='teacher'){const integrated=spawnSync('npm',['run','test:integrated:ui'],{stdio:'inherit',env:{...academicEnvironment(env),INTEGRATED_QA:'1',VITE_INTEGRATED_PROGRESS:'pilot-v1'}});process.exit(integrated.status??1);}
+const core=spawnSync('npm',['run','test:integrated:core'],{stdio:'inherit',env:academicEnvironment(env)});process.exit(core.status??1);

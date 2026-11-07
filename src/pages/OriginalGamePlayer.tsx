@@ -1,6 +1,9 @@
+import {useIntegratedFeatures} from '../integration/features';
+import {ActivityFinished} from '../components/ActivityFinished';
 import {useEffect,useRef,useState} from 'react';
-import {Link,useParams} from 'react-router-dom';
+import {Link,useParams,useLocation} from 'react-router-dom';
 import {ArrowUpRight,Shield} from 'lucide-react';
+import {useAuth} from '../auth/AuthProvider';
 import {gyms,type Game} from '../data';
 import {GameArena} from '../components/GameArena';
 import {embeddedOriginalGame,originalGameIframePolicy} from '../integration/originalGames';
@@ -11,11 +14,14 @@ import './GamePlayer.css';
 import './OriginalGamePlayer.css';
 
 export default function OriginalGamePlayer(){
+  const [attempt,setAttempt]=useState(0);
+  const auth=useAuth(),location=useLocation();
   const {gameId}=useParams(),game=embeddedOriginalGame(gameId??'');
   if(!game)return <section className="paper"><h1>Este juego no está disponible en el piloto integrado</h1><Link className="button" to="/optidex">Volver al OptiDex</Link></section>;
-  return <OriginalSession key={game.repo} game={game}/>;
+  return <OriginalSession key={`${auth.user?.uid??'guest'}:${location.search}:${game.repo}:${attempt}`} game={game} replay={()=>setAttempt(n=>n+1)}/>;
 }
-function OriginalSession({game}:{game:Game}){
+function OriginalSession({game,replay}:{game:Game;replay:()=>void}){
+  const integrated=useIntegratedFeatures();
   const gym=gyms.find(g=>g.id===game.gimnasio)!;
   const frame=useRef<HTMLIFrameElement>(null),[session]=useState(()=>crypto.randomUUID());
   const source=originalResultSource(game.juego_url,game.repo,session,window.location.origin);
@@ -29,8 +35,9 @@ function OriginalSession({game}:{game:Game}){
     <GameArena title={game.nombre} region={gym.name} returnTo={`/gimnasio/${gym.id}`} controls={<p className="player-status" role="status"><Shield size={17}/><span>{status}</span></p>}>
       <div className="player-frame-shell"><iframe ref={frame} src={source} title={`${game.nombre} · juego original`} {...originalGameIframePolicy} onLoad={()=>{setPhase('loaded');telemetry.onLoad();}} onError={()=>setPhase('error')}/></div>
     </GameArena>
-    <p className="player-honesty">Ampliar y restaurar conserva la partida. Salir de esta pantalla o recargar la reinicia. {telemetry.enabled?'Este piloto puede mostrar un informe del juego solo en esta sesión, sin guardar resultados ni conceder recompensas.':'Este piloto no comunica resultados, finalizaciones ni recompensas a OptiLab.'}</p>
+    <p className="player-honesty">Ampliar y restaurar conserva la partida. Salir de esta pantalla o recargar la reinicia. {telemetry.enabled?(integrated?'Los informes compatibles se registran con tu consentimiento; una finalización completa marca práctica sin inventar puntos ni calificaciones.':'Los informes compatibles se registran con tu consentimiento. La práctica sigue siendo manual.'):'Este piloto no comunica resultados, finalizaciones ni recompensas a OptiLab.'}</p>
     {telemetry.enabled&&<p aria-live="polite" className="muted">{({waiting:'Resultados de sesión: esperando un conector compatible del juego.',connected:'Resultados de sesión: conector disponible.',playing:'Resultados de sesión: partida en curso, sin resultado todavía.',ended:'Resultados de sesión: informe recibido.',aborted:'Partida interrumpida: no se recibió resultado.',retired:'El visor cambió de documento. Vuelve a abrir el juego para conectar resultados.'})[telemetry.status]}</p>}
+    {integrated&&telemetry.report?.result.reason==='completed'&&<ActivityFinished activityId={game.repo} gymId={gym.id} replay={replay}/>}
     {telemetry.report&&isResultPilot(game.repo)&&<OriginalSessionResult gameId={game.repo} {...telemetry.report}/>}
     <section className="paper original-fallback" aria-labelledby="original-fallback-title"><h2 id="original-fallback-title">¿No aparece o no responde?</h2><p>El juego se ejecuta aislado y no puede usar almacenamiento local en este visor. Algunos bloqueos no se pueden detectar automáticamente. Puedes abrirlo de forma independiente.</p><a className="button" href={game.juego_url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">Abrir en otra pestaña <ArrowUpRight size={17}/></a></section>
   </section>;

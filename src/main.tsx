@@ -10,10 +10,11 @@ import {installInvitationCapture} from './academic/invitationMemory';
 import {InvitationFence} from './academic/InvitationFence';
 import {AcademicAccessProvider} from './academic/AcademicAccess';
 import {PlayerProgressBridge} from './academic/PlayerProgressBridge';
+import {GroupActivityBridge} from './academic/GroupActivityBridge';
 import App from './App';
 import './styles.css';
 class ErrorBoundary extends React.Component<{children:React.ReactNode},{error:boolean}>{state={error:false};static getDerivedStateFromError(){return {error:true}}render(){return this.state.error?<main><h1>La aventura necesita una pausa</h1><p>No pudimos cargar la aplicación. Recarga la página para intentarlo de nuevo.</p><button onClick={()=>location.reload()}>Volver a intentar</button></main>:this.props.children}}
 installInvitationCapture();
-const application=<ProgressProvider><AttemptAlerts/>{academicEnabled&&<PlayerProgressBridge/>}<App/></ProgressProvider>;
+const application=<ProgressProvider><AttemptAlerts/>{academicEnabled&&<GroupActivityBridge/>}{academicEnabled&&<PlayerProgressBridge/>}<App/></ProgressProvider>;
 const router=createHashRouter([{path:'*',element:<ErrorBoundary><AuthProvider coordinateSessions={syncEnabled||academicEnabled}>{academicEnabled&&<InvitationFence/>}{academicEnabled?<AcademicAccessProvider>{application}</AcademicAccessProvider>:application}</AuthProvider></ErrorBoundary>}]);
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><ErrorBoundary><RouterProvider router={router}/></ErrorBoundary></React.StrictMode>);

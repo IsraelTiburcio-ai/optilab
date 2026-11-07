@@ -1,3 +1,4 @@
+import {integratedBuild} from '../integration/features';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {Link} from 'react-router-dom';
 import {Compass,Shield,Users} from 'lucide-react';
@@ -8,6 +9,7 @@ import {Confirmation,scopeInput,type Intent,type Prepare} from './components';
 import {useAcademicPage} from './usePage';
 import {Students,Requests} from './Students';
 import {Invitations} from './Invitations';
+import {GroupRanking} from './GroupRanking';
 import {ClassDashboard} from './ClassDashboard';
 import {academicMode} from './config';
 import {Activities} from './Activities';
@@ -103,8 +105,8 @@ function GroupWorkspace({scope,scopes,call,refresh,prepare,busy,hasMore,loadingS
   const currentTab=(tab==='Resumen'&&!canReadHistory)||((tab==='Biblioteca'||tab==='Gimnasios')&&!canManageActivities)?'Alumnos':tab;
   return <section className="teacher-workspace" data-group-id={scope.groupId}><h2 tabIndex={-1} className="sr-only">Administración de {scope.title}</h2>
     <p className="muted">Cifras de las páginas consultadas, no totales globales. El Resumen usa los totales del periodo devueltos por el API.</p>
-    <nav className="teacher-tabs" aria-label="Secciones del panel">{['Resumen','Gimnasios','Biblioteca','Alumnos','Invitaciones'].filter(t=>t==='Resumen'?canReadHistory:(t!=='Biblioteca'&&t!=='Gimnasios')||canManageActivities).map(t=><button className="button" key={t} aria-pressed={currentTab===t} disabled={busy} onClick={()=>setTab(t)}>{t}</button>)}</nav>
-    <div className="paper teacher-section" aria-busy={busy}>{currentTab==='Resumen'?<ClassDashboard scope={scope} call={call} refresh={refresh+localRefresh} disabled={busy} showStudents={()=>setTab('Alumnos')}/>:currentTab==='Gimnasios'?<GymManager scope={scope} scopes={scopes} call={call} disabled={busy}/>:currentTab==='Biblioteca'?<Activities scope={scope} scopes={scopes} call={call} refresh={refresh+localRefresh} disabled={busy}/>:currentTab==='Alumnos'?<Students scope={scope} page={roster} prepare={prepare} busy={busy} move={setMoving}/>:<Invitations scope={scope} call={call} refresh={refresh} prepare={prepare} busy={busy}/>}</div>
+    <nav className="teacher-tabs" aria-label="Secciones del panel">{['Resumen','Participación','Gimnasios','Biblioteca','Alumnos','Invitaciones'].filter(t=>(t!=='Participación'||integratedBuild)&&((t==='Resumen'||t==='Participación')?canReadHistory:(t!=='Biblioteca'&&t!=='Gimnasios')||canManageActivities)).map(t=><button className="button" key={t} aria-pressed={currentTab===t} disabled={busy} onClick={()=>setTab(t)}>{t}</button>)}</nav>
+    <div className="paper teacher-section" aria-busy={busy}>{currentTab==='Participación'?<GroupRanking scope={scope} call={call} teacher canConfigure={canManageActivities}/>:currentTab==='Resumen'?<ClassDashboard scope={scope} call={call} refresh={refresh+localRefresh} disabled={busy} showStudents={()=>setTab('Alumnos')}/>:currentTab==='Gimnasios'?<GymManager scope={scope} scopes={scopes} call={call} disabled={busy}/>:currentTab==='Biblioteca'?<Activities scope={scope} scopes={scopes} call={call} refresh={refresh+localRefresh} disabled={busy}/>:currentTab==='Alumnos'?<Students scope={scope} page={roster} prepare={prepare} busy={busy} move={setMoving}/>:<Invitations scope={scope} call={call} refresh={refresh} prepare={prepare} busy={busy}/>}</div>
     {scope.capabilities.manageMembers&&<details className="paper teacher-history" onToggle={e=>setHistoryOpen(e.currentTarget.open)}><summary>Historial de solicitudes anteriores</summary>{historyOpen&&<Requests scope={scope} page={requests} prepare={prepare} busy={busy} status={status} setStatus={setStatus}/>}</details>}
     {moving&&<TransferDialog member={moving} source={scope} scopes={scopes} call={call} hasMore={hasMore} loading={loadingScopes} discoveryError={discoveryError} loadMore={loadMore}
       close={(update,denied)=>{setMoving(null);if(update)setLocalRefresh(n=>n+1);if(denied)refreshAccess();}} success={()=>{setMoving(null);transferred();}}/>}

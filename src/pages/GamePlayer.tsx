@@ -1,7 +1,10 @@
+import {useIntegratedFeatures} from '../integration/features';
+import {ActivityFinished} from '../components/ActivityFinished';
+import {useAuth} from '../auth/AuthProvider';
 import {useAttempts} from '../attempts/local';
 import {iframeLoadGate} from '../integration/iframeLoadGate';
 import {useEffect, useRef, useState} from 'react';
-import {Link, useParams} from 'react-router-dom';
+import {Link, useParams,useLocation} from 'react-router-dom';
 import {ArrowUpRight, RotateCcw, Shield} from 'lucide-react';
 import {Mascot} from '../Art';
 import {useProgress} from '../store';
@@ -11,13 +14,14 @@ import {GAME_ID, GAME_URL, GAME_ORIGIN, PROTOCOL, parseMessage, type SavedGameRe
 import './GamePlayer.css';
 
 export default function GamePlayer() {
-  const {id} = useParams();
+  const {id} = useParams(),auth=useAuth(),location=useLocation();
   const [attempt, setAttempt] = useState(0);
   if (id !== GAME_ID) return <section className="paper"><h1>Este juego todavía no tiene integración</h1><Link className="button" to="/optidex">Volver al OptiDex</Link></section>;
-  return <PlayerSession key={attempt} retry={() => setAttempt(n => n + 1)}/>;
+  return <PlayerSession key={`${auth.user?.uid??'guest'}:${location.search}:${attempt}`} retry={() => setAttempt(n => n + 1)}/>;
 }
 
 function PlayerSession({retry}: {retry: () => void}) {
+  const integrated=useIntegratedFeatures();
   const attempts=useAttempts();
   const {state, saveGameResult} = useProgress();
   const save = useRef(saveGameResult);
@@ -99,6 +103,7 @@ function PlayerSession({retry}: {retry: () => void}) {
       {phase === 'unavailable' && <section className="player-fallback"><h2>El portal necesita otro camino</h2><p>La conexión no está disponible. Puedes reintentar o jugar en el sitio independiente. Abrirlo no registra una victoria en OptiLab.</p><a className="button primary" href={GAME_URL} target="_blank" rel="noopener noreferrer">Jugar en otra pestaña <ArrowUpRight size={18}/></a><button className="button" onClick={retry}>Reintentar conexión</button></section>}
     </div>
     </GameArena>
+    {integrated&&result&&<ActivityFinished activityId={GAME_ID} gymId={3} replay={retry}/>}
     {result ? <GameResultPanel result={result} live/> : previous && <details className="previous-game-result"><summary>Consultar último resultado guardado</summary><GameResultPanel result={previous}/></details>}
     <p className="muted player-honesty">Solo se registra finalización cuando el juego informa las ocho parejas encontradas. Salir antes no cuenta como completar; puedes registrar práctica manual desde su ficha.</p>
   </div>;

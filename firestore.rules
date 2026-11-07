@@ -150,8 +150,9 @@ service cloud.firestore {
     }
     function reportedAttempt(d,uid,eventKey) {
       return d.keys().hasAll(['version','id','activityId','kind','trust','observedAt','uid','serverReceivedAt'])
-        && d.keys().hasOnly(['version','id','activityId','kind','trust','observedAt','result','uid','serverReceivedAt'])
-        && d.version == 1 && d.uid == uid && d.activityId in games()
+        && d.keys().hasOnly(['version','id','activityId','kind','trust','observedAt','result','context','uid','serverReceivedAt'])
+        && d.version == 1 && d.uid == uid && (d.activityId in games() || d.activityId.matches('^a_[a-f0-9]{32}$') || d.activityId in ['learningapps-formulas-simplex','wordwall-metodo-m-grande'])
+        && (!('context' in d) || (exact(d.context,['courseId','termId','groupId']) && id(d.context.courseId) && id(d.context.termId) && id(d.context.groupId)))
         && d.id is string && d.id.matches('^[-A-Za-z0-9_:]{1,160}$')
         && eventKey == d.activityId+'--'+d.id && d.observedAt is string && d.observedAt.size() <= 40
         && d.observedAt.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T.*Z$')

@@ -6,13 +6,14 @@ import {coursePath,groupPath} from './repository.js';
 import {roster,millis} from './models.js';
 import {teacherProfile} from './profiles.js';
 import {catalogGyms,gameById} from './catalog.js';
+import {participationDocument} from './participation.js';
 
 type SignalKind='opened'|'declared'|'reported'|'completed';
 interface Activity {
-  opened:Set<string>;declared:Set<string>;reported:Set<string>;completed:Set<string>;last:number|null;truncated:boolean;
+  explicit:Set<string>;opened:Set<string>;declared:Set<string>;reported:Set<string>;completed:Set<string>;last:number|null;truncated:boolean;
 }
 interface ActiveMember {uid:string;label:string}
-const blankActivity=():Activity=>({opened:new Set(),declared:new Set(),reported:new Set(),completed:new Set(),last:null,truncated:false});
+const blankActivity=():Activity=>({explicit:new Set(),opened:new Set(),declared:new Set(),reported:new Set(),completed:new Set(),last:null,truncated:false});
 const inPeriod=(at:number,from:number|null,to:number)=>Number.isFinite(at)&&(from===null||at>=from)&&at<=to;
 const countGames=(games:string[],set:Set<string>)=>games.reduce((total,id)=>total+(set.has(id)?1:0),0);
 const attemptId=/^[-A-Za-z0-9_:]{1,160}$/;
@@ -27,43 +28,51 @@ export async function groupProgress(repo:AcademicReadView,policy:Policy,actor:Ac
   const period={days,from:from===null?null:new Date(from).toISOString(),to:new Date(now).toISOString()};
   const {members,truncated}=await activeMembers(repo,s);
   const students=await Promise.all(members.map(async member=>{
-    const [profile,activity]=await Promise.all([teacherProfile(repo,s,member.uid),readActivity(repo,member.uid,from,now,attemptLimit)]);
+    const [profile,activity,projection]=await Promise.all([teacherProfile(repo,s,member.uid),readActivity(repo,member.uid,from,now,attemptLimit,s),repo.get(`${groupPath(s)}/participation/${member.uid}`)]);
+    if(projection&&participationDocument(projection,member.uid,s)){for(const [id,fact] of Object.entries(projection.activities??{}) as [string,Data][]){const at=millis(fact.lastActivityAt);for(const kind of ['opened','declared','reported','completed'] as const)if(fact[kind]===true&&inPeriod(millis(fact[kind+'At']),from,now))activity[kind].add(id);if(fact.declared===true&&inPeriod(millis(fact.declaredAt),from,now))activity.explicit.add(id);if(inPeriod(at,from,now))activity.last=Math.max(activity.last??0,at);}}
     return {
       uid:member.uid,name:profile?.fullName??member.label,email:profile?.email??null,
       emailVerified:profile?.emailVerified===true,gamertag:profile?.gameIdentity?.nickname??null,
       lastActivityAt:activity.last===null?null:new Date(activity.last).toISOString(),
-      opened:activity.opened.size,declared:activity.declared.size,reported:activity.reported.size,validated:0,
-      practicedGames:activity.declared.size,completedGames:activity.completed.size,
+      manualDeclaredGames:activity.explicit.size,opened:activity.opened.size,declared:activity.declared.size,reported:activity.reported.size,validated:0,
+      practicedGames:new Set([...activity.declared,...activity.completed].filter(id=>gameById.has(id))).size,completedGames:activity.completed.size,pendingGames:Math.max(0,28-new Set([...activity.declared,...activity.completed].filter(id=>gameById.has(id))).size),
       gyms:catalogGyms.map(gym=>({gymId:gym.gymId,opened:countGames(gym.games,activity.opened),
         declared:countGames(gym.games,activity.declared),reported:countGames(gym.games,activity.reported),
-        completed:countGames(gym.games,activity.completed)})),
+        completed:countGames(gym.games,activity.completed),practiced:countGames(gym.games,new Set([...activity.declared,...activity.completed])),pending:Math.max(0,gym.totalGames-countGames(gym.games,new Set([...activity.declared,...activity.completed])))})),
       activity,
     };
   }));
-  const opened=new Set<string>(),declared=new Set<string>(),reported=new Set<string>(),completed=new Set<string>();
+  const explicit=new Set<string>(),opened=new Set<string>(),declared=new Set<string>(),reported=new Set<string>(),completed=new Set<string>();
   for(const student of students) {
+    for(const id of student.activity.explicit)explicit.add(id);
     for(const id of student.activity.opened)opened.add(id);
     for(const id of student.activity.declared)declared.add(id);
     for(const id of student.activity.reported)reported.add(id);
     for(const id of student.activity.completed)completed.add(id);
   }
+  const externalActivities=[];
+  const externalIds=[...new Set(students.flatMap(student=>[...student.activity.opened,...student.activity.declared,...student.activity.reported,...student.activity.completed]))].filter(id=>!gameById.has(id));
+  for(const activityId of externalIds){const assignment=await repo.get(`${groupPath(s)}/groupActivities/${activityId}`);let title='Actividad de clase archivada',provider='external';
+    if(assignment?.courseId===s.courseId&&assignment.termId===s.termId&&assignment.groupId===s.groupId&&Number.isInteger(assignment.definitionRevision)&&assignment.definitionRevision>0){const revision=await repo.get(`${coursePath(s.courseId)}/activities/${activityId}/revisions/${assignment.definitionRevision}`);if(revision?.groupIds?.includes(s.groupId)&&typeof revision.title==='string'){title=revision.title;provider=revision.provider;}}
+    externalActivities.push({activityId,title,provider,opened:students.filter(row=>row.activity.opened.has(activityId)).length,declared:students.filter(row=>row.activity.explicit.has(activityId)).length,reported:students.filter(row=>row.activity.reported.has(activityId)).length,completed:students.filter(row=>row.activity.completed.has(activityId)).length,validated:0});
+  }
   return {
-    scope:s,
+    externalActivities,scope:s,
     period,
     generatedAt:period.to,
     studentsTotal:students.length,
     studentsActive:students.filter(student=>student.activity.last!==null||student.activity.opened.size||student.activity.declared.size||student.activity.reported.size||student.activity.completed.size).length,
     activityDataTruncated:students.some(student=>student.activity.truncated),
-    activities:{opened:opened.size,declared:declared.size,reported:reported.size,completed:completed.size,validated:0},
+    activities:{manualDeclared:explicit.size,practiced:new Set([...declared,...completed]).size,opened:opened.size,declared:declared.size,reported:reported.size,completed:completed.size,validated:0},
     gyms:catalogGyms.map(gym=>({gymId:gym.gymId,title:gym.title,totalGames:gym.totalGames,
-      opened:countGames(gym.games,opened),practiced:countGames(gym.games,declared),reported:countGames(gym.games,reported),
+      opened:countGames(gym.games,opened),practiced:countGames(gym.games,new Set([...declared,...completed])),reported:countGames(gym.games,reported),
       completed:countGames(gym.games,completed)})),
     students:students.map(({activity: _activity,...student})=>student),
     truncated,
   };
 }
 
-async function activeMembers(repo:AcademicReadView,s:Scope):Promise<{members:ActiveMember[];truncated:boolean}> {
+export async function activeMembers(repo:AcademicReadView,s:Scope):Promise<{members:ActiveMember[];truncated:boolean}> {
   const root=groupPath(s),members:ActiveMember[]=[];
   let cursor:string|undefined;
   for(;;) {
@@ -81,7 +90,7 @@ async function activeMembers(repo:AcademicReadView,s:Scope):Promise<{members:Act
   }
 }
 
-async function readActivity(repo:AcademicReadView,uid:string,from:number|null,to:number,attemptLimit=200):Promise<Activity> {
+async function readActivity(repo:AcademicReadView,uid:string,from:number|null,to:number,attemptLimit=200,scope?:Scope):Promise<Activity> {
   const result=blankActivity();
   const [head,attempts]=await Promise.all([
     repo.get(`users/${uid}/sync/current`),
@@ -98,11 +107,12 @@ async function readActivity(repo:AcademicReadView,uid:string,from:number|null,to
   // for a student who has never created users/{uid}/sync/current.
   for(const {id,data} of attempts) {
     if(!validAttempt(data,id,uid))continue;
+    if(data.context&&(!scope||data.context.courseId!==scope.courseId||data.context.termId!==scope.termId||data.context.groupId!==scope.groupId))continue;
     const at=Date.parse(data.observedAt);
     if(data.kind==='reported') {
       signal('reported',data.activityId,at);
       if(data.result&&data.result.completed===true)signal('completed',data.activityId,at);
-    } else signal(data.kind as 'opened'|'declared',data.activityId,at);
+    } else {signal(data.kind as 'opened'|'declared',data.activityId,at);if(data.kind==='declared'&&inPeriod(at,from,to))result.explicit.add(data.activityId);}
   }
   if(!head||!Number.isInteger(head.epoch)||head.epoch<1||head.epoch>1000000||
     (head.uid!==undefined&&head.uid!==uid)||(head.schemaVersion!==undefined&&head.schemaVersion!==2))return result;

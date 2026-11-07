@@ -17,8 +17,8 @@ export interface EnrollmentLink {revision:number;status:'active'|'expired'|'revo
 export interface GroupProgressGym {gymId:number;title:string;totalGames:number;opened:number;practiced:number;reported:number;completed:number}
 export interface GroupProgressStudent {
   uid:string;name:string;email:string|null;emailVerified:boolean;gamertag:string|null;
-  lastActivityAt:string|null;opened:number;declared:number;reported:number;validated:number;
-  practicedGames:number;completedGames:number;gyms:Array<{gymId:number;opened:number;declared:number;reported:number;completed:number}>;
+  pendingGames?:number;manualDeclaredGames?:number;lastActivityAt:string|null;opened:number;declared:number;reported:number;validated:number;
+  practicedGames:number;completedGames:number;gyms:Array<{gymId:number;opened:number;declared:number;reported:number;completed:number;practiced?:number;pending?:number}>;
 }
 
 export type ActivityProvider='wordwall'|'learningapps';
@@ -42,14 +42,21 @@ export interface PublishedActivity {activityId:string;provider:ActivityProvider;
 export interface PublishedActivities {gyms:Array<{gymId:number;activities:PublishedActivity[];layout:GymLayout}>}
 
 export interface GroupProgress {
+  externalActivities?:{activityId:string;title:string;provider:string;opened:number;declared:number;reported:number;completed:number;validated:number}[];
   scope:Scope;period:{days:number;from:string|null;to:string};generatedAt:string;
   studentsTotal:number;studentsActive:number;activityDataTruncated:boolean;
-  activities:{opened:number;declared:number;reported:number;completed:number;validated:number};
+  activities:{manualDeclared?:number;practiced?:number;opened:number;declared:number;reported:number;completed:number;validated:number};
   gyms:GroupProgressGym[];students:GroupProgressStudent[];truncated:boolean;
 }
 type Command={idempotencyKey:string};type CAS={expectedVersion:number};
 type InviteFields={expiresInSeconds:number;maxUses:number;maxPending:number};
 export interface Api {
+  configureParticipation:{input:Scope&Command&CAS&{enabled:boolean};output:MutationResult};
+  syncAdmission:{input:Record<string,never>;output:{allowed:boolean;mode:'private-pilot'|'single-operator-test'|null;expiresAt:string|null}};
+  rankingPreference:{input:Scope;output:{enabled:boolean;revision:number}};
+  groupRanking:{input:Scope;output:{scope:Scope;enabled:boolean;controlRevision:number;criterion:'unique-group-openings-v1';trust:'client-reported-participation';truncated:boolean;rows:{alias:string;participation:number;position:number|null}[]}};
+  setRankingParticipation:{input:Scope&Command&CAS&{enabled:boolean};output:MutationResult};
+  recordGroupActivity:{input:Scope&Command&{activityId:string;attemptId:string};output:MutationResult};
   getPlayerIdentity:{input:Record<string,never>;output:{identity:PlayerIdentity|null}};
   gamertagAvailability:{input:{gamertag:string};output:{available:boolean}};
   savePlayerIdentity:{input:Command&CAS&{expectedProfileVersion:number;fullName:string;gamertag:string;avatarId:string;companionId:string;shareGameIdentity:boolean};output:MutationResult};
@@ -85,4 +92,4 @@ export interface Api {
   moveActivity:{input:Scope&Command&{activityId:string;gymId:number;expectedVersion:number};output:MutationResult};
   setActivityStatus:{input:Scope&Command&{activityId:string;status:'hidden'|'archived';expectedVersion:number};output:MutationResult};
 }
-export type CommandName=Exclude<keyof Api,'myScopes'|'roster'|'groupRequests'|'groupInvitations'|'groupProgress'|'getAcademicProfile'|'requestStatus'|'getPlayerIdentity'|'gamertagAvailability'|'groupEnrollmentLink'|'activityWorkspace'|'publishedGroupActivities'|'publishedActivity'>;
+export type CommandName=Exclude<keyof Api,'syncAdmission'|'rankingPreference'|'groupRanking'|'myScopes'|'roster'|'groupRequests'|'groupInvitations'|'groupProgress'|'getAcademicProfile'|'requestStatus'|'getPlayerIdentity'|'gamertagAvailability'|'groupEnrollmentLink'|'activityWorkspace'|'publishedGroupActivities'|'publishedActivity'>;

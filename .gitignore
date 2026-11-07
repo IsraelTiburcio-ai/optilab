@@ -23,3 +23,5 @@ release-evidence/
 .pilot-archives/
 
 .pilot-private/
+
+.qa/

@@ -6,8 +6,8 @@ import {checkUid} from '../pilot/plan.mjs';
 export const mode='single-operator-test';
 // Hashes of reviewed VERSIONED FILES, not of the active production release.
 export const reviewedSources={
-  base:'ee7fec34e49971a847bc3e6882196fb3fed64ffe42da39f9b7802ba9cef1cf62',
-  pilot:'048501565c5dc3f1eb8270a9db74c275b23c288705bd92aec6c215383ed4787e',
+  base:'0bfd6bed2dc6f53543b78e0ad470938cef51eda37641804f6f7301e225b54704',
+  pilot:'c34da6e02192c350796006c2b48b41882ee804b7a2c2253ed71f13dc7854287a',
 };
 export const sha256=text=>createHash('sha256').update(text).digest('hex');
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'
