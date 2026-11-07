@@ -82,6 +82,15 @@ export function Activities({scope,scopes,call,refresh,disabled=false}:{scope:Tea
       closeEditor();refreshWorkspace();report(publishNow?'Actividad publicada. Ya aparece en las tarjetas del gimnasio.':'Borrador guardado. Ya puedes publicarlo cuando quieras.');
     }catch(e){setEditorError(publishNow&&current?'La actividad quedó guardada como borrador, pero no se pudo publicar. Reintenta «Publicar actividad»; no se creará otro borrador.':e instanceof Error?e.message:'No se pudo guardar la actividad.');}finally{setBusy(false);}
   }
+  async function retryPublish(){
+    const current=partialRef.current;
+    if(!current||current.key!==formKey(form)){await saveDraft(true);return;}
+    if(busy)return;setBusy(true);setEditorError('');
+    try{
+      await call('publishActivities',{...scopeInput(scope),groupIds:form.groupIds,activityId:current.activityId,expectedVersion:current.revision,idempotencyKey:publishKey.current});
+      closeEditor();refreshWorkspace();report('Actividad publicada. Ya aparece en las tarjetas del gimnasio.');
+    }catch(e){setEditorError(e instanceof Error?e.message:'No se pudo publicar la actividad guardada. Reintenta; no se creará otro borrador.');}finally{setBusy(false);}
+  }
   function openPreview(state:FormState){
     const link=resolveActivityLink(state.link);if(!link){setEditorError('El enlace no corresponde a LearningApps o Wordwall.');return;}
     setPreview({title:state.title||link.title||provisionalTitle(link.provider),sourceUrl:link.sourceUrl,embedUrl:link.embedUrl,provider:link.provider});
@@ -174,7 +183,7 @@ export function Activities({scope,scopes,call,refresh,disabled=false}:{scope:Tea
         <label>Grupo<select value={form.groupIds[0]??scope.groupId} onChange={event=>setForm({...form,groupIds:[event.target.value]})}>{groupOptions.map(group=><option key={group.groupId} value={group.groupId}>{group.title||'Grupo autorizado'}</option>)}</select></label>
         <details className="activity-advanced"><summary>Opciones avanzadas</summary><label>Descripción<textarea value={form.description} maxLength={500} onChange={event=>setForm({...form,description:event.target.value})}/></label><label>Instrucciones<textarea value={form.instructions} maxLength={1000} onChange={event=>setForm({...form,instructions:event.target.value})}/></label></details>
         {editorError&&<p className="teacher-error" role="alert">{editorError}</p>}
-        <div className="teacher-actions"><button type="button" className="button" onClick={()=>openPreview(form)}>Previsualizar</button><button type="button" className="button" onClick={()=>void saveDraft(false)} disabled={busy}>Guardar borrador</button><button type="button" className="button primary" onClick={()=>void saveDraft(true)} disabled={busy}>Publicar actividad</button><button type="button" className="button" onClick={closeEditor} disabled={busy}>Cancelar</button></div>
+        <div className="teacher-actions"><button type="button" className="button" onClick={()=>openPreview(form)}>Previsualizar</button><button type="button" className="button" onClick={()=>void saveDraft(false)} disabled={busy}>Guardar borrador</button><button type="button" className="button primary" onClick={()=>void (partialRef.current?.key===formKey(form)?retryPublish():saveDraft(true))} disabled={busy}>Publicar actividad</button><button type="button" className="button" onClick={closeEditor} disabled={busy}>Cancelar</button></div>
       </form>
     </dialog>
 
