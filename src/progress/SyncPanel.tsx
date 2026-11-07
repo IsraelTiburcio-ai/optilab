@@ -27,9 +27,9 @@ export default function SyncPanel() {
     try {setRestore(JSON.parse(await selected.text()));setReview(true);}catch{setError('Archivo JSON inválido.');}
   };
   return <section className="sync-panel paper" aria-label="Sincronización de progreso">
-    <h2>Tu aventura en Cloud · {syncMode==='production'?(productionKind==='single-operator-test'?'prueba individual':'piloto privado'):'emulador'}</h2>
+    <h2>Tu aventura en Cloud · {syncMode==='production'?(productionKind==='production'?'sincronización de cuenta':productionKind==='single-operator-test'?'prueba individual':'piloto privado'):'emulador'}</h2>
     <p role="status"><strong>{labels[view.status]}</strong> · {view.pending} operaciones pendientes</p>
-    <p>{syncMode==='production'?(productionKind==='single-operator-test'?'Prueba individual supervisada, limitada a la cuenta y ventana autorizadas.':'Piloto privado de sincronización.'):'Entorno local de pruebas; sin Firestore productivo.'} Este perfil pertenece solo a tu cuenta.</p>
+    <p>{syncMode==='production'?(productionKind==='production'?'Sincronización disponible para cuentas verificadas, con consentimiento independiente por canal.':productionKind==='single-operator-test'?'Prueba individual supervisada, limitada a la cuenta y ventana autorizadas.':'Piloto privado de sincronización.'):'Entorno local de pruebas; sin Firestore productivo.'} Este perfil pertenece solo a tu cuenta.</p>
     {view.decision!=='accepted'&&<div>
       <p>{individual?'Esta prueba usa solo el progreso de la cuenta autorizada. No se importará el perfil invitado.':'El progreso anterior de este navegador no se importará al iniciar sesión. Puedes unirlo a esta cuenta, usar solo lo remoto o cancelar.'}</p>
       <p>Usar la cuenta activa la sincronización de sus propios cambios pendientes; no importa el invitado. Cancelar pausa el envío y conserva esos cambios locales.</p>

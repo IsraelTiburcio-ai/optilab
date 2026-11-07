@@ -2,7 +2,8 @@ import type {FirebaseSettings} from '../auth/config';
 
 /** Public build switches, never credentials or an authorization mechanism. */
 export const productionSyncTarget={projectId:'optilab-cd829',origin:'https://optilab.club',base:'/'} as const;
-export function productionSessionKind(env:Record<string,unknown>):'private-pilot'|'single-operator-test'|null {
+export function productionSessionKind(env:Record<string,unknown>):'private-pilot'|'single-operator-test'|'production'|null {
+  if(env.VITE_PROGRESS_SYNC_RELEASE==='general-progress-v1'&&env.VITE_SYNC_PILOT==='')return 'production';
   if(env.VITE_PROGRESS_SYNC_RELEASE==='private-progress-and-attempts-v1'&&env.VITE_SYNC_PILOT==='private-admission-v1')return 'private-pilot';
   if(env.VITE_PROGRESS_SYNC_RELEASE==='single-operator-test-v1'&&env.VITE_SYNC_PILOT==='single-operator-test-v1')return 'single-operator-test';
   return null;
@@ -25,7 +26,7 @@ export function observeSingleOperatorExpiry(env:Record<string,unknown>,expire:()
 export function productionSyncAllowed(env:Record<string,unknown>,auth:FirebaseSettings,origin:string,now=Date.now()):boolean {
   const kind=productionSessionKind(env);
   return env.PROD===true&&env.DEV===false&&env.VITE_PROGRESS_SYNC==='production'&&
-    (kind==='private-pilot'||kind==='single-operator-test'&&singleOperatorWindowAllowed(env,now))&&
+    (kind==='production'||kind==='private-pilot'||kind==='single-operator-test'&&singleOperatorWindowAllowed(env,now))&&
     env.VITE_PROGRESS_SYNC_PROJECT_ID===productionSyncTarget.projectId&&
     env.VITE_PROGRESS_SYNC_ORIGIN===productionSyncTarget.origin&&origin===productionSyncTarget.origin&&
     env.BASE_URL===productionSyncTarget.base&&auth.status==='ready'&&

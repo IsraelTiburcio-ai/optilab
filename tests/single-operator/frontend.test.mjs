@@ -47,7 +47,7 @@ test('release is manual, main/owner-only, OFF default, same Pages lock; original
   assert.match(workflow,/workflow_dispatch:/);assert.doesNotMatch(workflow,/^  (push|schedule|pull_request):/m);
   assert.match(workflow,/default: off/);assert.match(workflow,/github.actor == github.repository_owner/);assert.match(workflow,/group: pages/);
   assert.match(workflow,/Recheck and stamp final artifact/);assert.doesNotMatch(workflow,/firebase deploy|private-pilot-approval|PILOT_MANIFEST_JSON/);
-  const normal=readFileSync('.github/workflows/deploy.yml','utf8');assert.match(normal,/VITE_PROGRESS_SYNC: disabled/);
+  const normal=readFileSync('.github/workflows/deploy.yml','utf8');assert.match(normal,/VITE_PROGRESS_SYNC: production/);
 });
 test('OFF CLI needs no private file, credentials or network and emits an auditable public stamp',async()=>{
   const dir=await mkdtemp(join(tmpdir(),'optilab-frontend-off-'));try{

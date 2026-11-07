@@ -8,6 +8,6 @@ export async function authenticate(auth:Auth,header:string|undefined,expectedPro
     const token=await auth.verifyIdToken(header.slice(7),true);
     if(!identifier(token.uid,128)||token.firebase?.sign_in_provider==='anonymous')throw new Error('Invalid actor');
     if(expectedProjectId&&(token.aud!==expectedProjectId||token.iss!==`https://securetoken.google.com/${expectedProjectId}`))throw new Error('Invalid token project');
-    return {uid:token.uid,label:typeof token.name==='string'?token.name.slice(0,80):'Alumno'};
+    return {uid:token.uid,emailVerified:token.email_verified===true,label:typeof token.name==='string'?token.name.slice(0,80):'Alumno'};
   }catch{throw new ApiError(401,'UNAUTHENTICATED','Se requiere una sesión válida.');}
 }

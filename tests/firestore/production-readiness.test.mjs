@@ -63,7 +63,7 @@ test('new temporary-game reports cannot become gameRuns; native Memorama remains
 });
 test('production deploy config has no emulator/service settings and indexes stay collection-scoped and bounded',()=>{
   const config=JSON.parse(readFileSync(new URL('../../firebase.production.json',import.meta.url)));
-  assert.deepEqual(config,{firestore:{rules:'firestore.pilot.rules',indexes:'firestore.indexes.json'}});
+  assert.deepEqual(config,{firestore:{rules:'firestore.production.rules',indexes:'firestore.indexes.json'}});
   const indexes=JSON.parse(readFileSync(new URL('../../firestore.indexes.json',import.meta.url)));
   for(const group of ['sync','fields','receipts','gameRuns','diagnostics'])assert.ok(indexes.fieldOverrides.some(f=>f.collectionGroup===group&&f.fieldPath==='*'&&f.indexes.length===0));
   for(const group of ['gameRuns','diagnostics'])assert.deepEqual(indexes.fieldOverrides.find(f=>f.collectionGroup===group&&f.fieldPath==='date').indexes,[{order:'DESCENDING',queryScope:'COLLECTION'}]);

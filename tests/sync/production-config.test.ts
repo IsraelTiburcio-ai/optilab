@@ -30,8 +30,14 @@ test('production factories reject disabled configuration before locating any app
   assert.throws(()=>createProductionTransport('a'),/productiva desactivada/);
   assert.throws(()=>createProgressTransport('a'),/productiva desactivada/);
 });
-test('deployment and template pin production sync OFF independently of repository/owner env variables',()=>{
+test('ordinary deployment explicitly enables general production; local template remains opt-in',()=>{
   const workflow=readFileSync(new URL('../../.github/workflows/deploy.yml',import.meta.url),'utf8');
-  assert.match(workflow,/VITE_PROGRESS_SYNC: disabled/);assert.match(workflow,/VITE_SYNC_PILOT: ''/);for(const key of ['RELEASE','PROJECT_ID','ORIGIN'])assert.match(workflow,new RegExp(`VITE_PROGRESS_SYNC_${key}: ''`));
+  assert.match(workflow,/VITE_PROGRESS_SYNC: production/);assert.match(workflow,/VITE_SYNC_PILOT: ''/);assert.match(workflow,/VITE_PROGRESS_SYNC_RELEASE: general-progress-v1/);assert.match(workflow,/VITE_PROGRESS_SYNC_PROJECT_ID: optilab-cd829/);assert.match(workflow,/VITE_PROGRESS_SYNC_ORIGIN: https:\/\/optilab.club/);
   const template=readFileSync(new URL('../../.env.sync-production.example',import.meta.url),'utf8');assert.match(template,/^VITE_PROGRESS_SYNC=disabled$/m);assert.doesNotMatch(template,/VITE_PROGRESS_SYNC=production/);
+});
+
+test('general release has no account allowlist, lease or pilot window; target and identity gates stay strict',()=>{
+ const general={...env,VITE_SYNC_PILOT:'',VITE_PROGRESS_SYNC_RELEASE:'general-progress-v1'};
+ assert.equal(productionSyncAllowed(general,auth,productionSyncTarget.origin),true);
+ for(const patch of [{VITE_SYNC_PILOT:'private-admission-v1'},{VITE_PROGRESS_SYNC:'disabled'},{VITE_PROGRESS_SYNC_PROJECT_ID:'other'},{VITE_FIRESTORE_EMULATOR_HOST:'127.0.0.1:8085'}])assert.equal(productionSyncAllowed({...general,...patch},auth,productionSyncTarget.origin),false);
 });

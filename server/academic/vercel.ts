@@ -78,6 +78,8 @@ async function backend(runtime:AcademicRuntime) {
 }
 export interface VercelTestDependencies {runtime:AcademicRuntime;admin:Pick<EmulatorAdmin,'auth'>;service:AcademicService;limiter:Limiter}
 export async function vercelHandler(req:IncomingMessage,res:ServerResponse,test?:VercelTestDependencies):Promise<void> {
+  res.setHeader('X-OptiLab-Release','general-progress-v1');
+  if(/^[a-f0-9]{40}$/.test(process.env.VERCEL_GIT_COMMIT_SHA??''))res.setHeader('X-OptiLab-Commit',process.env.VERCEL_GIT_COMMIT_SHA!);
   const runtime=test?.runtime??vercelRuntimeConfig(process.env);
   if(!runtime.open){logAcademicClosed('runtime_config_closed','runtime_config',academicRuntimeFlags());closed(res);return;}
   const raw=oidcTokenFromRequest(req);

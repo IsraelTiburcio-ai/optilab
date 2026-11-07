@@ -40,7 +40,7 @@ export type AcademicCall=ReturnType<typeof academicClient>;
 function compatible(operation:keyof Api,input:unknown,result:unknown):boolean {
   if(!result||typeof result!=='object')return false;
   const data=result as Record<string,unknown>;
-  if(operation==='syncAdmission')return typeof data.allowed==='boolean'&&[null,'private-pilot','single-operator-test'].includes(data.mode as never)&&(data.expiresAt===null||typeof data.expiresAt==='string');
+  if(operation==='syncAdmission')return typeof data.allowed==='boolean'&&[null,'private-pilot','single-operator-test','production'].includes(data.mode as never)&&(data.expiresAt===null||typeof data.expiresAt==='string');
   if(operation==='rankingPreference')return typeof data.enabled==='boolean'&&Number.isInteger(data.revision);
   if(operation==='groupRanking')return typeof data.enabled==='boolean'&&Number.isSafeInteger(data.controlRevision)&&data.criterion==='unique-group-openings-v1'&&data.trust==='client-reported-participation'&&typeof data.truncated==='boolean'&&Array.isArray(data.rows)&&data.rows.every((r:any)=>r&&typeof r.alias==='string'&&r.alias.length<=30&&Number.isSafeInteger(r.participation)&&r.participation>=0&&r.participation<=300&&(r.position===null||Number.isSafeInteger(r.position)&&r.position>=1)&&Object.keys(r).sort().join(',')==='alias,participation,position');
   if(operation==='getPlayerIdentity')return data.identity===null||!!data.identity&&typeof data.identity==='object'&&typeof (data.identity as {gamertag:unknown}).gamertag==='string';

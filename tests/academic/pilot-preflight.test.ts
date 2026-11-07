@@ -13,7 +13,7 @@ test('pilot preflight validates index, ESM, Pages and the 10-document plan witho
 
 test('Pages deploy workflow persists the exact production academic frontend flags',()=>{
   const workflow=readFileSync('.github/workflows/deploy.yml','utf8');
-  assert.match(workflow,/VITE_PROGRESS_SYNC: disabled/);
+  assert.match(workflow,/VITE_PROGRESS_SYNC: production/);
   assert.match(workflow,/VITE_ACADEMIC_API_MODE: production/);
   assert.match(workflow,/VITE_ACADEMIC_API_URL: https:\/\/optilab-api\.vercel\.app\/api/);
   assert.match(workflow,/VITE_ACADEMIC_APP_ORIGIN: https:\/\/optilab\.club/);

@@ -91,7 +91,7 @@ function PlayerSession({retry}: {retry: () => void}) {
   return <div className="game-player">
     <div className="player-navigation"><Link className="back-link" to="/gimnasio/3">← Regresar al gimnasio</Link>
       <a className="text-button" href={GAME_URL} target="_blank" rel="noopener noreferrer">Abrir juego independiente <ArrowUpRight size={15}/></a></div>
-    <header className="player-title"><div><span className="eyebrow">FORTALEZA SIMPLEX · PILOTO INTEGRADO</span><h1>Memorama Simplex</h1><p>Encuentra conexiones. Tu partida se queda en esta aventura.</p></div><Mascot id={3}/></header>
+    <header className="player-title"><div><span className="eyebrow">FORTALEZA SIMPLEX · JUEGO INTEGRADO</span><h1>Memorama Simplex</h1><p>Encuentra conexiones. Tu partida se queda en esta aventura.</p></div><Mascot id={3}/></header>
     <GameArena title="Memorama Simplex" region="Fortaleza Simplex" returnTo="/gimnasio/3" controls={
       <div className="player-status" role="status"><Shield size={17}/><span>{status}</span>
         <button className="text-button" onClick={retry}><RotateCcw size={14}/> Reconectar</button></div>

@@ -20,7 +20,7 @@ export async function runPreflight({remote=true,manifest=null}={}){
   check('production API configuration',JSON.parse(await read('firebase.production.json')).firestore?.indexes==='firestore.indexes.json');
   check('Pages CNAME', (await read('public/CNAME')).trim()==='optilab.club');
   const deploy=await read('.github/workflows/deploy.yml');
-  check('Pages workflow enables academic production',/VITE_PROGRESS_SYNC: disabled/.test(deploy)&&/VITE_ACADEMIC_API_MODE:\s*production/.test(deploy)&&/VITE_ACADEMIC_API_URL:\s*https:\/\/optilab-api\.vercel\.app\/api/.test(deploy)&&/VITE_ACADEMIC_APP_ORIGIN:\s*https:\/\/optilab\.club/.test(deploy));
+  check('Pages workflow enables academic production',/VITE_PROGRESS_SYNC: production/.test(deploy)&&/VITE_ACADEMIC_API_MODE:\s*production/.test(deploy)&&/VITE_ACADEMIC_API_URL:\s*https:\/\/optilab-api\.vercel\.app\/api/.test(deploy)&&/VITE_ACADEMIC_APP_ORIGIN:\s*https:\/\/optilab\.club/.test(deploy));
   check('ESM relative imports carry extensions',(await Promise.all((await sourceFiles('server/academic')).concat(await sourceFiles('api')).map(async file=>{
     const source=await read(file);const matches=[...source.matchAll(/(?:from\s+|import\(\s*)['"](\.{1,2}\/[^'"]+)['"]/g)].map(match=>match[1]);
     return matches.filter(spec=>!spec.endsWith('.js')&&!spec.endsWith('.json')&&!spec.endsWith('.mjs')&&!spec.endsWith('.cjs'));

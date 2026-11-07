@@ -52,7 +52,7 @@ type Command={idempotencyKey:string};type CAS={expectedVersion:number};
 type InviteFields={expiresInSeconds:number;maxUses:number;maxPending:number};
 export interface Api {
   configureParticipation:{input:Scope&Command&CAS&{enabled:boolean};output:MutationResult};
-  syncAdmission:{input:Record<string,never>;output:{allowed:boolean;mode:'private-pilot'|'single-operator-test'|null;expiresAt:string|null}};
+  syncAdmission:{input:Record<string,never>;output:{allowed:boolean;mode:'private-pilot'|'single-operator-test'|'production'|null;expiresAt:string|null}};
   rankingPreference:{input:Scope;output:{enabled:boolean;revision:number}};
   groupRanking:{input:Scope;output:{scope:Scope;enabled:boolean;controlRevision:number;criterion:'unique-group-openings-v1';trust:'client-reported-participation';truncated:boolean;rows:{alias:string;participation:number;position:number|null}[]}};
   setRankingParticipation:{input:Scope&Command&CAS&{enabled:boolean};output:MutationResult};
