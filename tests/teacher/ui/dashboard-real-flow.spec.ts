@@ -7,8 +7,8 @@ const progress=(page:Page)=>page.getByRole('region',{name:'Sincronización de pr
 const attempts=(page:Page)=>page.getByRole('region',{name:'Sincronización de intentos'});
 const card=(page:Page,label:string)=>page.locator('.teacher-summary .paper').filter({has:page.getByText(label,{exact:true})}).locator('strong');
 import {serveMemorama,playMemorama} from './gameHelpers';
-async function markPractice(page:Page) {
-  await page.goto('#/optidex');
+async function markPractice(page:Page,fixture:Fixture) {
+  await page.goto('#/optidex?'+new URLSearchParams(fixture.scope()));
   const game=page.locator('.cartridge').filter({hasText:'System Catch'});
   await game.getByRole('button',{name:'Marcar como practicado',exact:true}).click();
   await expect(progress(page).getByRole('status')).toContainText('Sincronizado',{timeout:20000});
@@ -32,9 +32,9 @@ test('flujo real: B completa Memorama, C practica y A ve el tablero sin datos in
   const c=(await browser.newContext({baseURL}));await fixture.attach(c);
   try {
     const bp=await b.newPage(),cp=await c.newPage();
-    await loginExisting(bp,fixture,'studentB');await acceptCloud(bp);await playMemorama(bp);
+    await loginExisting(bp,fixture,'studentB');await acceptCloud(bp);await playMemorama(bp,'#/jugar/memorama-simplex?'+new URLSearchParams(fixture.scope()));
     await bp.goto('#/cuenta');await expect(attempts(bp).getByRole('status')).toContainText('synced',{timeout:20000});
-    await loginExisting(cp,fixture,'studentC');await acceptCloud(cp);await markPractice(cp);
+    await loginExisting(cp,fixture,'studentC');await acceptCloud(cp);await markPractice(cp,fixture);
     await login(page,fixture,'teacherA');await ready(page);
     await page.getByRole('navigation',{name:'Secciones del panel'}).getByRole('button',{name:'Resumen',exact:true}).click();
     const dashboard=page.locator('.teacher-dashboard');await expect(dashboard).toBeVisible();
