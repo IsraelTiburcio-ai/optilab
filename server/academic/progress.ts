@@ -92,56 +92,31 @@ export async function activeMembers(repo:AcademicReadView,s:Scope):Promise<{memb
 
 async function readActivity(repo:AcademicReadView,uid:string,from:number|null,to:number,attemptLimit=200,scope?:Scope):Promise<Activity> {
   const result=blankActivity();
-  const [head,attempts]=await Promise.all([
-    repo.get(`users/${uid}/sync/current`),
-    repo.attempts(`users/${uid}/reportedAttempts`,attemptLimit,from===null?null:new Date(from).toISOString(),new Date(to).toISOString()),
-  ]);
+  const attempts=await repo.attempts(`users/${uid}/reportedAttempts`,attemptLimit,from===null?null:new Date(from).toISOString(),new Date(to).toISOString());
   result.truncated=attempts.length===attemptLimit;
   const signal=(kind:SignalKind,gameId:string,at:number)=>{
     if(!inPeriod(at,from,to)||!gameById.has(gameId))return;
     result[kind].add(gameId);
     result.last=result.last===null?at:Math.max(result.last,at);
   };
-  const touch=(at:number)=>{if(inPeriod(at,from,to))result.last=result.last===null?at:Math.max(result.last,at);};
   // Consents are independent from the progress head: attempt events remain visible
   // for a student who has never created users/{uid}/sync/current.
   for(const {id,data} of attempts) {
     if(!validAttempt(data,id,uid))continue;
-    if(data.context&&(!scope||data.context.courseId!==scope.courseId||data.context.termId!==scope.termId||data.context.groupId!==scope.groupId))continue;
+    if(!scope||!validAttemptContext(data.context)||data.context.courseId!==scope.courseId||data.context.termId!==scope.termId||data.context.groupId!==scope.groupId)continue;
     const at=Date.parse(data.observedAt);
     if(data.kind==='reported') {
       signal('reported',data.activityId,at);
       if(data.result&&data.result.completed===true)signal('completed',data.activityId,at);
     } else {signal(data.kind as 'opened'|'declared',data.activityId,at);if(data.kind==='declared'&&inPeriod(at,from,to))result.explicit.add(data.activityId);}
   }
-  if(!head||!Number.isInteger(head.epoch)||head.epoch<1||head.epoch>1000000||
-    (head.uid!==undefined&&head.uid!==uid)||(head.schemaVersion!==undefined&&head.schemaVersion!==2))return result;
-  const epoch=head.epoch as number;
-  const [fields,runs,diagnostics]=await Promise.all([
-    repo.page(`users/${uid}/epochs/${epoch}/fields`,40),
-    repo.page(`users/${uid}/epochs/${epoch}/gameRuns`,50),
-    repo.page(`users/${uid}/epochs/${epoch}/diagnostics`,50),
-  ]);
-  for(const {id,data} of fields) {
-    if(!id.startsWith('practice--'))continue;
-    signal('declared',id.slice(10),millis(data?.value));
-  }
-  for(const {data} of runs) {
-    if(typeof data?.gameId!=='string')continue;
-    const at=millis(data?.date);
-    signal('reported',data.gameId,at);
-    if(data.result&&data.result.completed===true)signal('completed',data.gameId,at);
-  }
-  for(const {data} of diagnostics) {
-    const at=millis(data?.date);
-    touch(at);
-    // A diagnostic is a reported result only when it carries explicit game identity;
-    // it is never a completion without a completed result field.
-    if(typeof data?.gameId==='string')signal('reported',data.gameId,at);
-  }
   return result;
 }
 
+function validAttemptContext(value:unknown):value is {courseId:string;termId:string;groupId:string} {
+  if(!value||typeof value!=='object'||Array.isArray(value))return false;const context=value as Record<string,unknown>;
+  return Object.keys(context).length===3&&['courseId','termId','groupId'].every(key=>typeof context[key]==='string'&&/^[A-Za-z0-9_-]{1,80}$/.test(context[key] as string));
+}
 function validAttempt(data:Data,docId:string,uid:string):boolean {
   if(!data||data.version!==1||data.uid!==uid||typeof data.id!=='string'||!attemptId.test(data.id)||
     typeof data.activityId!=='string'||!gameById.has(data.activityId)||

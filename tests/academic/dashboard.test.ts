@@ -40,11 +40,13 @@ async function head(uid:string,epoch=1) {
 async function practice(uid:string,gameId:string,date:number,epoch=1) {
   await sdk.db.doc(`users/${uid}/epochs/${epoch}/fields/practice--${gameId}`).set({schemaVersion:2,uid,epoch,revision:1,
     operationId:crypto.randomUUID(),value:sdk.timestamp(date)});
+  await attempt(uid,gameId,'declared',date);
 }
 async function run(uid:string,gameId:string,date:number,epoch=1,completed=true) {
   const runId=crypto.randomUUID();
   await sdk.db.doc(`users/${uid}/epochs/${epoch}/gameRuns/${runId}`).set({schemaVersion:1,uid,trust:'self-reported',
     createdAt:sdk.timestamp(date),date:sdk.timestamp(date),gameId,runId,result:{completed}});
+  await attempt(uid,gameId,'reported',date,{completed});
 }
 async function diagnostic(uid:string,date:number,gameId?:string) {
   const id=crypto.randomUUID();
@@ -55,7 +57,7 @@ let attemptSequence=0;
 async function attempt(uid:string,activityId:string,kind:'opened'|'declared'|'reported',date:number,result?:Record<string,unknown>) {
   const id=`event-${++attemptSequence}`;
   await sdk.db.doc(`users/${uid}/reportedAttempts/${activityId}--${id}`).set({version:1,id,activityId,kind,
-    trust:kind==='reported'?'client-report':'declaration',observedAt:new Date(date).toISOString(),uid,serverReceivedAt:sdk.timestamp(date),...(result?{result}:{})});
+    trust:kind==='reported'?'client-report':'declaration',context:s(),observedAt:new Date(date).toISOString(),uid,serverReceivedAt:sdk.timestamp(date),...(result?{result}:{})});
 }
 before(async()=>{
   const config=localConfig(process.env);sdk=await emulatorAdmin();
@@ -79,7 +81,7 @@ test('teacherA sees active students with unique game counts in the selected peri
   const result=await execute('teacherA','groupProgress',s());
   assert.equal(result.scope.groupId,f.groups.a);assert.equal(result.period.days,30);assert.ok(result.period.from);assert.equal(result.period.to,result.generatedAt);
   assert.equal(result.studentsTotal,2);assert.equal(result.studentsActive,2);assert.equal(result.truncated,false);assert.equal(result.activityDataTruncated,false);
-  assert.deepEqual(result.activities,{manualDeclared:1,practiced:3,opened:2,declared:2,reported:3,completed:2,validated:0});
+  assert.deepEqual(result.activities,{manualDeclared:2,practiced:3,opened:2,declared:2,reported:3,completed:2,validated:0});
   const studentA=result.students.find((row:any)=>row.uid===a),studentB=result.students.find((row:any)=>row.uid===b);
   assert.equal(studentA.name,'Alumna Sintética A');assert.equal(studentA.email,f.actors.studentA.email);assert.equal(studentA.emailVerified,true);assert.equal(studentA.gamertag,'Sintetica_A');
   assert.equal(studentA.opened,1);assert.equal(studentA.declared,1);assert.equal(studentA.reported,2);assert.equal(studentA.validated,0);
@@ -125,11 +127,11 @@ test('periodDays includes and excludes dated activity while zero means all time'
   const recent=await execute('teacherA','groupProgress',{...s('a'),periodDays:2});
   assert.equal(recent.period.days,2);assert.ok(Date.parse(recent.period.from!)>now-3*day);
   assert.equal(recent.students[0].declared,1);assert.equal(recent.students[0].opened,0);assert.equal(recent.students[0].reported,0);
-  assert.deepEqual(recent.activities,{manualDeclared:0,practiced:1,opened:0,declared:1,reported:0,completed:0,validated:0});
+  assert.deepEqual(recent.activities,{manualDeclared:1,practiced:1,opened:0,declared:1,reported:0,completed:0,validated:0});
   const all=await execute('teacherA','groupProgress',{...s('a'),periodDays:0});
   assert.equal(all.period.days,0);assert.equal(all.period.from,null);
   assert.equal(all.students[0].declared,2);assert.equal(all.students[0].opened,1);assert.equal(all.students[0].reported,1);assert.equal(all.students[0].completedGames,0);
-  assert.deepEqual(all.activities,{manualDeclared:0,practiced:2,opened:1,declared:2,reported:1,completed:0,validated:0});
+  assert.deepEqual(all.activities,{manualDeclared:2,practiced:2,opened:1,declared:2,reported:1,completed:0,validated:0});
   assert.equal(await denied('teacherA','groupProgress',{...s('a'),periodDays:366}),400);
 });
 test('missing or malformed progress documents leave an empty activity without crashing',async()=>{
@@ -168,7 +170,7 @@ test('reported results and reported completions are distinct; diagnostics never 
   const result=await execute('teacherA','groupProgress',s('a'));
   const student=result.students[0],gym=(gymId:number)=>student.gyms.find((entry:any)=>entry.gymId===gymId);
   assert.equal(student.reported,5);assert.equal(student.completedGames,2);
-  assert.equal(student.lastActivityAt,new Date(now-10000).toISOString());
+  assert.equal(student.lastActivityAt,new Date(now-20000).toISOString());
   assert.deepEqual(result.activities,{manualDeclared:0,practiced:2,opened:0,declared:0,reported:5,completed:2,validated:0});
   assert.deepEqual(gym(3),{gymId:3,opened:0,declared:0,reported:2,completed:2,practiced:2,pending:3});
   assert.deepEqual(gym(5),{gymId:5,opened:0,declared:0,reported:1,completed:0,practiced:0,pending:5});
@@ -201,6 +203,15 @@ test('limita la lectura de intentos por alumno y marca historial parcial',async(
   assert.equal(result.activityDataTruncated,true);
   assert.equal(result.students[0].opened,1);
   assert.equal(result.truncated,false);
+});
+test('same student in two groups: only the matching context counts and legacy personal history is not attributed',async()=>{
+  await admit('studentA','a');await admit('studentA','b');const uid=f.actors.studentA.uid,now=Date.now();
+  await attempt(uid,'system-lab','reported',now,{completed:true});
+  const a=await execute('teacherA','groupProgress',{...s('a'),periodDays:0}),b=await execute('teacherB','groupProgress',{...s('b'),periodDays:0});
+  assert.equal(a.students[0].completedGames,1);assert.equal(b.students[0].completedGames,0);
+  await sdk.db.doc(`users/${uid}/reportedAttempts/system-lab--legacy-no-context`).set({version:1,id:'legacy-no-context',activityId:'system-lab',kind:'reported',trust:'client-report',observedAt:new Date(now).toISOString(),uid,serverReceivedAt:sdk.timestamp(now),result:{completed:true}});
+  assert.equal((await execute('teacherA','groupProgress',{...s('a'),periodDays:0})).students[0].completedGames,1);
+  assert.equal((await execute('teacherB','groupProgress',{...s('b'),periodDays:0})).students[0].completedGames,0);
 });
 test('dashboard periods 7/30/90 and Todos use the filtered attempt query consistently',async()=>{
   await admit('studentA','a');const uid=f.actors.studentA.uid,now=Date.now();
