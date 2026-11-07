@@ -10,6 +10,8 @@ import './activities.css';
 type FormState={activityId?:string;expectedVersion?:number;link:string;embedUrl:string|null;title:string;description:string;instructions:string;gymId:number;groupIds:string[]};
 const blankForm=(groupId:string):FormState=>({link:'',embedUrl:null,title:'',description:'',instructions:'',gymId:3,groupIds:[groupId]});
 const providerLabel=(provider:ActivityProvider)=>provider==='wordwall'?'Wordwall':'LearningApps';
+const provisionalTitle=(provider:ActivityProvider)=>provider==='learningapps'?'Actividad de LearningApps':'Actividad de Wordwall';
+const formKey=(form:FormState)=>JSON.stringify([form.activityId,form.expectedVersion,form.link,form.embedUrl,form.title,form.description,form.instructions,form.gymId,form.groupIds]);
 const statusLabel=(status:string)=>status==='published'?'Publicada':status==='hidden'?'Oculta':status==='archived'?'Archivada':'Borrador';
 
 export function Activities({scope,scopes,call,refresh,disabled=false}:{scope:TeachingScope;scopes:TeachingScope[];call:AcademicCall;refresh:number;disabled?:boolean}) {
@@ -17,6 +19,7 @@ export function Activities({scope,scopes,call,refresh,disabled=false}:{scope:Tea
   const [reload,setReload]=useState(0),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
   const [editor,setEditor]=useState<ActivityDefinition|null|undefined>(undefined),[form,setForm]=useState<FormState>(blankForm(scope.groupId));
   const [editorError,setEditorError]=useState(''),[preview,setPreview]=useState<{title:string;sourceUrl:string;embedUrl:string|null;provider:ActivityProvider}|null>(null);
+  const [partial,setPartial]=useState<{activityId:string;revision:number;key:string}|null>(null),saveKey=useRef(key()),publishKey=useRef(key()),saveFormKey=useRef('');
   const resolved=useMemo(()=>resolveActivityLink(form.link),[form.link]);
   const [drag,setDrag]=useState<{activityId:string;gymId:number}|null>(null);
   const editorRef=useRef<HTMLDialogElement>(null),previewRef=useRef<HTMLDialogElement>(null),noticeRef=useRef<HTMLParagraphElement>(null);
@@ -48,36 +51,40 @@ export function Activities({scope,scopes,call,refresh,disabled=false}:{scope:Tea
     try{await fn();refreshWorkspace();report(message);}catch(e){setError(e instanceof Error?e.message:'No se pudo completar la operación.');}finally{setBusy(false);}
   }
   function openCreate(){
-    setForm(blankForm(scope.groupId));setEditorError('');setEditor(null);
+    setForm(blankForm(scope.groupId));setEditorError('');setPartial(null);saveKey.current=key();publishKey.current=key();saveFormKey.current='';setEditor(null);
   }
   function openEdit(definition:ActivityDefinition){
     const assignment=assignmentById.get(definition.activityId);
     setForm({activityId:definition.activityId,expectedVersion:definition.revision,link:definition.sourceUrl,embedUrl:definition.embedUrl,title:definition.title,description:definition.description,
       instructions:definition.instructions,gymId:assignment?.gymId??3,groupIds:definition.groupIds.filter(id=>groupOptions.some(group=>group.groupId===id))});
-    setEditorError('');setEditor(definition);
+    setEditorError('');setPartial(null);saveKey.current=key();publishKey.current=key();saveFormKey.current='';setEditor(definition);
   }
   function closeEditor(){setEditor(undefined);setEditorError('');editorRef.current?.close();}
   async function saveDraft(publishNow=false){
     const link=resolveActivityLink(form.link);
     if(!link){setEditorError('Pega el enlace público de LearningApps o Wordwall. No uses HTML ni el enlace de embed.');return;}
-    const title=(form.title.trim()||link.title).trim();
-    if(!title){setEditorError('Escribe un título.');return;}
+    const title=(form.title.trim()||link.title||provisionalTitle(link.provider)).trim();
     if(!form.groupIds.length){setEditorError('Selecciona un grupo autorizado.');return;}
     if(busy)return;setBusy(true);setEditorError('');
+    const prior=partial,currentKey=formKey(form);let current=prior&&prior.key===currentKey?prior:null;
     try{
-      const saved=await call('saveActivityDraft',{...scopeInput(scope),groupIds:form.groupIds,activityId:form.activityId,expectedVersion:form.expectedVersion,
-        provider:link.provider,resourceId:link.resourceId,sourceUrl:link.sourceUrl,embedUrl:form.embedUrl,title,
-        description:form.description,instructions:form.instructions,gymId:form.gymId,idempotencyKey:key()});
-      if(publishNow){
+      if(!current){
+        if(saveFormKey.current!==currentKey){saveKey.current=key();publishKey.current=key();saveFormKey.current=currentKey;}
+        const saved=await call('saveActivityDraft',{...scopeInput(scope),groupIds:form.groupIds,activityId:prior?.activityId??form.activityId,expectedVersion:prior?.revision??form.expectedVersion,
+          provider:link.provider,resourceId:link.resourceId,sourceUrl:link.sourceUrl,embedUrl:form.embedUrl,title,
+          description:form.description,instructions:form.instructions,gymId:form.gymId,idempotencyKey:saveKey.current});
         if(!saved.activityId||typeof saved.revision!=='number')throw new Error('El API no devolvió la actividad guardada.');
-        await call('publishActivities',{...scopeInput(scope),groupIds:form.groupIds,activityId:saved.activityId,expectedVersion:saved.revision,idempotencyKey:key()});
+        current={activityId:saved.activityId,revision:saved.revision,key:currentKey};setPartial(current);
+      }
+      if(publishNow){
+        await call('publishActivities',{...scopeInput(scope),groupIds:form.groupIds,activityId:current.activityId,expectedVersion:current.revision,idempotencyKey:publishKey.current});
       }
       closeEditor();refreshWorkspace();report(publishNow?'Actividad publicada. Ya aparece en las tarjetas del gimnasio.':'Borrador guardado. Ya puedes publicarlo cuando quieras.');
-    }catch(e){setEditorError(e instanceof Error?e.message:'No se pudo guardar la actividad.');}finally{setBusy(false);}
+    }catch(e){setEditorError(publishNow&&current?'La actividad quedó guardada como borrador, pero no se pudo publicar. Reintenta «Publicar actividad»; no se creará otro borrador.':e instanceof Error?e.message:'No se pudo guardar la actividad.');}finally{setBusy(false);}
   }
   function openPreview(state:FormState){
     const link=resolveActivityLink(state.link);if(!link){setEditorError('El enlace no corresponde a LearningApps o Wordwall.');return;}
-    setPreview({title:state.title||link.title||'Borrador sin título',sourceUrl:link.sourceUrl,embedUrl:link.embedUrl,provider:link.provider});
+    setPreview({title:state.title||link.title||provisionalTitle(link.provider),sourceUrl:link.sourceUrl,embedUrl:link.embedUrl,provider:link.provider});
   }
   function previewDefinition(definition:ActivityDefinition){
     setPreview({title:definition.title,sourceUrl:definition.sourceUrl,embedUrl:definition.embedUrl,provider:definition.provider});
@@ -160,7 +167,7 @@ export function Activities({scope,scopes,call,refresh,disabled=false}:{scope:Tea
       <form method="dialog" onSubmit={event=>event.preventDefault()}>
         <h2 id="activity-dialog-title">{editor?'Editar actividad':'Nueva actividad'}</h2>
         <p className="muted">Guardar deja un borrador. Publicar es una acción separada y visible para el alumno.</p>
-        <label>Enlace de la actividad<input type="url" name="link" value={form.link} maxLength={1000} placeholder="https://learningapps.org/watch?v=… o https://wordwall.net/resource/…" onChange={event=>{const link=event.target.value;const parsed=resolveActivityLink(link);setForm({...form,link,embedUrl:parsed?.embedUrl??null,title:form.title||parsed?.title||''});}}/></label>
+        <label>Enlace de la actividad<input type="url" name="link" value={form.link} maxLength={1000} placeholder="https://learningapps.org/watch?v=… o https://wordwall.net/resource/…" onChange={event=>{const link=event.target.value;const parsed=resolveActivityLink(link);setPartial(null);setForm({...form,link,embedUrl:parsed?.embedUrl??null,title:form.title||parsed?.title||(parsed?provisionalTitle(parsed.provider):'')});}}/></label>
         <p className="muted">{resolved?`Detectado: ${providerLabel(resolved.provider)} · ${resolved.externalOnly?'se abrirá de forma segura en el proveedor':'vista integrada disponible'}`:'Pega el enlace público; no necesitas escribir IDs ni URLs de embed.'}</p>
         <label>Título<input name="title" value={form.title} maxLength={120} placeholder={resolved?.title||'Título de la actividad'} onChange={event=>setForm({...form,title:event.target.value})}/></label>
         <label>Gimnasio<select value={form.gymId} onChange={event=>setForm({...form,gymId:Number(event.target.value)})}>{gyms.map(gym=><option key={gym.id} value={gym.id}>{gym.id}. {gym.name}</option>)}</select></label>
