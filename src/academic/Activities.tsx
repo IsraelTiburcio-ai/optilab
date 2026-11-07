@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {gyms} from '../data';
 import {iframePolicy} from '../activities/urls';
-import {resolveActivityLink} from './activityLink';
+import {provisionalTitle,resolveActivityLink} from './activityLink';
 import {key,scopeInput} from './components';
 import type {AcademicCall} from './client';
 import type {ActivityAssignment,ActivityDefinition,ActivityProvider,ActivityWorkspace,PublishedActivity,Scope,TeachingScope} from './types';
@@ -10,7 +10,6 @@ import './activities.css';
 type FormState={activityId?:string;expectedVersion?:number;link:string;embedUrl:string|null;title:string;description:string;instructions:string;gymId:number;groupIds:string[]};
 const blankForm=(groupId:string):FormState=>({link:'',embedUrl:null,title:'',description:'',instructions:'',gymId:3,groupIds:[groupId]});
 const providerLabel=(provider:ActivityProvider)=>provider==='wordwall'?'Wordwall':'LearningApps';
-const provisionalTitle=(provider:ActivityProvider)=>provider==='learningapps'?'Actividad de LearningApps':'Actividad de Wordwall';
 const formKey=(form:FormState)=>JSON.stringify([form.activityId,form.expectedVersion,form.link,form.embedUrl,form.title,form.description,form.instructions,form.gymId,form.groupIds]);
 const statusLabel=(status:string)=>status==='published'?'Publicada':status==='hidden'?'Oculta':status==='archived'?'Archivada':'Borrador';
 

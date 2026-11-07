@@ -1,4 +1,5 @@
 import type {ActivityProvider} from './types';
+export const provisionalTitle=(provider:ActivityProvider)=>provider==='learningapps'?'Actividad de LearningApps':'Actividad de Wordwall';
 export interface ResolvedActivityLink {
   provider:ActivityProvider;
   resourceId:string;
