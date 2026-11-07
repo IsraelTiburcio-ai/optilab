@@ -19,7 +19,7 @@ export function Activities({scope,scopes,call,refresh,disabled=false}:{scope:Tea
   const [reload,setReload]=useState(0),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
   const [editor,setEditor]=useState<ActivityDefinition|null|undefined>(undefined),[form,setForm]=useState<FormState>(blankForm(scope.groupId));
   const [editorError,setEditorError]=useState(''),[preview,setPreview]=useState<{title:string;sourceUrl:string;embedUrl:string|null;provider:ActivityProvider}|null>(null);
-  const [partial,setPartial]=useState<{activityId:string;revision:number;key:string}|null>(null),saveKey=useRef(key()),publishKey=useRef(key()),saveFormKey=useRef('');
+  const [partial,setPartial]=useState<{activityId:string;revision:number;key:string}|null>(null),partialRef=useRef<{activityId:string;revision:number;key:string}|null>(null),saveKey=useRef(key()),publishKey=useRef(key()),saveFormKey=useRef('');
   const resolved=useMemo(()=>resolveActivityLink(form.link),[form.link]);
   const [drag,setDrag]=useState<{activityId:string;gymId:number}|null>(null);
   const editorRef=useRef<HTMLDialogElement>(null),previewRef=useRef<HTMLDialogElement>(null),noticeRef=useRef<HTMLParagraphElement>(null);
@@ -51,13 +51,13 @@ export function Activities({scope,scopes,call,refresh,disabled=false}:{scope:Tea
     try{await fn();refreshWorkspace();report(message);}catch(e){setError(e instanceof Error?e.message:'No se pudo completar la operación.');}finally{setBusy(false);}
   }
   function openCreate(){
-    setForm(blankForm(scope.groupId));setEditorError('');setPartial(null);saveKey.current=key();publishKey.current=key();saveFormKey.current='';setEditor(null);
+    setForm(blankForm(scope.groupId));setEditorError('');partialRef.current=null;setPartial(null);saveKey.current=key();publishKey.current=key();saveFormKey.current='';setEditor(null);
   }
   function openEdit(definition:ActivityDefinition){
     const assignment=assignmentById.get(definition.activityId);
     setForm({activityId:definition.activityId,expectedVersion:definition.revision,link:definition.sourceUrl,embedUrl:definition.embedUrl,title:definition.title,description:definition.description,
       instructions:definition.instructions,gymId:assignment?.gymId??3,groupIds:definition.groupIds.filter(id=>groupOptions.some(group=>group.groupId===id))});
-    setEditorError('');setPartial(null);saveKey.current=key();publishKey.current=key();saveFormKey.current='';setEditor(definition);
+    setEditorError('');partialRef.current=null;setPartial(null);saveKey.current=key();publishKey.current=key();saveFormKey.current='';setEditor(definition);
   }
   function closeEditor(){setEditor(undefined);setEditorError('');editorRef.current?.close();}
   async function saveDraft(publishNow=false){
@@ -66,7 +66,7 @@ export function Activities({scope,scopes,call,refresh,disabled=false}:{scope:Tea
     const title=(form.title.trim()||link.title||provisionalTitle(link.provider)).trim();
     if(!form.groupIds.length){setEditorError('Selecciona un grupo autorizado.');return;}
     if(busy)return;setBusy(true);setEditorError('');
-    const prior=partial,currentKey=formKey(form);let current=prior&&prior.key===currentKey?prior:null;
+    const prior=partialRef.current,currentKey=formKey(form);let current=prior&&prior.key===currentKey?prior:null;
     try{
       if(!current){
         if(saveFormKey.current!==currentKey){saveKey.current=key();publishKey.current=key();saveFormKey.current=currentKey;}
@@ -74,7 +74,7 @@ export function Activities({scope,scopes,call,refresh,disabled=false}:{scope:Tea
           provider:link.provider,resourceId:link.resourceId,sourceUrl:link.sourceUrl,embedUrl:form.embedUrl,title,
           description:form.description,instructions:form.instructions,gymId:form.gymId,idempotencyKey:saveKey.current});
         if(!saved.activityId||typeof saved.revision!=='number')throw new Error('El API no devolvió la actividad guardada.');
-        current={activityId:saved.activityId,revision:saved.revision,key:currentKey};setPartial(current);
+        current={activityId:saved.activityId,revision:saved.revision,key:currentKey};partialRef.current=current;setPartial(current);
       }
       if(publishNow){
         await call('publishActivities',{...scopeInput(scope),groupIds:form.groupIds,activityId:current.activityId,expectedVersion:current.revision,idempotencyKey:publishKey.current});
@@ -167,7 +167,7 @@ export function Activities({scope,scopes,call,refresh,disabled=false}:{scope:Tea
       <form method="dialog" onSubmit={event=>event.preventDefault()}>
         <h2 id="activity-dialog-title">{editor?'Editar actividad':'Nueva actividad'}</h2>
         <p className="muted">Guardar deja un borrador. Publicar es una acción separada y visible para el alumno.</p>
-        <label>Enlace de la actividad<input type="url" name="link" value={form.link} maxLength={1000} placeholder="https://learningapps.org/watch?v=… o https://wordwall.net/resource/…" onChange={event=>{const link=event.target.value;const parsed=resolveActivityLink(link);setPartial(null);setForm({...form,link,embedUrl:parsed?.embedUrl??null,title:form.title||parsed?.title||(parsed?provisionalTitle(parsed.provider):'')});}}/></label>
+        <label>Enlace de la actividad<input type="url" name="link" value={form.link} maxLength={1000} placeholder="https://learningapps.org/watch?v=… o https://wordwall.net/resource/…" onChange={event=>{const link=event.target.value;const parsed=resolveActivityLink(link);partialRef.current=null;setPartial(null);setForm({...form,link,embedUrl:parsed?.embedUrl??null,title:form.title||parsed?.title||(parsed?provisionalTitle(parsed.provider):'')});}}/></label>
         <p className="muted">{resolved?`Detectado: ${providerLabel(resolved.provider)} · ${resolved.externalOnly?'se abrirá de forma segura en el proveedor':'vista integrada disponible'}`:'Pega el enlace público; no necesitas escribir IDs ni URLs de embed.'}</p>
         <label>Título<input name="title" value={form.title} maxLength={120} placeholder={resolved?.title||'Título de la actividad'} onChange={event=>setForm({...form,title:event.target.value})}/></label>
         <label>Gimnasio<select value={form.gymId} onChange={event=>setForm({...form,gymId:Number(event.target.value)})}>{gyms.map(gym=><option key={gym.id} value={gym.id}>{gym.id}. {gym.name}</option>)}</select></label>
