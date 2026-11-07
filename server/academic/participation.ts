@@ -2,7 +2,7 @@ import {validOriginalResult,isResultPilot} from '../../src/integration/originalR
 import {validResult} from '../../src/integration/protocol.js';
 import type {Actor,Data,Input,Scope} from './contracts.js';
 import {activeContext,grant,type Reader,type Policy} from './authorization.js';
-import {coursePath,groupPath,type AcademicReadView} from './repository.js';
+import {coursePath,groupPath,hash,type AcademicReadView} from './repository.js';
 import {scopeOf,exact,integer} from './validation.js';
 import {denied,conflict} from './errors.js';
 import {plan} from './plans.js';
@@ -46,10 +46,10 @@ export async function groupRanking(r:AcademicReadView,policy:Policy,actor:Actor,
  const control=controlDocument(await r.get(`${groupPath(s)}/rankingControl/current`),s);if(control?.enabled===false)return {scope:s,enabled:false,controlRevision:control?.revision??0,criterion:'unique-group-openings-v1',trust:'client-reported-participation',truncated:false,rows:[]};
  const {members,truncated}=await activeMembers(r,s),rows:{alias:string;participation:number;position:number|null}[]=[];
  // Only this group's materialized facts are read; no private profile, email, UID or score is returned.
- for(const member of members){const p=preference(await r.get(preferencePath(s,member.uid)),member.uid,s);if(!p?.enabled)continue;const identity=(await ownPlayer(r,member.uid)).identity;if(!identity)continue;
+ for(const member of members){const alias='Explorador-'+hash(JSON.stringify([s.courseId,s.termId,s.groupId,member.uid])).slice(0,16);
  const projected=participationDocument(await r.get(`${groupPath(s)}/participation/${member.uid}`),member.uid,s);
  const count=Object.values(projected?.activities??{}).filter((v:any)=>v?.opened===true).length;
- rows.push({alias:identity.gamertag,participation:count,position:null});}
+ rows.push({alias,participation:count,position:null});}
  rows.sort((a,b)=>b.participation-a.participation||a.alias.localeCompare(b.alias,'es'));let previous=-1,position=0;rows.forEach((row,index)=>{if(row.participation!==previous)position=index+1;previous=row.participation;row.position=truncated?null:position;});
  return {scope:s,enabled:true,controlRevision:control?.revision??0,criterion:'unique-group-openings-v1',trust:'client-reported-participation',truncated,rows};
 }

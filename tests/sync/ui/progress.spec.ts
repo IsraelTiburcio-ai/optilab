@@ -23,7 +23,7 @@ async function login(page:Page,email:string) {
   if(await choice.isVisible()){await expect(choice).toBeEnabled();await choice.click();}
   else await synced(page);
 }
-const synced=async(page:Page)=>expect(panel(page).getByRole('status')).toContainText('Sincronizado',{timeout:20000});
+const synced=async(page:Page)=>expect(page.locator('.sync-indicator, .sync-panel [role=status]')).toContainText('Sincronizado',{timeout:20000});
 test.beforeEach(async({context})=>{
   await context.route(/https:\/\/[^/]*(firestore|identitytoolkit|securetoken)[^/]*googleapis\.com/,route=>route.abort());
 });
@@ -48,12 +48,12 @@ test('consent, cancel, import, recoverable backup, reload, and A logout B isolat
   await expect(page.locator('.local-note')).toContainText('emuladores locales');
   await page.reload();await synced(page);await expect(page.locator('#nickname')).toHaveValue('Invitado fixture');
   await page.locator('#nickname').fill('Privado A');await page.locator('#nickname').press('Tab');await synced(page);
-  await expect(panel(page).getByText(/Respaldos de esta cuenta/)).toBeVisible();
+  await page.goto('#/cuenta');await expect(panel(page).getByText(/Respaldos de esta cuenta/)).toBeVisible();
   const secondTab=await context.newPage();await secondTab.goto('#/aventura');await synced(secondTab);
   await expect(secondTab.locator('#nickname')).toHaveValue('Privado A');
   await page.goto('#/cuenta');await page.getByRole('button',{name:'Cerrar sesión',exact:true}).click();
   await expect(panel(page)).toHaveCount(0);
-  await expect(panel(secondTab)).toHaveCount(0);await expect(secondTab.locator('#nickname')).toHaveValue('Invitado fixture');
+  await expect(secondTab.locator('.sync-indicator')).toHaveCount(0);await expect(secondTab.locator('#nickname')).toHaveValue('Invitado fixture');
   await register(page,`b-${crypto.randomUUID()}@example.test`);
   await expect(page.locator('body')).not.toContainText('Privado A');
   await expect(panel(page).getByText(/Respaldos de esta cuenta/)).toHaveCount(0);
@@ -61,7 +61,7 @@ test('consent, cancel, import, recoverable backup, reload, and A logout B isolat
   await secondTab.reload();await expect(secondTab.locator('#nickname')).toHaveValue('Entrenador OptiLab');
   expect(await page.evaluate(()=>localStorage.getItem('optilab-v1'))).toBe(raw);
   await page.goto('#/cuenta');await page.getByRole('button',{name:'Cerrar sesión',exact:true}).click();
-  await expect(panel(secondTab)).toHaveCount(0);
+  await expect(secondTab.locator('.sync-indicator')).toHaveCount(0);
   await login(page,emailA);await page.goto('#/aventura');await synced(page);
   await expect(page.locator('#nickname')).toHaveValue('Privado A');
   await secondTab.reload();
@@ -77,18 +77,18 @@ test('two browser clients converge; offline preference conflicts require review 
     await ca.setOffline(true);await cb.setOffline(true);
     await a.locator('#nickname').fill('Offline A');await a.locator('#nickname').press('Tab');
     await b.locator('#nickname').fill('Offline B');await b.locator('#nickname').press('Tab');
-    await expect(panel(a).getByRole('status')).toContainText('Sin conexión');
+    await expect(a.locator('.sync-indicator')).toContainText('Sin conexión');
     await ca.setOffline(false);await synced(a);
-    await cb.setOffline(false);await expect(panel(b).getByRole('status')).toContainText('Conflicto',{timeout:20000});
+    await cb.setOffline(false);await expect(b.locator('.sync-indicator')).toContainText('Conflicto',{timeout:20000});await b.goto('#/cuenta');
     await b.reload();await expect(panel(b).getByRole('status')).toContainText('Conflicto');
-    await panel(b).getByRole('button',{name:'Aplicar mis cambios revisados',exact:true}).click();await synced(b);
+    await panel(b).getByRole('button',{name:'Aplicar mis cambios revisados',exact:true}).click();await synced(b);await b.goto('#/aventura');
     await expect(a.locator('#nickname')).toHaveValue('Offline B',{timeout:20000});
     await a.locator('#nickname').fill('Online A draft');
     await b.locator('#nickname').fill('Online B saved');await b.locator('#nickname').press('Tab');await synced(b);
     await a.locator('#nickname').press('Tab');
-    await expect(panel(a).getByRole('status')).toContainText('Conflicto',{timeout:20000});
+    await expect(a.locator('.sync-indicator')).toContainText('Conflicto',{timeout:20000});await a.goto('#/cuenta');
     await expect(panel(a)).toContainText('Online B saved');await expect(panel(a)).toContainText('Online A draft');
-    await panel(a).getByRole('button',{name:'Usar remoto y guardar copia de mis cambios',exact:true}).click();await synced(a);
+    await panel(a).getByRole('button',{name:'Usar remoto y guardar copia de mis cambios',exact:true}).click();await synced(a);await a.goto('#/aventura');
     await expect(a.locator('#nickname')).toHaveValue('Online B saved');
   } finally {await ca.close();await cb.close();}
 });
@@ -106,7 +106,7 @@ test('offline practice unmark persists; reset prevents an old device from resurr
     await cb.setOffline(true);await b.locator('.practice-toggle').first().click();
     await a.goto('#/aventura');await a.getByRole('button',{name:'Reiniciar aventura de cuenta',exact:true}).click();
     await a.getByRole('button',{name:'Sí, reiniciar aventura',exact:true}).click();await synced(a);
-    await cb.setOffline(false);await expect(panel(b).getByRole('status')).toContainText('Conflicto',{timeout:20000});
+    await cb.setOffline(false);await expect(b.locator('.sync-indicator')).toContainText('Conflicto',{timeout:20000});await b.goto('#/cuenta');
     await expect(panel(b)).toContainText('reiniciada en otro dispositivo');
     await panel(b).getByRole('button',{name:'Usar remoto y guardar copia de mis cambios',exact:true}).click();await synced(b);
     await b.goto('#/gimnasio/1');await expect(b.locator('.practice-toggle').first()).toHaveAttribute('aria-pressed','false');
@@ -117,14 +117,14 @@ test('backup export and explicit restore work in the UI without changing guest l
   await register(page,`backup-${crypto.randomUUID()}@example.test`);
   await panel(page).getByRole('button',{name:'Conservar progreso remoto',exact:true}).click();
   await page.goto('#/aventura');await page.locator('#nickname').fill('Recuperable');await page.locator('#nickname').press('Tab');await synced(page);
-  const downloaded=page.waitForEvent('download');
+  await page.goto('#/cuenta');const downloaded=page.waitForEvent('download');
   await panel(page).getByRole('button',{name:'Crear y exportar respaldo',exact:true}).click();
   expect((await downloaded).suggestedFilename()).toBe('optilab-respaldo.json');
-  await page.locator('#nickname').fill('Posterior');await page.locator('#nickname').press('Tab');await synced(page);
-  await panel(page).getByText(/Respaldos de esta cuenta/).click();
+  await page.goto('#/aventura');await page.locator('#nickname').fill('Posterior');await page.locator('#nickname').press('Tab');await synced(page);
+  await page.goto('#/cuenta');await panel(page).getByText(/Respaldos de esta cuenta/).click();
   await panel(page).getByRole('button',{name:'Revisar restauración',exact:true}).first().click();
   await panel(page).getByRole('button',{name:'Confirmar restauración en mi cuenta',exact:true}).click();await synced(page);
-  await expect(page.locator('#nickname')).toHaveValue('Recuperable');
+  await page.goto('#/aventura');await expect(page.locator('#nickname')).toHaveValue('Recuperable');
 });
 test('real local Memorama survives remote profile updates and arena; result syncs once to another client',async({browser})=>{
   test.skip(!process.env.MEMORAMA_DIR,'Set MEMORAMA_DIR to pinned game fixture 7a58545; CI supplies it.');

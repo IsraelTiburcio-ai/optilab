@@ -7,7 +7,7 @@ export function AttemptCloudControls(){
  const run=(action:()=>Promise<void>)=>{void action();};
  return <section aria-label="Sincronización de intentos"><h3>Historial privado entre dispositivos</h3>
  <p role="status">Intentos: {cloud.view.status} · {cloud.view.pending} pendientes</p>
- <p>Consentimiento independiente del progreso de aventura. Solo declaraciones e informes del cliente; ningún resultado académico validado. El ranking de participación tiene consentimiento independiente y no utiliza puntuaciones.</p>
+ <p>Consentimiento independiente del progreso de aventura. Solo declaraciones e informes del cliente; ningún resultado académico validado. El ranking del grupo muestra participación y no utiliza puntuaciones informadas por juegos.</p>
  {!cloud.verified?<p>Verifica tu correo y actualiza la sesión para habilitar este canal.</p>:<>
  <button onClick={()=>run(()=>cloud.activate(false))}>Sincronizar historial de esta cuenta</button>{' '}
  {productionSessionKind(import.meta.env??{})!=='single-operator-test'&&<button onClick={()=>run(()=>cloud.activate(true))}>Importar historial invitado y sincronizar</button>}{' '}

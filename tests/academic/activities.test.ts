@@ -80,6 +80,10 @@ test('asigna una definición a dos grupos, permite gimnasios distintos y aísla 
   await execute('teacherBoth','publishActivities',{...s('a'),groupIds:[f.groups.a,f.groups.b],activityId:draft.activityId,expectedVersion:1,idempotencyKey:key()});
   assert.equal(await status('teacherB','activityWorkspace',s('a')),403);
   assert.equal(await status('teacherA','publishedGroupActivities',s('a')),403);
+  assert.equal(await status('studentA','teacherPublishedGroupActivities',s('a')),403);
+  assert.equal(await status('teacherB','teacherPublishedGroupActivities',s('a')),403);
+  const preview=await execute('teacherA','teacherPublishedGroupActivities',s('a'));
+  assert.equal(preview.gyms.find((g:any)=>g.gymId===3).activities[0].activityId,draft.activityId);
   const a=await execute('studentA','publishedGroupActivities',s('a')),b=await execute('studentB','publishedGroupActivities',s('b'));
   assert.equal(a.gyms.find((g:any)=>g.gymId===3).activities[0].activityId,draft.activityId);
   assert.equal(b.gyms.find((g:any)=>g.gymId===3).activities[0].activityId,draft.activityId);

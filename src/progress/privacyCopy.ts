@@ -5,6 +5,6 @@ export function adventureStorageNotice(mode:'disabled'|'emulator'|'production'){
 }
 export function attemptStorageNotice(cloudAvailable:boolean){
   return cloudAvailable
-    ?'Puedes sincronizar estos informes entre dispositivos con consentimiento independiente; consulta el estado del canal de intentos. El ranking de participación tiene consentimiento adicional y no utiliza puntuaciones.'
+    ?'Puedes sincronizar estos informes entre dispositivos con consentimiento independiente; consulta el estado del canal de intentos. El ranking del grupo muestra participación sin utilizar puntuaciones informadas por juegos.'
     :'No se sincronizan ni se usan para rankings.';
 }

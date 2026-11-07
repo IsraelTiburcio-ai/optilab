@@ -20,7 +20,7 @@ test('single UID: real Memorama, two clients, canonical export, total pause and 
     usage:{source:'console',operator:manifest.operator,windowHours:24,storageBytes:1000,storageObservedAt:new Date().toISOString(),observedAt:new Date().toISOString(),evidenceSha256:'a'.repeat(64),counts:{reads:1,writes:1,deletes:0,documents:1,largestAccount:1}},permissions:{status:'PASS',granted:requiredPermissions},control:await inspectControl(db)});
   const ca=await browser.newContext({baseURL:syncBase,viewport:{width:1440,height:1000}}),cb=await browser.newContext({baseURL:syncBase,viewport:{width:390,height:844}});
   const progress=(p:Page)=>p.getByRole('region',{name:'Sincronización de progreso'}),attempts=(p:Page)=>p.getByRole('region',{name:'Sincronización de intentos'});
-  const synced=(p:Page)=>expect(progress(p).getByRole('status')).toContainText('Sincronizado',{timeout:20000});
+  const synced=(p:Page)=>expect(p.locator('.sync-indicator, .sync-panel [role=status]')).toContainText('Sincronizado',{timeout:20000});
   async function login(p:Page){await p.goto('#/cuenta');await p.locator('#account-email').fill(email);await p.locator('#account-password').fill(password);await p.getByRole('button',{name:'Entrar a mi cuenta',exact:true}).click();await progress(p).getByRole('button',{name:'Conservar progreso remoto',exact:true}).click();await synced(p);}
   async function exportAttempts(p:Page){await p.goto('#/cuenta');await expect(attempts(p).getByRole('status')).toContainText('synced',{timeout:20000});const waiting=p.waitForEvent('download');await attempts(p).getByRole('button',{name:'Exportar respaldo de intentos de esta cuenta'}).click();let raw='';for await(const chunk of (await (await waiting).createReadStream())!)raw+=chunk.toString();return JSON.parse(raw).ledger.entries.filter((e:any)=>e.kind==='reported'&&e.activityId==='memorama-simplex');}
   try{
@@ -48,7 +48,7 @@ test('single UID: real Memorama, two clients, canonical export, total pause and 
     await pauseTotal(db,Timestamp);await assertFails(firestore.getDoc(firestore.doc(client,`users/${uid}/sync/current`)));
     await a.goto('#/aventura');await a.locator('#nickname').fill('Pendiente tras pausa');await a.locator('#nickname').press('Tab');
     await expect.poll(()=>a.evaluate(uid=>Object.keys(localStorage).filter(k=>k.startsWith(`optilab-sync:v2:${encodeURIComponent(uid)}:op:`)).length,uid)).toBeGreaterThan(0);
-    await expect(progress(a).getByRole('status')).not.toContainText('Sincronizado');
+    await expect(a.locator('.sync-indicator')).not.toContainText('Sincronizado');
     await expect(operate(db,auth,Timestamp,'renew',manifest,sources,approval,await receipt())).rejects.toThrow();
     await operate(db,auth,Timestamp,'recover',manifest,sources,approval,await receipt());
     // A permission-denied listener is terminal; recreate both clients. The journal stays local.

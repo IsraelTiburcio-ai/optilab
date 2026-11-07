@@ -1,6 +1,5 @@
 import {expect,type Page,type BrowserContext} from '@playwright/test';
 import fs from 'node:fs';import path from 'node:path';
-const progress=(page:Page)=>page.getByRole('region',{name:'Sincronización de progreso'});
 const mime:Record<string,string>={'.html':'text/html','.js':'application/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.json':'application/json'};
 export async function serveMemorama(context:BrowserContext) {
   const root=process.env.MEMORAMA_DIR;
@@ -23,5 +22,5 @@ export async function playMemorama(page:Page,route='#/jugar/memorama-simplex') {
   });
   expect(pairs).toHaveLength(8);for(const pair of pairs){await frame.locator('.card').nth(pair[0]).click();await frame.locator('.card').nth(pair[1]).click();}
   await expect(page.getByRole('heading',{name:'Memorama Simplex completado',exact:true})).toBeVisible({timeout:20000});
-  await expect(progress(page).getByRole('status')).toContainText('Sincronizado',{timeout:20000});
+  await expect(page.locator('.sync-indicator')).toContainText('Sincronizado',{timeout:20000});
 }

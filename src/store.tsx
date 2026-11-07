@@ -1,3 +1,4 @@
+import {LoadingShell} from './components/LoadingShell';
 import {createContext, lazy, Suspense, useContext, useEffect, useRef, useState, type ReactNode} from 'react';
 import {useAuth} from './auth/AuthProvider';
 import {useIntegratedFeatures} from './integration/features';
@@ -114,9 +115,9 @@ function GuestProgress({children}: {children:ReactNode}) {
 const CloudProgress=lazy(()=>import('./progress/CloudProgress'));
 export function ProgressProvider({children}: {children: ReactNode}) {
   const auth=useAuth();
-  if(syncEnabled&&auth.status==='loading')return <p role="status">Comprobando la identidad antes de abrir tu progreso…</p>;
+  if(syncEnabled&&auth.status==='loading')return <LoadingShell/>;
   if(syncMode==='production'&&auth.user)return <ProductionAdmission key={auth.user.uid} uid={auth.user.uid} fallback={<GuestProgress>{children}</GuestProgress>}>{children}</ProductionAdmission>;
-  if(syncEnabled&&auth.user)return <Suspense fallback={<p role="status">Abriendo el progreso de esta cuenta…</p>}>
+  if(syncEnabled&&auth.user)return <Suspense fallback={<LoadingShell/>}>
     <CloudProgress key={auth.user.uid} uid={auth.user.uid}>{children}</CloudProgress>
   </Suspense>;
   return <GuestProgress>{children}</GuestProgress>;

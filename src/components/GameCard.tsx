@@ -9,7 +9,7 @@ import {embeddedOriginalGame} from '../integration/originalGames';
 import {isResultPilot} from '../integration/originalResults';
 import {SimplexCover} from './SimplexCover';
 
-export function GameCard({game, index = 0,academicScope}: {game: Game; index?: number;academicScope?:{courseId:string;termId:string;groupId:string}}) {
+export function GameCard({game, index = 0,academicScope,preview=false}: {game: Game; index?: number;preview?:boolean;academicScope?:{courseId:string;termId:string;groupId:string}}) {
   const attempts=useAttempts();
   const {state, toggle} = useProgress();
   const [details, setDetails] = useState(false);
@@ -28,12 +28,12 @@ export function GameCard({game, index = 0,academicScope}: {game: Game; index?: n
     <div className="cartridge-body">
       <h3>{game.nombre}</h3><p>{game.tema}</p>
       <div className="game-actions">
-        {integrated ? <Link className="button play" to={`${memorama?'/jugar':'/jugar-original'}/${game.repo}${academicScope?'?'+new URLSearchParams(academicScope):''}`}>Jugar <ArrowRight size={17}/><span className="sr-only"> {game.nombre} dentro de OptiLab</span></Link> :
+        {preview?<a className="button play" href={game.juego_url} target="_blank" rel="noopener noreferrer">Vista previa <ArrowUpRight size={17}/></a>:integrated ? <Link className="button play" to={`${memorama?'/jugar':'/jugar-original'}/${game.repo}${academicScope?'?'+new URLSearchParams(academicScope):''}`}>Jugar <ArrowRight size={17}/><span className="sr-only"> {game.nombre} dentro de OptiLab</span></Link> :
           <a className="button play" href={game.juego_url} target="_blank" rel="noopener noreferrer">Jugar <ArrowUpRight size={17}/><span className="sr-only"> {game.nombre}, nueva pestaña</span></a>}
         <button className="text-button" onClick={() => setDetails(!details)} aria-expanded={details}>{details ? 'Cerrar' : 'Detalles'}</button>
       </div>
-      {integrated && <span className="integrated-label">Piloto · juega dentro de OptiLab</span>}
-      {completion && <p className="completion-label">Partida completada · {completion.accuracy}% de precisión</p>}
+      {!preview && integrated && <span className="integrated-label">Piloto · juega dentro de OptiLab</span>}
+      {!preview && completion && <p className="completion-label">Partida completada · {completion.accuracy}% de precisión</p>}
       {details && <div className="game-details">
         <p>{memorama ? 'Piloto integrado: registra el resultado informado por el juego al completar ocho parejas.' : isResultPilot(game.repo) ? 'Piloto de resultados de sesión: informe del juego sin guardado ni recompensas.' : integrated ? 'Piloto integrado aislado: el resultado no se comunica a OptiLab.' : 'Actividad externa: el resultado no se comunica a OptiLab.'} · {gym.topic}.</p>
         {integrated && <p><a className="external-game" href={game.juego_url} target="_blank" rel="noopener noreferrer">Abrir juego independiente ↗</a></p>}
@@ -41,7 +41,7 @@ export function GameCard({game, index = 0,academicScope}: {game: Game; index?: n
         {practiced && <p>Práctica manual registrada el {new Date(practiced).toLocaleDateString('es-MX')}.</p>}
         {game.repo === 'mapa-produccion' && <p className="notice">Correspondencia académica pendiente de revisión con la profesora. No se utiliza en el diagnóstico ni en rutas recomendadas.</p>}
       </div>}
-      <button className="practice-toggle" aria-pressed={!!practiced} onClick={() => (practiced?undefined:attempts.record(game.repo,'declared',crypto.randomUUID()),toggle(game.repo))}><span>{practiced ? <Check size={14}/> : null}</span>{practiced ? 'Practicado · desmarcar' : 'Marcar como practicado'}</button>
+      {!preview&&<button className="practice-toggle" aria-pressed={!!practiced} onClick={() => (practiced?undefined:attempts.record(game.repo,'declared',crypto.randomUUID()),toggle(game.repo))}><span>{practiced ? <Check size={14}/> : null}</span>{practiced ? 'Practicado · desmarcar' : 'Marcar como practicado'}</button>}
     </div>
   </article>;
 }
