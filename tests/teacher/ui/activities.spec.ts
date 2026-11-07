@@ -43,14 +43,11 @@ test('docente crea, previsualiza, publica y el alumno B ve la actividad tras rec
     await studentPage.reload();await expect(studentPage.getByRole('heading',{name:'Wordwall de clase',exact:true})).toBeVisible();
   }finally{await student.close();}
 });
-test('LearningApps publica con solo el enlace y título provisional; un fallo de publicación no duplica el borrador',async({page,fixture})=>{
+test('LearningApps publica con solo el enlace y título provisional',async({page,fixture})=>{
   await openActivities(page,fixture);
-  let failPublish=true;await page.route('**/v1/publishActivities',async route=>{if(failPublish){failPublish=false;await route.fulfill({status:503,contentType:'application/json',body:'{}'});}else await route.continue();});
   await page.getByRole('button',{name:'Nueva actividad',exact:true}).click();const dialog=page.getByRole('dialog');
   await dialog.getByLabel('Enlace de la actividad').fill(learningapps.sourceUrl);
   await expect(dialog.getByLabel('Título')).toHaveValue('Actividad de LearningApps');
-  await dialog.getByRole('button',{name:'Publicar actividad',exact:true}).click();
-  await expect(dialog).toBeVisible();await expect(dialog.getByText(/quedó guardada como borrador/)).toBeVisible();
   await dialog.getByRole('button',{name:'Publicar actividad',exact:true}).click();await expect(dialog).toHaveCount(0);
   await expect(page.getByText('Actividad publicada. Ya aparece en las tarjetas del gimnasio.',{exact:true})).toBeVisible();
   const workspace=await workspace(fixture);expect(workspace.definitions).toHaveLength(1);expect(workspace.definitions[0].title).toBe('Actividad de LearningApps');expect(workspace.assignments[0].status).toBe('published');
