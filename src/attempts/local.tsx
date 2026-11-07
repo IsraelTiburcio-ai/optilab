@@ -15,7 +15,7 @@ export function useAttempts(){
  const location=useLocation(),params=useParams(),query=new URLSearchParams(location.search);
  const candidate={courseId:params.courseId??query.get('courseId'),termId:params.termId??query.get('termId'),groupId:params.groupId??query.get('groupId')};
  const integrated=useIntegratedFeatures();
- const context=integrated&&validContext(candidate)?candidate:undefined;
+ const context=validContext(candidate)?candidate:undefined;
  const owner=useRef<string|null>(null),current=useRef(scope);
  current.current=status==='loading'?'':scope;
  return {scope,ready:status!=='loading',record:(activityId:string,kind:Kind,id:string,result?:Record<string,number|string|boolean>)=>{
