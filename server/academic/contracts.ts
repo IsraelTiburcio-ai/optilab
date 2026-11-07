@@ -4,14 +4,14 @@ export type Operation='myScopes'|'roster'|'requestStatus'|'groupInvitations'|'me
   'createInvitation'|'reissueInvitation'|'revokeInvitation'|'requestMembership'|'approveMembership'|'rejectMembership'|
   'revokeMembership'|'transferMembership'|'createTerm'|'createGroup'|'getAcademicProfile'|'updateAcademicProfile'|
   'getPlayerIdentity'|'gamertagAvailability'|'savePlayerIdentity'|'groupEnrollmentLink'|'rotateEnrollmentLink'|'revokeEnrollmentLink'|'redeemInvitation'|'groupProgress'|
-  'activityWorkspace'|'publishedGroupActivities'|'publishedActivity'|'saveActivityDraft'|'publishActivities'|'reorderActivities'|'moveActivity'|'setActivityStatus';
+  'activityWorkspace'|'publishedGroupActivities'|'publishedActivity'|'saveActivityDraft'|'publishActivities'|'saveGymLayout'|'reorderActivities'|'moveActivity'|'setActivityStatus';
 export interface Input extends Partial<Scope> {
   idempotencyKey?:string;expectedVersion?:number;inviteId?:string;requestId?:string;uid?:string;
   token?:string;expiresInSeconds?:number;maxUses?:number;maxPending?:number;periodDays?:number;
   destinationGroupId?:string;title?:string;limit?:number;cursor?:string;kind?:'student'|'teacher';status?:string;
   fullName?:string;shareGameIdentity?:boolean;nickname?:string|null;avatarId?:string|null;companionId?:string|null;
   gamertag?:string;expectedProfileVersion?:number;
-  groupIds?:string[];activityId?:string;provider?:string;resourceId?:string;sourceUrl?:string;embedUrl?:string|null;
+  groupIds?:string[];activityId?:string;provider?:string;resourceId?:string;sourceUrl?:string;embedUrl?:string|null;hiddenOriginalGameIds?:string[];externalVisibility?:{activityId:string;expectedVersion:number;visible:boolean}[];
   description?:string;instructions?:string;gymId?:number;orderedActivityIds?:string[];
 }
 export const reads=new Set<Operation>(['myScopes','roster','requestStatus','groupInvitations','membershipEvents','groupRequests','getAcademicProfile','getPlayerIdentity','gamertagAvailability','groupEnrollmentLink','groupProgress','activityWorkspace','publishedGroupActivities','publishedActivity']);

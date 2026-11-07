@@ -14,7 +14,7 @@ import type {EmulatorAdmin} from './sdk.js';
 import {updateProfile,type AuthIdentity} from './profiles.js';
 import {savePlayer} from './players.js';
 import {rotateEnrollmentLink,revokeEnrollmentLink,redeemInvitation,validateRedemption} from './enrollmentLinks.js';
-import {saveActivityDraft,publishActivities,reorderActivities,moveActivity,setActivityStatus} from './activities.js';
+import {saveActivityDraft,publishActivities,saveGymLayout,reorderActivities,moveActivity,setActivityStatus} from './activities.js';
 export interface ServiceOptions {
   /** Test-only policy seam for mutation control. Never configured from HTTP/env. */
   policy?:Policy;
@@ -88,6 +88,7 @@ export class AcademicService {
         op==='redeemInvitation'?await redeemInvitation(tx,s,actor,i,identity!,this.clock,commandId):
         op==='saveActivityDraft'?await saveActivityDraft(tx,this.policy,actor,i,commandId,this.clock.time):
         op==='publishActivities'?await publishActivities(tx,this.policy,actor,i,this.clock.time):
+        op==='saveGymLayout'?await saveGymLayout(tx,this.policy,actor,i,this.clock.time):
         op==='reorderActivities'?await reorderActivities(tx,this.policy,actor,i,this.clock.time):
         op==='moveActivity'?await moveActivity(tx,this.policy,actor,i,this.clock.time):
         op==='setActivityStatus'?await setActivityStatus(tx,this.policy,actor,i,this.clock.time):null;

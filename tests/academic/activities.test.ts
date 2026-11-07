@@ -7,6 +7,8 @@ import {AcademicRepository} from '../../server/academic/repository';
 import {AcademicService} from '../../server/academic/service';
 import {ApiError} from '../../server/academic/errors';
 import type {Actor,Scope} from '../../server/academic/contracts';
+import {publishedGroupActivities} from '../../server/academic/activities';
+import {catalogGames} from '../../server/academic/catalog';
 
 const password='fixture-password-123';
 let sdk:EmulatorAdmin,f:Fixtures,service:AcademicService;
@@ -57,6 +59,21 @@ test('Wordwall sin embed se publica como apertura externa segura',async()=>{
   assert.equal(row.embedUrl,null);assert.equal(row.sourceUrl,external.sourceUrl);
   assert.equal((await execute('studentA','publishedActivity',{...s('a'),activityId:draft.activityId})).embedUrl,null);
 });
+test('el editor visual guarda orden y visibilidad de originales y externas por grupo',async()=>{
+  await admit('studentA','a');
+  const draft=await saved({...wordwall,title:'Externa ordenada'});
+  await execute('teacherA','publishActivities',{...s('a'),groupIds:[f.groups.a],activityId:draft.activityId,expectedVersion:1,idempotencyKey:key()});
+  const workspace=await execute('teacherA','activityWorkspace',s('a')),layout=workspace.layouts.find((row:any)=>row.gymId===3);
+  const originals=catalogGames.filter(game=>game.gymId===3).map(game=>game.gameId),hidden=originals[0];
+  assert.ok(layout.orderedActivityIds.includes(draft.activityId));
+  assert.ok(originals.every(id=>layout.orderedActivityIds.includes(id)));
+  const ordered=[draft.activityId,...originals.filter(id=>id!==hidden).reverse(),hidden];
+  await execute('teacherA','saveGymLayout',{...s('a'),gymId:3,orderedActivityIds:ordered,hiddenOriginalGameIds:[hidden],expectedVersion:layout.revision,idempotencyKey:key()});
+  const student=await execute('studentA','publishedGroupActivities',s('a')),studentLayout=student.gyms.find((gym:any)=>gym.gymId===3).layout;
+  assert.deepEqual(studentLayout.orderedActivityIds,ordered);assert.deepEqual(studentLayout.hiddenOriginalGameIds,[hidden]);
+  assert.deepEqual(student.gyms.find((gym:any)=>gym.gymId===3).activities.map((row:any)=>row.activityId),[draft.activityId]);
+  assert.equal(await status('studentA','saveGymLayout',{...s('a'),gymId:3,orderedActivityIds:ordered,hiddenOriginalGameIds:[],expectedVersion:1,idempotencyKey:key()}),403);
+});
 test('asigna una definición a dos grupos, permite gimnasios distintos y aísla docentes/alumnos',async()=>{
   await admit('studentA','a');await admit('studentB','b');
   const draft=await saved({...wordwall,groupIds:[f.groups.a,f.groups.b]},'teacherBoth');
@@ -81,6 +98,7 @@ test('ordena por grupo/gimnasio, detecta CAS obsoleto y conserva el orden tras r
   await execute('teacherA','publishActivities',{...s('a'),groupIds:[f.groups.a],activityId:b.activityId,expectedVersion:1,idempotencyKey:key()});
   const ws=await execute('teacherA','activityWorkspace',s('a'));
   const placement=ws.placements.find((p:any)=>p.gymId===3);assert.deepEqual(placement.orderedActivityIds,[a.activityId,b.activityId]);
+  assert.deepEqual(ws.layouts.find((p:any)=>p.gymId===3).orderedActivityIds.filter((id:string)=>id.startsWith('a_')),[a.activityId,b.activityId]);
   const reordered=await execute('teacherA','reorderActivities',{...s('a'),gymId:3,orderedActivityIds:[b.activityId,a.activityId],expectedVersion:placement.revision,idempotencyKey:key()});
   assert.equal(reordered.count,2);
   assert.equal(await status('teacherA','reorderActivities',{...s('a'),gymId:3,orderedActivityIds:[a.activityId,b.activityId],expectedVersion:placement.revision,idempotencyKey:key()}),409);
@@ -141,4 +159,53 @@ test('un docente de otro grupo no puede secuestrar una definición ajena',async(
   const response=await status('teacherB','saveActivityDraft',{...s('b'),groupIds:[f.groups.b],activityId:draft.activityId,expectedVersion:1,...wordwall,title:'Secuestro',description:'',instructions:'',gymId:1,idempotencyKey:key()});
   assert.equal(response,403);
   assert.equal((await execute('teacherA','activityWorkspace',s('a'))).definitions[0].title,'Actividad sintética');
+});
+
+test('guardado atómico, CAS externo, idempotencia, aislamiento e historial intacto',async()=>{
+  await admit('studentA','a');await admit('studentB','b');
+  const draft=await saved(wordwall);
+  await execute('teacherA','publishActivities',{...s(),groupIds:[f.groups.a],activityId:draft.activityId,expectedVersion:1,idempotencyKey:key()});
+  const ws=await execute('teacherA','activityWorkspace',s()),layout=ws.layouts.find((l:any)=>l.gymId===3),a=ws.assignments[0];
+  const historyPath=`users/${f.actors.studentA.uid}/reportedAttempts/untouched`,history={synthetic:true,score:6};await sdk.db.doc(historyPath).set(history);
+  const payload={...s(),gymId:3,orderedActivityIds:[...layout.orderedActivityIds].reverse(),hiddenOriginalGameIds:[layout.orderedActivityIds[0]],expectedVersion:layout.revision,
+    externalVisibility:[{activityId:a.activityId,expectedVersion:a.revision,visible:false}],idempotencyKey:key()};
+  assert.equal(await status('teacherB','saveGymLayout',payload),403);
+  assert.equal(await status('studentA','saveGymLayout',payload),403);
+  assert.equal(await status('teacherA','saveGymLayout',{...payload,externalVisibility:[{...payload.externalVisibility[0],expectedVersion:999}]}),409);
+  assert.deepEqual((await execute('teacherA','activityWorkspace',s())).layouts.find((l:any)=>l.gymId===3),layout);
+  const result=await execute('teacherA','saveGymLayout',payload);assert.equal(result.revision,1);
+  assert.equal((await execute('teacherA','saveGymLayout',payload)).replayed,true);
+  assert.equal(await status('studentA','publishedActivity',{...s(),activityId:a.activityId}),404);
+  const visible=await execute('studentA','publishedGroupActivities',s());assert.equal(visible.gyms[2].activities.length,0);
+  assert.deepEqual(visible.gyms[2].layout.hiddenOriginalGameIds,payload.hiddenOriginalGameIds);
+  assert.deepEqual((await sdk.db.doc(historyPath).get()).data(),history);
+  assert.equal((await execute('studentB','publishedGroupActivities',s('b'))).gyms[2].layout.revision,0);
+  assert.equal((await sdk.db.doc(`courses/${f.courseId}/activities/${a.activityId}/revisions/1`).get()).exists,true);
+  assert.equal(await status('teacherA','saveGymLayout',{...payload,idempotencyKey:key()}),409);
+  const latest=await execute('teacherA','activityWorkspace',s());
+  await execute('teacherA','saveGymLayout',{...payload,expectedVersion:1,idempotencyKey:key(),externalVisibility:[{activityId:a.activityId,expectedVersion:latest.assignments[0].revision,visible:true}]});
+  assert.equal((await execute('studentA','publishedActivity',{...s(),activityId:a.activityId})).revision,1);
+});
+test('dos docentes concurrentes no sobrescriben un layout',async()=>{
+  const ws=await execute('teacherA','activityWorkspace',s()),layout=ws.layouts[2];
+  const payload={...s(),gymId:3,orderedActivityIds:layout.orderedActivityIds,hiddenOriginalGameIds:[],externalVisibility:[],expectedVersion:0};
+  const results=await Promise.allSettled(['teacherA','teacherBoth'].map(name=>execute(name,'saveGymLayout',{...payload,idempotencyKey:key()})));
+  assert.equal(results.filter(r=>r.status==='fulfilled').length,1);
+  assert.equal(results.filter(r=>r.status==='rejected'&&r.reason.status===409).length,1);
+});
+test('consulta asignaciones paginadas una vez por grupo y conserva las cinco proyecciones',async()=>{
+  await admit('studentA','a');const draft=await saved(learningapps);
+  await execute('teacherA','publishActivities',{...s(),groupIds:[f.groups.a],activityId:draft.activityId,expectedVersion:1,idempotencyKey:key()});
+  const base=`courses/${f.courseId}`,group=`${base}/terms/${f.termId}/groups/${f.groups.a}`;
+  const def=(await sdk.db.doc(`${base}/activities/${draft.activityId}`).get()).data()!,rev=(await sdk.db.doc(`${base}/activities/${draft.activityId}/revisions/1`).get()).data()!,assignment=(await sdk.db.doc(`${group}/groupActivities/${draft.activityId}`).get()).data()!;
+  const batch=sdk.db.batch();for(let i=0;i<54;i++){
+    const activityId=`a_${String(i).padStart(32,'0')}`;
+    batch.set(sdk.db.doc(`${base}/activities/${activityId}`),{...def,activityId});
+    batch.set(sdk.db.doc(`${base}/activities/${activityId}/revisions/1`),{...rev,activityId});
+    batch.set(sdk.db.doc(`${group}/groupActivities/${activityId}`),{...assignment,activityId,gymId:i%5+1,displayOrder:i});
+  }await batch.commit();
+  const repo=new AcademicRepository(sdk.db);let returned=-1;
+  const result=await repo.measure(()=>publishedGroupActivities(repo,f.actors.studentA,s()),m=>{returned=m.queryDocumentsReturned;});
+  assert.equal(returned,55);assert.equal(result.gyms.flatMap((g:any)=>g.activities).length,55);
+  const ws=await execute('teacherA','activityWorkspace',s());assert.equal(ws.assignments.length,55);assert.equal(ws.definitions.length,55);
 });

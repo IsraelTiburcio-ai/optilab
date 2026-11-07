@@ -1,7 +1,7 @@
 import {test,expect,password,login,ready,tab,type Fixture} from './fixtures';
 import type {Page} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-const base='http://127.0.0.1:5195/optilab/';
+const base=()=>test.info().project.use.baseURL as string;
 async function names(f:Fixture){
   await f.sdk.db.doc(`courses/${f.f.courseId}`).update({title:'Optimización de prueba'});
   await f.sdk.db.doc(`courses/${f.f.courseId}/terms/${f.f.termId}`).update({title:'Semestre de prueba'});
@@ -13,7 +13,7 @@ async function player(f:Fixture,actor='studentB'){
     gamertag:'C_'+crypto.randomUUID().replaceAll('-','').slice(0,16),avatarId:'avatar-02',companionId:'piv',shareGameIdentity:false});expect(r.status).toBe(200);
 }
 async function enter(page:Page,f:Fixture,actor:'studentA'|'studentB'='studentB'){
-  await page.goto(base+'#/cuenta');await page.getByLabel('Correo electrónico',{exact:true}).fill(f.f.actors[actor].email);await page.locator('#account-password').fill(password);
+  await page.goto(base()+'#/cuenta');await page.getByLabel('Correo electrónico',{exact:true}).fill(f.f.actors[actor].email);await page.locator('#account-password').fill(password);
   await page.getByRole('button',{name:'Entrar a mi cuenta',exact:true}).click();await expect(page.getByText('SESIÓN INICIADA',{exact:true})).toBeVisible();
   await page.getByRole('link',{name:'Volver a mi aventura',exact:true}).click();await expect(page.getByRole('heading',{name:'Mis clases',exact:true})).toBeVisible();
 }
@@ -51,7 +51,7 @@ test('mis clases: baja y transferencia actualizan estado sin tocar progreso',asy
 test('mis clases: logout y cambio de cuenta eliminan listas y callbacks tardíos',async({page,fixture,context})=>{
   await names(fixture);await player(fixture,'studentA');await player(fixture);await enter(page,fixture,'studentA');await expect(page.getByRole('heading',{name:'Clase A',exact:true})).toBeVisible();
   fixture.fault.hold='myScopes';await page.getByRole('button',{name:'Actualizar mis clases'}).click();await fixture.fault.waiting;
-  const peer=await context.newPage();await peer.goto(base+'#/cuenta');await peer.getByRole('button',{name:'Cerrar sesión',exact:true}).click();
+  const peer=await context.newPage();await peer.goto(base()+'#/cuenta');await peer.getByRole('button',{name:'Cerrar sesión',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Mis clases',exact:true})).toHaveCount(0);await enter(page,fixture);fixture.fault.release();
   await expect(page.getByText('Todavía no perteneces a un grupo de clase',{exact:true})).toBeVisible();await expect(page.getByRole('heading',{name:'Clase A',exact:true})).toHaveCount(0);
 });

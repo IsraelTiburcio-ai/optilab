@@ -7,18 +7,21 @@ import {plan,type Plan} from './plans.js';
 import {exact,identifier,integer,scopeOf} from './validation.js';
 import {millis} from './models.js';
 import {approvedActivityUrl,providerTelemetry,type ActivityProvider} from './activityUrls.js';
+import {catalogGyms,gameById} from './catalog.js';
 
 const gymIds=[1,2,3,4,5] as const;
 const definitionKeys=['schemaVersion','courseId','activityId','provider','resourceId','sourceUrl','embedUrl','title','description','instructions','groupIds','telemetry','status','revision','publishedRevision','createdBy','createdAt','updatedAt','publishedAt'];
 const revisionKeys=['schemaVersion','courseId','activityId','provider','resourceId','sourceUrl','embedUrl','title','description','instructions','groupIds','telemetry','revision','publishedBy','publishedAt'];
 const assignmentKeys=['schemaVersion','courseId','termId','groupId','activityId','gymId','status','displayOrder','revision','definitionRevision','createdBy','updatedAt','publishedAt'];
 const placementKeys=['schemaVersion','courseId','termId','groupId','gymId','orderedActivityIds','revision','updatedBy','updatedAt'];
+const layoutKeys=['schemaVersion','courseId','termId','groupId','gymId','orderedActivityIds','hiddenOriginalGameIds','revision','updatedBy','updatedAt'];
 const activityIdPattern=/^a_[0-9a-f]{32}$/;
 const iso=(value:unknown)=>value&&typeof value==='object'&&'toMillis' in value&&typeof value.toMillis==='function'&&Number.isFinite(value.toMillis())?new Date(value.toMillis()).toISOString():null;
 const activityPath=(courseId:string,activityId:string)=>`${coursePath(courseId)}/activities/${activityId}`;
 const revisionPath=(courseId:string,activityId:string,revision:number)=>`${activityPath(courseId,activityId)}/revisions/${revision}`;
 const assignmentPath=(s:Scope,activityId:string)=>`${groupPath(s)}/groupActivities/${activityId}`;
 const placementPath=(s:Scope,gymId:number)=>`${groupPath(s)}/activityPlacements/${gymId}`;
+const layoutPath=(s:Scope,gymId:number)=>`${groupPath(s)}/gymLayouts/${gymId}`;
 const validIds=(value:unknown,max=50):value is string[]=>Array.isArray(value)&&value.length<=max&&new Set(value).size===value.length&&value.every(id=>identifier(id));
 const inSet=(value:unknown):value is number=>typeof value==='number'&&(gymIds as readonly number[]).includes(value);
 const validTelemetry=(value:unknown)=>exact(value,['opened','completed','accuracy','errors','elapsedMs','evidence'])&&
@@ -61,6 +64,21 @@ export function placement(d:Data|null,s:Scope,gymId:number):Data {
     !(d.updatedBy===null||identifier(d.updatedBy,128))||!(d.updatedAt===null||Number.isFinite(millis(d.updatedAt))))throw conflict();
   return d;
 }
+
+const originalGames=(gymId:number)=>catalogGyms.find(gym=>gym.gymId===gymId)?.games??[];
+const defaultOrder=(gymId:number,assignments:Data[],publishedOrder:string[]=[])=>{
+  const external=assignments.filter(a=>a.gymId===gymId).sort((a,b)=>Number(a.displayOrder)-Number(b.displayOrder)).map(a=>a.activityId);
+  return [...originalGames(gymId),...new Set([...publishedOrder.filter(id=>external.includes(id)),...external])];
+};
+export function gymLayout(d:Data|null,s:Scope,gymId:number,assignments:Data[]=[],publishedOrder:string[]=[]):Data {
+  if(!d){return {schemaVersion:1,...s,gymId,orderedActivityIds:defaultOrder(gymId,assignments,publishedOrder),hiddenOriginalGameIds:[],revision:0,updatedBy:null,updatedAt:null};}
+  if(!exact(d,layoutKeys)||d.schemaVersion!==1||d.courseId!==s.courseId||d.termId!==s.termId||d.groupId!==s.groupId||d.gymId!==gymId||
+    !validIds(d.orderedActivityIds,60)||!validIds(d.hiddenOriginalGameIds,20)||
+    d.hiddenOriginalGameIds.some((id:string)=>!originalGames(gymId).includes(id))||!integer(d.revision,0,2147483646)||
+    !(d.updatedBy===null||identifier(d.updatedBy,128))||!(d.updatedAt===null||Number.isFinite(millis(d.updatedAt))))throw conflict();
+  return d;
+}
+
 async function authorizedGroups(r:Reader,policy:Policy,actor:Actor,input:Input):Promise<Scope[]> {
   const current=scopeOf(input),ids=input.groupIds;
   if(!Array.isArray(ids)||!ids.length||ids.length>20||new Set(ids).size!==ids.length||ids.some(id=>!identifier(id))||!ids.includes(input.groupId!))throw invalid();
@@ -77,12 +95,22 @@ const publicView=(d:Data,a:Data)=>({activityId:d.activityId,provider:d.provider,
   title:d.title,description:d.description,instructions:d.instructions,telemetry:d.telemetry,
   gymId:a.gymId,revision:d.revision});
 
+// Read bounded pages once per collection; never silently serve a truncated layout.
+async function activityRows(r:AcademicReadView,path:string){
+  const rows:{id:string;data:Data}[]=[];let cursor:string|undefined;
+  for(let page=0;page<20;page++){
+    const batch=await r.page(path,50,cursor);rows.push(...batch);
+    if(batch.length<50)return rows;cursor=batch.at(-1)!.id;
+  }
+  throw new ApiError(409,'CONFLICT','Hay demasiadas actividades para cargar este grupo con seguridad.');
+}
 export async function activityWorkspace(r:AcademicReadView,policy:Policy,actor:Actor,input:Input):Promise<Data> {
   const s=scopeOf(input);await policy.group(r,actor.uid,s,'manageMembers');
-  const [definitionRows,assignmentRows,placements]=await Promise.all([
-    r.page(`${coursePath(s.courseId)}/activities`,50),
-    r.page(`${groupPath(s)}/groupActivities`,50),
+  const [definitionRows,assignmentRows,placements,layoutRows]=await Promise.all([
+    activityRows(r,`${coursePath(s.courseId)}/activities`),
+    activityRows(r,`${groupPath(s)}/groupActivities`),
     Promise.all(gymIds.map((gymId:any)=>r.get(placementPath(s,gymId)))),
+    Promise.all(gymIds.map((gymId:any)=>r.get(layoutPath(s,gymId)))),
   ]);
   const definitions=definitionRows.map(({id,data})=>definition(data,s.courseId,id))
     .filter(d=>Array.isArray(d.groupIds)&&d.groupIds.includes(s.groupId))
@@ -90,20 +118,21 @@ export async function activityWorkspace(r:AcademicReadView,policy:Policy,actor:A
   const assignments=assignmentRows.map(({id,data})=>assignment(data,s,id))
     .map(a=>({...a,updatedAt:iso(a.updatedAt),publishedAt:iso(a.publishedAt)}));
   return {definitions,assignments,placements:gymIds.map((gymId:any)=>{const p=placement(placements[gymId-1]??null,s,gymId);
-    return {...p,updatedAt:iso(p.updatedAt)};})};
+    return {...p,updatedAt:iso(p.updatedAt)};}),layouts:gymIds.map((gymId:any)=>{const l=gymLayout(layoutRows[gymId-1]??null,s,gymId,assignments,placement(placements[gymId-1]??null,s,gymId).orderedActivityIds);return {...l,updatedAt:iso(l.updatedAt)};})};
 }
 export async function publishedGroupActivities(r:AcademicReadView,actor:Actor,input:Input):Promise<Data> {
   const s=scopeOf(input);await studentGroup(r,actor.uid,s);
-  const gyms=[];
+  const gyms=[],assignments=(await activityRows(r,`${groupPath(s)}/groupActivities`)).map(({id,data})=>assignment(data,s,id));
   for(const gymId of gymIds){
-    const p=placement(await r.get(placementPath(s,gymId)),s,gymId),activities=[];
-    for(const activityId of p.orderedActivityIds){
-      const a=assignment(await r.get(assignmentPath(s,activityId)),s,activityId);
-      if(a.status!=='published'||a.gymId!==gymId)continue;
+    const publishedOrder=assignments.some(a=>a.gymId===gymId&&a.status==='published')?placement(await r.get(placementPath(s,gymId)),s,gymId).orderedActivityIds:[];
+    const l=gymLayout(await r.get(layoutPath(s,gymId)),s,gymId,assignments,publishedOrder),activities=[];
+    for(const activityId of [...new Set([...l.orderedActivityIds,...defaultOrder(gymId,assignments,publishedOrder)])]){
+      const a=assignments.find(row=>row.activityId===activityId);
+      if(!a||a.status!=='published'||a.gymId!==gymId)continue;
       const rev=revision(await r.get(revisionPath(s.courseId,activityId,a.definitionRevision)),s.courseId,activityId,a.definitionRevision);
       activities.push(publicView(rev,a));
     }
-    gyms.push({gymId,activities});
+    gyms.push({gymId,activities,layout:{schemaVersion:1,courseId:s.courseId,termId:s.termId,groupId:s.groupId,gymId,orderedActivityIds:l.orderedActivityIds,hiddenOriginalGameIds:l.hiddenOriginalGameIds,revision:l.revision,updatedBy:l.updatedBy,updatedAt:iso(l.updatedAt)}});
   }
   return {gyms};
 }
@@ -172,11 +201,32 @@ export async function publishActivities(r:Reader,policy:Policy,actor:Actor,input
   writes.push({path:activityPath(d.courseId,id),data:{...d,status:'published',publishedRevision:d.revision,publishedAt:now,updatedAt:now}});
   return plan({outcome:'activities-published',activityId:id,revision:d.revision,status:'published',count:groups.length},writes);
 }
+export async function saveGymLayout(r:AcademicReadView,policy:Policy,actor:Actor,input:Input,time:()=>unknown):Promise<Plan> {
+  const s=scopeOf(input);await policy.group(r,actor.uid,s,'manageMembers');
+  const gymId=input.gymId!;const rows=await activityRows(r,`${groupPath(s)}/groupActivities`),assignments=rows.map(({id,data})=>assignment(data,s,id));
+  const current=gymLayout(await r.get(layoutPath(s,gymId)),s,gymId,assignments);
+  if(input.expectedVersion!==current.revision||!validIds(input.orderedActivityIds,60)||!validIds(input.hiddenOriginalGameIds,20))throw conflict();
+  const expected=new Set([...originalGames(gymId),...assignments.filter(a=>a.gymId===gymId).map(a=>a.activityId)]);
+  if(expected.size!==input.orderedActivityIds!.length||input.orderedActivityIds!.some(id=>!expected.has(id)))throw conflict();
+  if(input.hiddenOriginalGameIds!.some(id=>!originalGames(gymId).includes(id)))throw conflict();
+  // External visibility and the layout commit in the same authorized transaction.
+  // Hidden resources retain their exact published revision; drafts publish in the editor.
+  const now=time(),visibilityWrites:Plan['writes']=[];
+  for(const change of input.externalVisibility??[]){
+    const a=assignments.find(row=>row.activityId===change.activityId);
+    if(!a||a.gymId!==gymId||a.revision!==change.expectedVersion||!['published','hidden'].includes(a.status)||a.definitionRevision<1)throw conflict();
+    const status=change.visible?'published':'hidden';
+    if(a.status!==status)visibilityWrites.push({path:assignmentPath(s,a.activityId),data:{...a,status,revision:a.revision+1,updatedAt:now}});
+  }
+  return plan({outcome:'gym-layout-saved',gymId,revision:current.revision+1,count:input.orderedActivityIds!.length},[
+    {path:layoutPath(s,gymId),data:{schemaVersion:1,...s,gymId,orderedActivityIds:input.orderedActivityIds,hiddenOriginalGameIds:input.hiddenOriginalGameIds,revision:current.revision+1,updatedBy:actor.uid,updatedAt:now}},...visibilityWrites,
+  ]);
+}
 export async function reorderActivities(r:AcademicReadView,policy:Policy,actor:Actor,input:Input,time:()=>unknown):Promise<Plan> {
   const s=scopeOf(input);await policy.group(r,actor.uid,s,'manageMembers');
   const p=placement(await r.get(placementPath(s,input.gymId!)),s,input.gymId!);
   if(input.expectedVersion!==p.revision||!validIds(input.orderedActivityIds,50))throw conflict();
-  const rows=await r.page(`${groupPath(s)}/groupActivities`,50);
+  const rows=await activityRows(r,`${groupPath(s)}/groupActivities`);
   const assignments=new Map(rows.map(({id,data})=>[id,assignment(data,s,id)]));
   const published=[...assignments.values()].filter(a=>a.status==='published'&&a.gymId===input.gymId).map(a=>a.activityId);
   if(new Set(published).size!==(input.orderedActivityIds?.length??0)||published.some(id=>!input.orderedActivityIds!.includes(id)))throw conflict();

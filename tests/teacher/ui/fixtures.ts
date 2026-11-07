@@ -101,7 +101,7 @@ export async function loginExisting(page:Page,fixture:Fixture,actor:keyof Fixtur
   await page.locator('#account-password').fill(password);await page.getByRole('button',{name:'Entrar a mi cuenta',exact:true}).click();
   await expect(page.getByText('SESIÓN INICIADA',{exact:true})).toBeVisible();
 }
-export async function createStudentIdentity(fixture:Fixture,actor:'studentB'|'studentC',fullName:string,gamertag:string) {
+export async function createStudentIdentity(fixture:Fixture,actor:'studentA'|'studentB'|'studentC',fullName:string,gamertag:string) {
   const response=await fixture.call(actor,'savePlayerIdentity',{idempotencyKey:crypto.randomUUID(),expectedVersion:0,expectedProfileVersion:0,
     fullName,gamertag,avatarId:'avatar-02',companionId:'piv',shareGameIdentity:true});
   if(response.status!==200)throw new Error(`SYNTHETIC_IDENTITY_FAILED_${response.status}`);
