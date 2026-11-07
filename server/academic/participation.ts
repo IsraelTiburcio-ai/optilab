@@ -25,7 +25,7 @@ export function participationDocument(d:Data|null,uid:string,s:Scope){
  return d;
 }
 export async function configureParticipation(r:AcademicReadView,policy:Policy,actor:Actor,i:Input,time:()=>unknown){const s=scopeOf(i);await policy.group(r,actor.uid,s,'manageMembers');const path=`${groupPath(s)}/rankingControl/current`,old=controlDocument(await r.get(path),s);if((old?.revision??0)!==i.expectedVersion)throw conflict();return plan({outcome:'group-participation-configured',revision:(old?.revision??0)+1},[{path,data:{schemaVersion:1,...s,enabled:i.enabled,revision:(old?.revision??0)+1,updatedBy:actor.uid,updatedAt:time()}}]);}
-export async function setRankingParticipation(r:AcademicReadView,actor:Actor,i:Input,time:()=>unknown){const s=scopeOf(i);await student(r,actor.uid,s);const gate=controlDocument(await r.get(`${groupPath(s)}/rankingControl/current`),s);if(i.enabled&&gate?.enabled!==true)throw denied();const current=preference(await r.get(preferencePath(s,actor.uid)),actor.uid,s);if((current?.revision??0)!==i.expectedVersion)throw conflict();if(i.enabled&&!(await ownPlayer(r,actor.uid)).identity)throw conflict();return plan({outcome:'ranking-preference-saved',revision:(current?.revision??0)+1},[{path:preferencePath(s,actor.uid),data:{schemaVersion:1,uid:actor.uid,...s,enabled:i.enabled,revision:(current?.revision??0)+1,updatedAt:time()}}]);}
+export async function setRankingParticipation(r:AcademicReadView,actor:Actor,i:Input,time:()=>unknown){const s=scopeOf(i);await student(r,actor.uid,s);const gate=controlDocument(await r.get(`${groupPath(s)}/rankingControl/current`),s);if(i.enabled&&gate?.enabled===false)throw denied();const current=preference(await r.get(preferencePath(s,actor.uid)),actor.uid,s);if((current?.revision??0)!==i.expectedVersion)throw conflict();if(i.enabled&&!(await ownPlayer(r,actor.uid)).identity)throw conflict();return plan({outcome:'ranking-preference-saved',revision:(current?.revision??0)+1},[{path:preferencePath(s,actor.uid),data:{schemaVersion:1,uid:actor.uid,...s,enabled:i.enabled,revision:(current?.revision??0)+1,updatedAt:time()}}]);}
 export async function recordGroupActivity(r:AcademicReadView,actor:Actor,i:Input,time:()=>unknown){
  const s=scopeOf(i);await student(r,actor.uid,s);if(!(await syncAdmission(r,actor)).allowed)throw denied();const event=await r.get(`users/${actor.uid}/reportedAttempts/${i.activityId}--${i.attemptId}`);
  if(!event||event.version!==1||event.uid!==actor.uid||event.id!==i.attemptId||event.activityId!==i.activityId||!['opened','declared','reported'].includes(event.kind)||event.trust!==(event.kind==='reported'?'client-report':'declaration')||!exact(event.context,['courseId','termId','groupId'])||event.context.courseId!==s.courseId||event.context.termId!==s.termId||event.context.groupId!==s.groupId||!Number.isFinite(millis(event.serverReceivedAt)))throw denied();
@@ -43,7 +43,7 @@ export async function recordGroupActivity(r:AcademicReadView,actor:Actor,i:Input
 }
 export async function groupRanking(r:AcademicReadView,policy:Policy,actor:Actor,i:Input){
  const s=scopeOf(i);try{await policy.group(r,actor.uid,s,'readHistory');}catch(e){if((e as {status?:number}).status!==403)throw e;await student(r,actor.uid,s);}
- const control=controlDocument(await r.get(`${groupPath(s)}/rankingControl/current`),s);if(!control||control.enabled!==true)return {scope:s,enabled:false,controlRevision:control?.revision??0,criterion:'unique-group-openings-v1',trust:'client-reported-participation',truncated:false,rows:[]};
+ const control=controlDocument(await r.get(`${groupPath(s)}/rankingControl/current`),s);if(control?.enabled===false)return {scope:s,enabled:false,controlRevision:control?.revision??0,criterion:'unique-group-openings-v1',trust:'client-reported-participation',truncated:false,rows:[]};
  const {members,truncated}=await activeMembers(r,s),rows:{alias:string;participation:number;position:number|null}[]=[];
  // Only this group's materialized facts are read; no private profile, email, UID or score is returned.
  for(const member of members){const p=preference(await r.get(preferencePath(s,member.uid)),member.uid,s);if(!p?.enabled)continue;const identity=(await ownPlayer(r,member.uid)).identity;if(!identity)continue;
@@ -51,13 +51,10 @@ export async function groupRanking(r:AcademicReadView,policy:Policy,actor:Actor,
  const count=Object.values(projected?.activities??{}).filter((v:any)=>v?.opened===true).length;
  rows.push({alias:identity.gamertag,participation:count,position:null});}
  rows.sort((a,b)=>b.participation-a.participation||a.alias.localeCompare(b.alias,'es'));let previous=-1,position=0;rows.forEach((row,index)=>{if(row.participation!==previous)position=index+1;previous=row.participation;row.position=truncated?null:position;});
- return {scope:s,enabled:true,controlRevision:control.revision,criterion:'unique-group-openings-v1',trust:'client-reported-participation',truncated,rows};
+ return {scope:s,enabled:true,controlRevision:control?.revision??0,criterion:'unique-group-openings-v1',trust:'client-reported-participation',truncated,rows};
 }
 export async function syncAdmission(r:AcademicReadView,actor:Actor){
- const now=Date.now(),single=await r.get('singleOperatorTestControl/current'),control=await r.get('syncPilotControl/current'),grantDoc=await r.get(`syncPilotMembers/${actor.uid}`);
- if(grantDoc?.status==='erased')return {allowed:false,mode:null,expiresAt:null};
- const singleAllowed=single?.version===1&&single.mode==='single-operator-test'&&single.uid===actor.uid&&single.readsEnabled===true&&single.writesEnabled===true&&millis(single.startAt)<=now&&millis(single.endAt)>now&&millis(single.expiresAt)>now;
- const pilotAllowed=control?.version===1&&control.readsEnabled===true&&control.writesEnabled===true&&millis(control.expiresAt)>now&&grantDoc?.version===1&&grantDoc.uid===actor.uid&&grantDoc.status==='active'&&millis(grantDoc.expiresAt)>now;
- if(singleAllowed&&pilotAllowed)return {allowed:false,mode:null,expiresAt:null};
- return singleAllowed?{allowed:true,mode:'single-operator-test',expiresAt:new Date(Math.min(millis(single.endAt),millis(single.expiresAt))).toISOString()}:pilotAllowed?{allowed:true,mode:'private-pilot',expiresAt:new Date(Math.min(millis(control.expiresAt),millis(grantDoc.expiresAt))).toISOString()}:{allowed:false,mode:null,expiresAt:null};
+ const [control,grantDoc]=await Promise.all([r.get('syncProductionControl/current'),r.get(`syncPilotMembers/${actor.uid}`)]);
+ const active=!control||(exact(control,['version','readsEnabled','writesEnabled'])&&control.version===1&&control.readsEnabled===true&&control.writesEnabled===true);
+ return actor.emailVerified===true&&active&&(!grantDoc||typeof grantDoc.status==='string'&&grantDoc.status!=='erased')?{allowed:true,mode:'production',expiresAt:null}:{allowed:false,mode:null,expiresAt:null};
 }

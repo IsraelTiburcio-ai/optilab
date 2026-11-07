@@ -26,7 +26,7 @@ test('Pages workflows share one non-canceling mutex and ON checks newer deployme
     assert.match(workflow,/concurrency:\s*\n\s*group: pages\s*\n\s*cancel-in-progress: false/);
     assert.doesNotMatch(workflow,/cancel-in-progress: true/);
   }
-  assert.match(deploy,/VITE_PROGRESS_SYNC: disabled/);
+  assert.match(deploy,/VITE_PROGRESS_SYNC: production/);
   assert.match(single,/deployments: read/);
   assert.match(single,/single-operator-pages-guard\.mjs/);
   const guard=single.indexOf('single-operator-pages-guard.mjs');

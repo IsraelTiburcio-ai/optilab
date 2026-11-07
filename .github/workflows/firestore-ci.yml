@@ -19,6 +19,7 @@ jobs:
           distribution: temurin
           java-version: '21'
       - run: npm ci
+      - run: node scripts/build-production-rules.mjs
       - run: npm run build
       - run: npm run test:firestore
       - run: npm run test:pilot

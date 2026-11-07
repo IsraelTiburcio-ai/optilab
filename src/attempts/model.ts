@@ -1,4 +1,4 @@
-import {resultPilotIds} from '../integration/originalResults';
+import {resultPilotIds} from '../integration/originalResults.js';
 export const ids:readonly string[]=[...resultPilotIds,'memorama-simplex'];
 export interface AttemptContext {courseId:string;termId:string;groupId:string}
 export const validContext=(value:unknown):value is AttemptContext=>!!value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).sort().join(',')==='courseId,groupId,termId'&&Object.values(value).every(v=>typeof v==='string'&&/^[A-Za-z0-9_-]{1,80}$/.test(v));

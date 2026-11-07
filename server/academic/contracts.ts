@@ -1,5 +1,5 @@
 export interface Scope {courseId:string;termId:string;groupId:string}
-export interface Actor {uid:string;label:string}
+export interface Actor {emailVerified?:boolean;uid:string;label:string}
 export type Operation='configureParticipation'|'syncAdmission'|'rankingPreference'|'groupRanking'|'setRankingParticipation'|'recordGroupActivity'|'myScopes'|'roster'|'requestStatus'|'groupInvitations'|'membershipEvents'|'groupRequests'|
   'createInvitation'|'reissueInvitation'|'revokeInvitation'|'requestMembership'|'approveMembership'|'rejectMembership'|
   'revokeMembership'|'transferMembership'|'createTerm'|'createGroup'|'getAcademicProfile'|'updateAcademicProfile'|

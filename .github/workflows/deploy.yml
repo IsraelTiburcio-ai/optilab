@@ -28,10 +28,11 @@ jobs:
           # GitHub Pages has optilab.club configured; Vite must publish at root.
           OPTILAB_PAGES_TARGET: optilab.club
           VITE_SYNC_PILOT: ''
-          VITE_PROGRESS_SYNC: disabled
-          VITE_PROGRESS_SYNC_RELEASE: ''
-          VITE_PROGRESS_SYNC_PROJECT_ID: ''
-          VITE_PROGRESS_SYNC_ORIGIN: ''
+          VITE_INTEGRATED_PROGRESS: general-v1
+          VITE_PROGRESS_SYNC: production
+          VITE_PROGRESS_SYNC_RELEASE: general-progress-v1
+          VITE_PROGRESS_SYNC_PROJECT_ID: optilab-cd829
+          VITE_PROGRESS_SYNC_ORIGIN: https://optilab.club
           VITE_ACADEMIC_API_MODE: production
           VITE_ACADEMIC_API_URL: https://optilab-api.vercel.app/api
           VITE_ACADEMIC_APP_ORIGIN: https://optilab.club
@@ -43,6 +44,8 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+      - run: node scripts/build-production-rules.mjs
+      - run: node scripts/write-production-release.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

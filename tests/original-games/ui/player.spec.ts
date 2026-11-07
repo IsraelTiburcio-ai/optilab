@@ -23,7 +23,7 @@ for(const id of ids)test(`${id}: sandbox opaco y mensajes sin resultados ni prog
   const pilot=isResultPilot(id);await expect(page.getByText(pilot?'El resultado de esta sesión se conserva como intento informado':'Este piloto no comunica resultados',{exact:false})).toBeVisible();if(!pilot){expect(await page.evaluate(()=>localStorage.getItem('optilab-v1'))).toBe(before);await expect(page.locator('.game-result-panel,.external-observed,.original-session-result')).toHaveCount(0);}
 });
 test('rutas no permiten URLs arbitrarias ni habilitan otros juegos',async({page})=>{
-  for(const id of ['not-in-catalog','memorama-simplex','https%3A%2F%2Fevil.example']){await page.goto(`#/jugar-original/${id}?url=https://evil.example`);await expect(page.getByRole('heading',{name:'Este juego no está disponible en el piloto integrado'})).toBeVisible();await expect(page.locator('.original-player iframe')).toHaveCount(0);}
+  for(const id of ['not-in-catalog','memorama-simplex','https%3A%2F%2Fevil.example']){await page.goto(`#/jugar-original/${id}?url=https://evil.example`);await expect(page.getByRole('heading',{name:'Este juego no está disponible en el reproductor integrado'})).toBeVisible();await expect(page.locator('.original-player iframe')).toHaveCount(0);}
 });
 test('fallo de red conserva fallback externo seguro sin afirmar carga útil',async({page})=>{
   await page.route('https://israeltiburcio-ai.github.io/ahorcado-simplex/*',r=>r.abort());await page.goto('#/jugar-original/ahorcado-simplex');
