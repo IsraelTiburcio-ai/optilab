@@ -6,7 +6,7 @@ import {coursePath,groupPath,hash,type AcademicReadView} from './repository.js';
 import {scopeOf,exact,integer} from './validation.js';
 import {denied,conflict} from './errors.js';
 import {plan} from './plans.js';
-import {millis} from './models.js';
+import {millis,details} from './models.js';
 import {ownPlayer} from './players.js';
 import {activeMembers} from './progress.js';
 import {gameById} from './catalog.js';
@@ -46,7 +46,12 @@ export async function groupRanking(r:AcademicReadView,policy:Policy,actor:Actor,
  const control=controlDocument(await r.get(`${groupPath(s)}/rankingControl/current`),s);if(control?.enabled===false)return {scope:s,enabled:false,controlRevision:control?.revision??0,criterion:'unique-group-openings-v1',trust:'client-reported-participation',truncated:false,rows:[]};
  const {members,truncated}=await activeMembers(r,s),rows:{alias:string;participation:number;position:number|null}[]=[];
  // Only this group's materialized facts are read; no private profile, email, UID or score is returned.
- for(const member of members){const alias='Explorador-'+hash(JSON.stringify([s.courseId,s.termId,s.groupId,member.uid])).slice(0,16);
+ for(const member of members){
+ const membership=details(await r.get(`${groupPath(s)}/membershipDetails/${member.uid}`),s,member.uid);
+ // A private admission command provides entropy unavailable from the UID alone.
+ // Fail closed for legacy/inconsistent memberships instead of revealing a predictable alias.
+ if(typeof membership.lastAdmissionId!=='string'||!/^[a-f0-9]{64}$/.test(membership.lastAdmissionId))throw conflict();
+ const alias='Explorador-'+hash(JSON.stringify([s.courseId,s.termId,s.groupId,member.uid,membership.lastAdmissionId])).slice(0,16);
  const projected=participationDocument(await r.get(`${groupPath(s)}/participation/${member.uid}`),member.uid,s);
  const count=Object.values(projected?.activities??{}).filter((v:any)=>v?.opened===true).length;
  rows.push({alias,participation:count,position:null});}
