@@ -9,7 +9,9 @@ test('catálogo académico por grupo y vista docente sin registrar práctica',as
   await page.goto('#/gimnasio/3');
   const teacherCard=page.locator('.group-activity-cartridge').filter({hasText:'Actividad de clase ficticia'});
   await expect(teacherCard).toBeVisible();await expect(teacherCard.getByText('ACTIVIDAD DE CLASE',{exact:true})).toBeVisible();
-  if(process.env.UX_CAPTURE_DIR)await page.screenshot({path:`${process.env.UX_CAPTURE_DIR}/${test.info().project.name||'browser'}-teacher-gym.png`,fullPage:true});
+  if(process.env.UX_CAPTURE_DIR)await page.screenshot({path:`${process.env.UX_CAPTURE_DIR}/${test.info().project.use.browserName}-teacher-gym.png`,fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  if(process.env.UX_CAPTURE_DIR)await page.screenshot({path:`${process.env.UX_CAPTURE_DIR}/${test.info().project.use.browserName}-teacher-gym-mobile.png`,fullPage:true});
   await expect(page.getByRole('button',{name:'Marcar como practicado'})).toHaveCount(0);
   await expect(teacherCard.getByRole('link',{name:/Vista previa/})).toHaveAttribute('href',/wordwall\.net/);
   let scopeReads=0;page.on('request',request=>{if(request.url().endsWith('/myScopes'))scopeReads++;});
