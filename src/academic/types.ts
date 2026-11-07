@@ -24,7 +24,7 @@ export interface GroupProgressStudent {
 export type ActivityProvider='wordwall'|'learningapps';
 export interface ActivityTelemetry {opened:boolean;completed:boolean;accuracy:boolean;errors:boolean;elapsedMs:boolean;evidence:'none'|'client-reported'|'provider-measured'|'server-validated'}
 export interface ActivityDefinition {
-  schemaVersion:1;courseId:string;activityId:string;provider:ActivityProvider;resourceId:string;sourceUrl:string;embedUrl:string;
+  schemaVersion:1;courseId:string;activityId:string;provider:ActivityProvider;resourceId:string;sourceUrl:string;embedUrl:string|null;
   title:string;description:string;instructions:string;groupIds:string[];telemetry:ActivityTelemetry;
   status:'draft'|'published'|'archived';revision:number;publishedRevision:number|null;
   createdBy:string;createdAt:string;updatedAt:string;publishedAt:string|null;
@@ -36,7 +36,7 @@ export interface ActivityAssignment {
 }
 export interface ActivityPlacement {schemaVersion:1;courseId:string;termId:string;groupId:string;gymId:number;orderedActivityIds:string[];revision:number;updatedBy:string|null;updatedAt:string|null}
 export interface ActivityWorkspace {definitions:ActivityDefinition[];assignments:ActivityAssignment[];placements:ActivityPlacement[]}
-export interface PublishedActivity {activityId:string;provider:ActivityProvider;sourceUrl:string;embedUrl:string;title:string;description:string;instructions:string;
+export interface PublishedActivity {activityId:string;provider:ActivityProvider;sourceUrl:string;embedUrl:string|null;title:string;description:string;instructions:string;
   telemetry:ActivityTelemetry;gymId:number;revision:number}
 export interface PublishedActivities {gyms:Array<{gymId:number;activities:PublishedActivity[]}>}
 
@@ -77,7 +77,7 @@ export interface Api {
   activityWorkspace:{input:Scope;output:ActivityWorkspace};
   publishedGroupActivities:{input:Scope;output:PublishedActivities};
   publishedActivity:{input:Scope&{activityId:string};output:PublishedActivity};
-  saveActivityDraft:{input:Scope&Command&{groupIds:string[];activityId?:string;expectedVersion?:number;provider:ActivityProvider;resourceId:string;sourceUrl:string;embedUrl:string;title:string;description:string;instructions:string;gymId:number};output:MutationResult};
+  saveActivityDraft:{input:Scope&Command&{groupIds:string[];activityId?:string;expectedVersion?:number;provider:ActivityProvider;resourceId:string;sourceUrl:string;embedUrl:string|null;title:string;description:string;instructions:string;gymId:number};output:MutationResult};
   publishActivities:{input:Scope&Command&{groupIds:string[];activityId:string;expectedVersion:number};output:MutationResult};
   reorderActivities:{input:Scope&Command&{gymId:number;orderedActivityIds:string[];expectedVersion:number};output:MutationResult};
   moveActivity:{input:Scope&Command&{activityId:string;gymId:number;expectedVersion:number};output:MutationResult};

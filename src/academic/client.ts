@@ -58,8 +58,8 @@ function compatible(operation:keyof Api,input:unknown,result:unknown):boolean {
       data.assignments.every(a=>a&&typeof a.activityId==='string'&&['draft','published','hidden','archived'].includes(a.status)&&Number.isInteger(a.gymId))&&
       data.placements.every(p=>p&&Number.isInteger(p.gymId)&&Array.isArray(p.orderedActivityIds)&&Number.isInteger(p.revision));
   }
-  if(operation==='publishedGroupActivities')return Array.isArray(data.gyms)&&data.gyms.every((g:any)=>g&&Number.isInteger(g.gymId)&&Array.isArray(g.activities)&&g.activities.every((a:any)=>a&&typeof a.activityId==='string'&&typeof a.embedUrl==='string'&&Number.isInteger(a.gymId)));
-  if(operation==='publishedActivity')return typeof data.activityId==='string'&&typeof data.embedUrl==='string'&&typeof data.provider==='string'&&['wordwall','learningapps'].includes(data.provider)&&Number.isInteger(data.gymId);
+  if(operation==='publishedGroupActivities')return Array.isArray(data.gyms)&&data.gyms.every((g:any)=>g&&Number.isInteger(g.gymId)&&Array.isArray(g.activities)&&g.activities.every((a:any)=>a&&typeof a.activityId==='string'&&(a.embedUrl===null||typeof a.embedUrl==='string')&&Number.isInteger(a.gymId)));
+  if(operation==='publishedActivity')return typeof data.activityId==='string'&&(data.embedUrl===null||typeof data.embedUrl==='string')&&typeof data.provider==='string'&&['wordwall','learningapps'].includes(data.provider)&&Number.isInteger(data.gymId);
   if(['roster','groupRequests','groupInvitations','myScopes'].includes(operation)){
     if(!Array.isArray(data.items)||!(data.nextCursor===null||typeof data.nextCursor==='string'))return false;
     if(operation==='myScopes'){

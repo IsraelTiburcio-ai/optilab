@@ -7,15 +7,14 @@ const wordwall={provider:'wordwall',resourceId:'cc167dda64954e3dbb379706dd8348c8
   embedUrl:'https://wordwall.net/es/embed/cc167dda64954e3dbb379706dd8348c8?themeId=66&templateId=35&fontStackId=0'};
 const learningapps={provider:'learningapps',resourceId:'pznycxd7t21',
   sourceUrl:'https://learningapps.org/watch?v=pznycxd7t21',embedUrl:'https://learningapps.org/show.php?id=pznycxd7t21'};
-async function createActivity(page:Page,value:{title:string;gymId:number;provider:'wordwall'|'learningapps';resourceId:string;sourceUrl:string;embedUrl:string;description?:string;instructions?:string}){
+async function createActivity(page:Page,value:{title:string;gymId:number;provider:'wordwall'|'learningapps';resourceId:string;sourceUrl:string;embedUrl:string|null;description?:string;instructions?:string}){
   await page.getByRole('button',{name:'Nueva actividad',exact:true}).click();
   const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();
-  await dialog.getByLabel('Título').fill(value.title);await dialog.getByLabel('Proveedor').selectOption(value.provider);
-  await dialog.getByLabel('ID del recurso').fill(value.resourceId);await dialog.getByLabel('URL de origen').fill(value.sourceUrl);await dialog.getByLabel('URL de embed').fill(value.embedUrl);
-  if(value.description)await dialog.getByLabel('Descripción').fill(value.description);if(value.instructions)await dialog.getByLabel('Instrucciones').fill(value.instructions);
+  await dialog.getByLabel('Enlace de la actividad').fill(value.sourceUrl);await dialog.getByLabel('Título').fill(value.title);
+  if(value.description||value.instructions){await dialog.getByText('Opciones avanzadas',{exact:true}).click();if(value.description)await dialog.getByLabel('Descripción').fill(value.description);if(value.instructions)await dialog.getByLabel('Instrucciones').fill(value.instructions);}
   await dialog.getByLabel('Gimnasio').selectOption(String(value.gymId));
   await dialog.getByRole('button',{name:'Guardar borrador',exact:true}).click();await expect(dialog).toHaveCount(0);
-  await expect(page.getByText('Borrador guardado. Ya puedes previsualizarlo o publicarlo.',{exact:true})).toBeVisible();
+  await expect(page.getByText('Borrador guardado. Ya puedes publicarlo cuando quieras.',{exact:true})).toBeVisible();
 }
 async function publish(page:Page,title:string){await page.getByRole('button',{name:`Publicar ${title}`,exact:true}).click();await expect(page.getByText('Actividad publicada en este grupo.',{exact:true})).toBeVisible();}
 async function openActivities(page:Page,fixture:Fixture){await login(page,fixture,'teacherA');await ready(page);await tab(page,'Actividades');await expect(page.getByRole('heading',{name:'Actividades',exact:true})).toBeVisible();}
@@ -27,7 +26,8 @@ test('docente crea, previsualiza, publica y el alumno B ve la actividad tras rec
   await createActivity(page,{...wordwall,title:'Wordwall de clase',gymId:3,description:'Actividad de M Grande',instructions:'Practica el método.'});
   await page.getByRole('button',{name:'Previsualizar Wordwall de clase',exact:true}).first().click();
   await expect(page.getByRole('dialog').getByRole('heading',{name:'Vista previa: Wordwall de clase'})).toBeVisible();
-  await expect(page.getByRole('dialog').locator('iframe')).toHaveAttribute('sandbox','allow-scripts allow-same-origin allow-forms');
+  await expect(page.getByRole('dialog').getByText('Este recurso no ofrece una integración incrustada validada. Se abrirá en el proveedor.')).toBeVisible();
+  await expect(page.getByRole('dialog').locator('iframe')).toHaveCount(0);
   await page.getByRole('button',{name:'Cerrar vista previa',exact:true}).click();
   const draft=await workspace(fixture);expect(draft.definitions).toHaveLength(1);expect(draft.assignments[0].status).toBe('draft');
   expect((await fixture.call('studentB','publishedGroupActivities',fixture.scope())).body.gyms.flatMap((g:any)=>g.activities)).toHaveLength(0);
@@ -37,9 +37,9 @@ test('docente crea, previsualiza, publica y el alumno B ve la actividad tras rec
   await page.reload();await ready(page);await tab(page,'Actividades');await expect(page.getByText('Wordwall de clase',{exact:true}).first()).toBeVisible();
   const student=await browser.newContext({baseURL:test.info().project.use.baseURL as string});await fixture.attach(student);
   try{const studentPage=await student.newPage();await loginExisting(studentPage,fixture,'studentB');await studentPage.goto('#/gimnasio/3');
-    const group=studentPage.locator('.group-external-activities');await expect(group).toBeVisible();await expect(group.getByRole('heading',{name:'Wordwall de clase',exact:true})).toBeVisible();
-    await group.getByRole('link',{name:/Abrir actividad/}).click();await expect(studentPage.getByRole('heading',{name:'Wordwall de clase',exact:true})).toBeVisible();
-    await expect(studentPage.locator('.published-activity-player iframe')).toHaveAttribute('sandbox','allow-scripts allow-same-origin allow-forms');
+    const group=studentPage.locator('.game-grid .group-activity-cartridge');await expect(group).toBeVisible();await expect(group.getByRole('heading',{name:'Wordwall de clase',exact:true})).toBeVisible();
+    await group.getByRole('link',{name:/Abrir/}).first().click();await expect(studentPage.getByRole('heading',{name:'Wordwall de clase',exact:true})).toBeVisible();
+    await expect(studentPage.getByText('Actividad externa segura')).toBeVisible();
     await studentPage.reload();await expect(studentPage.getByRole('heading',{name:'Wordwall de clase',exact:true})).toBeVisible();
   }finally{await student.close();}
 });
@@ -82,3 +82,4 @@ test('drag-and-drop mueve una actividad antes de otra y persiste el orden',async
   const titles=placement.orderedActivityIds.map((id:string)=>ws.definitions.find((d:any)=>d.activityId===id)?.title);
   expect(titles).toEqual(['Arrastrada B','Arrastrada A']);
 });
+

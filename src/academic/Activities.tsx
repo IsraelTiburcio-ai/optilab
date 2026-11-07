@@ -1,21 +1,25 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {gyms} from '../data';
-import {approvedActivityUrl,iframePolicy} from '../activities/urls';
+import {iframePolicy} from '../activities/urls';
+import {provisionalTitle,resolveActivityLink} from './activityLink';
 import {key,scopeInput} from './components';
 import type {AcademicCall} from './client';
 import type {ActivityAssignment,ActivityDefinition,ActivityProvider,ActivityWorkspace,PublishedActivity,Scope,TeachingScope} from './types';
 import './activities.css';
 
-type FormState={activityId?:string;expectedVersion?:number;provider:ActivityProvider;resourceId:string;sourceUrl:string;embedUrl:string;title:string;description:string;instructions:string;gymId:number;groupIds:string[]};
-const blankForm=(groupId:string):FormState=>({provider:'wordwall',resourceId:'',sourceUrl:'',embedUrl:'',title:'',description:'',instructions:'',gymId:3,groupIds:[groupId]});
+type FormState={activityId?:string;expectedVersion?:number;link:string;embedUrl:string|null;title:string;description:string;instructions:string;gymId:number;groupIds:string[]};
+const blankForm=(groupId:string):FormState=>({link:'',embedUrl:null,title:'',description:'',instructions:'',gymId:3,groupIds:[groupId]});
 const providerLabel=(provider:ActivityProvider)=>provider==='wordwall'?'Wordwall':'LearningApps';
+const formKey=(form:FormState)=>JSON.stringify([form.activityId,form.expectedVersion,form.link,form.embedUrl,form.title,form.description,form.instructions,form.gymId,form.groupIds]);
 const statusLabel=(status:string)=>status==='published'?'Publicada':status==='hidden'?'Oculta':status==='archived'?'Archivada':'Borrador';
 
 export function Activities({scope,scopes,call,refresh,disabled=false}:{scope:TeachingScope;scopes:TeachingScope[];call:AcademicCall;refresh:number;disabled?:boolean}) {
   const [workspace,setWorkspace]=useState<ActivityWorkspace|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState('');
   const [reload,setReload]=useState(0),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
   const [editor,setEditor]=useState<ActivityDefinition|null|undefined>(undefined),[form,setForm]=useState<FormState>(blankForm(scope.groupId));
-  const [editorError,setEditorError]=useState(''),[preview,setPreview]=useState<{title:string;sourceUrl:string;embedUrl:string;provider:ActivityProvider}|null>(null);
+  const [editorError,setEditorError]=useState(''),[preview,setPreview]=useState<{title:string;sourceUrl:string;embedUrl:string|null;provider:ActivityProvider}|null>(null);
+  const [partial,setPartial]=useState<{activityId:string;revision:number;key:string}|null>(null),partialRef=useRef<{activityId:string;revision:number;key:string}|null>(null),saveKey=useRef(key()),publishKey=useRef(key()),saveFormKey=useRef('');
+  const resolved=useMemo(()=>resolveActivityLink(form.link),[form.link]);
   const [drag,setDrag]=useState<{activityId:string;gymId:number}|null>(null);
   const editorRef=useRef<HTMLDialogElement>(null),previewRef=useRef<HTMLDialogElement>(null),noticeRef=useRef<HTMLParagraphElement>(null);
 
@@ -46,42 +50,52 @@ export function Activities({scope,scopes,call,refresh,disabled=false}:{scope:Tea
     try{await fn();refreshWorkspace();report(message);}catch(e){setError(e instanceof Error?e.message:'No se pudo completar la operación.');}finally{setBusy(false);}
   }
   function openCreate(){
-    setForm(blankForm(scope.groupId));setEditorError('');setEditor(null);
+    setForm(blankForm(scope.groupId));setEditorError('');partialRef.current=null;setPartial(null);saveKey.current=key();publishKey.current=key();saveFormKey.current='';setEditor(null);
   }
   function openEdit(definition:ActivityDefinition){
     const assignment=assignmentById.get(definition.activityId);
-    setForm({activityId:definition.activityId,expectedVersion:definition.revision,provider:definition.provider,resourceId:definition.resourceId,
-      sourceUrl:definition.sourceUrl,embedUrl:definition.embedUrl,title:definition.title,description:definition.description,
+    setForm({activityId:definition.activityId,expectedVersion:definition.revision,link:definition.sourceUrl,embedUrl:definition.embedUrl,title:definition.title,description:definition.description,
       instructions:definition.instructions,gymId:assignment?.gymId??3,groupIds:definition.groupIds.filter(id=>groupOptions.some(group=>group.groupId===id))});
-    setEditorError('');setEditor(definition);
+    setEditorError('');partialRef.current=null;setPartial(null);saveKey.current=key();publishKey.current=key();saveFormKey.current='';setEditor(definition);
   }
   function closeEditor(){setEditor(undefined);setEditorError('');editorRef.current?.close();}
-  function checkUrls(state:FormState){
-    const sourceUrl=approvedActivityUrl(state.provider,state.sourceUrl,'source',state.resourceId);
-    const embedUrl=approvedActivityUrl(state.provider,state.embedUrl,'embed',state.resourceId);
-    if(!sourceUrl||!embedUrl){setEditorError('Usa solo enlaces HTTPS exactos de Wordwall o LearningApps; source y embed deben corresponder al mismo recurso.');return null;}
-    return {sourceUrl,embedUrl};
+  async function saveDraft(publishNow=false){
+    const link=resolveActivityLink(form.link);
+    if(!link){setEditorError('Pega el enlace público de LearningApps o Wordwall. No uses HTML ni el enlace de embed.');return;}
+    const title=(form.title.trim()||link.title||provisionalTitle(link.provider)).trim();
+    if(!form.groupIds.length){setEditorError('Selecciona un grupo autorizado.');return;}
+    if(busy)return;setBusy(true);setEditorError('');
+    const prior=partialRef.current,currentKey=formKey(form);let current=prior&&prior.key===currentKey?prior:null;
+    try{
+      if(!current){
+        if(saveFormKey.current!==currentKey){saveKey.current=key();publishKey.current=key();saveFormKey.current=currentKey;}
+        const saved=await call('saveActivityDraft',{...scopeInput(scope),groupIds:form.groupIds,activityId:prior?.activityId??form.activityId,expectedVersion:prior?.revision??form.expectedVersion,
+          provider:link.provider,resourceId:link.resourceId,sourceUrl:link.sourceUrl,embedUrl:form.embedUrl,title,
+          description:form.description,instructions:form.instructions,gymId:form.gymId,idempotencyKey:saveKey.current});
+        if(!saved.activityId||typeof saved.revision!=='number')throw new Error('El API no devolvió la actividad guardada.');
+        current={activityId:saved.activityId,revision:saved.revision,key:currentKey};partialRef.current=current;setPartial(current);
+      }
+      if(publishNow){
+        await call('publishActivities',{...scopeInput(scope),groupIds:form.groupIds,activityId:current.activityId,expectedVersion:current.revision,idempotencyKey:publishKey.current});
+      }
+      closeEditor();refreshWorkspace();report(publishNow?'Actividad publicada. Ya aparece en las tarjetas del gimnasio.':'Borrador guardado. Ya puedes publicarlo cuando quieras.');
+    }catch(e){setEditorError(publishNow&&current?'La actividad quedó guardada como borrador, pero no se pudo publicar. Reintenta «Publicar actividad»; no se creará otro borrador.':e instanceof Error?e.message:'No se pudo guardar la actividad.');}finally{setBusy(false);}
   }
-  async function saveDraft(){
-    if(!checkUrls(form))return;
-    if(!form.title.trim()){setEditorError('Escribe un título.');return;}
-    if(!form.groupIds.length){setEditorError('Selecciona al menos un grupo autorizado.');return;}
+  async function retryPublish(){
+    const current=partialRef.current;
+    if(!current||current.key!==formKey(form)){await saveDraft(true);return;}
     if(busy)return;setBusy(true);setEditorError('');
     try{
-      await call('saveActivityDraft',{...scopeInput(scope),groupIds:form.groupIds,activityId:form.activityId,expectedVersion:form.expectedVersion,
-        provider:form.provider,resourceId:form.resourceId,sourceUrl:form.sourceUrl,embedUrl:form.embedUrl,title:form.title.trim(),
-        description:form.description,instructions:form.instructions,gymId:form.gymId,idempotencyKey:key()});
-      closeEditor();refreshWorkspace();report('Borrador guardado. Ya puedes previsualizarlo o publicarlo.');
-    }catch(e){setEditorError(e instanceof Error?e.message:'No se pudo guardar el borrador.');}finally{setBusy(false);}
+      await call('publishActivities',{...scopeInput(scope),groupIds:form.groupIds,activityId:current.activityId,expectedVersion:current.revision,idempotencyKey:publishKey.current});
+      closeEditor();refreshWorkspace();report('Actividad publicada. Ya aparece en las tarjetas del gimnasio.');
+    }catch(e){setEditorError(e instanceof Error?e.message:'No se pudo publicar la actividad guardada. Reintenta; no se creará otro borrador.');}finally{setBusy(false);}
   }
   function openPreview(state:FormState){
-    const urls=checkUrls(state);if(!urls)return;
-    setPreview({title:state.title||'Borrador sin título',sourceUrl:urls.sourceUrl,embedUrl:urls.embedUrl,provider:state.provider});
+    const link=resolveActivityLink(state.link);if(!link){setEditorError('El enlace no corresponde a LearningApps o Wordwall.');return;}
+    setPreview({title:state.title||link.title||provisionalTitle(link.provider),sourceUrl:link.sourceUrl,embedUrl:link.embedUrl,provider:link.provider});
   }
   function previewDefinition(definition:ActivityDefinition){
-    const urls={sourceUrl:approvedActivityUrl(definition.provider,definition.sourceUrl,'source',definition.resourceId),embedUrl:approvedActivityUrl(definition.provider,definition.embedUrl,'embed',definition.resourceId)};
-    if(!urls.sourceUrl||!urls.embedUrl){setError('La actividad guardada tiene URLs incompatibles.');return;}
-    setPreview({title:definition.title,sourceUrl:urls.sourceUrl,embedUrl:urls.embedUrl,provider:definition.provider});
+    setPreview({title:definition.title,sourceUrl:definition.sourceUrl,embedUrl:definition.embedUrl,provider:definition.provider});
   }
   async function publish(definition:ActivityDefinition){
     await action(()=>call('publishActivities',{...scopeInput(scope),groupIds:[scope.groupId],activityId:definition.activityId,expectedVersion:definition.revision,idempotencyKey:key()}),'Actividad publicada en este grupo.');
@@ -161,24 +175,21 @@ export function Activities({scope,scopes,call,refresh,disabled=false}:{scope:Tea
       <form method="dialog" onSubmit={event=>event.preventDefault()}>
         <h2 id="activity-dialog-title">{editor?'Editar actividad':'Nueva actividad'}</h2>
         <p className="muted">Guardar deja un borrador. Publicar es una acción separada y visible para el alumno.</p>
-        <label>Título<input name="title" value={form.title} maxLength={120} onChange={event=>setForm({...form,title:event.target.value})}/></label>
-        <label>Proveedor<select value={form.provider} onChange={event=>setForm({...form,provider:event.target.value as ActivityProvider})}><option value="wordwall">Wordwall</option><option value="learningapps">LearningApps</option></select></label>
-        <label>ID del recurso<input value={form.resourceId} maxLength={80} onChange={event=>setForm({...form,resourceId:event.target.value})}/></label>
-        <label>URL de origen<input type="url" value={form.sourceUrl} maxLength={1000} onChange={event=>setForm({...form,sourceUrl:event.target.value})}/></label>
-        <label>URL de embed<input type="url" value={form.embedUrl} maxLength={1000} onChange={event=>setForm({...form,embedUrl:event.target.value})}/></label>
-        <label>Descripción<textarea value={form.description} maxLength={500} onChange={event=>setForm({...form,description:event.target.value})}/></label>
-        <label>Instrucciones<textarea value={form.instructions} maxLength={1000} onChange={event=>setForm({...form,instructions:event.target.value})}/></label>
+        <label>Enlace de la actividad<input type="url" name="link" value={form.link} maxLength={1000} placeholder="https://learningapps.org/watch?v=… o https://wordwall.net/resource/…" onChange={event=>{const link=event.target.value;const parsed=resolveActivityLink(link);partialRef.current=null;setPartial(null);setForm({...form,link,embedUrl:parsed?.embedUrl??null,title:form.title||parsed?.title||(parsed?provisionalTitle(parsed.provider):'')});}}/></label>
+        <p className="muted">{resolved?`Detectado: ${providerLabel(resolved.provider)} · ${resolved.externalOnly?'se abrirá de forma segura en el proveedor':'vista integrada disponible'}`:'Pega el enlace público; no necesitas escribir IDs ni URLs de embed.'}</p>
+        <label>Título<input name="title" value={form.title} maxLength={120} placeholder={resolved?.title||'Título de la actividad'} onChange={event=>setForm({...form,title:event.target.value})}/></label>
         <label>Gimnasio<select value={form.gymId} onChange={event=>setForm({...form,gymId:Number(event.target.value)})}>{gyms.map(gym=><option key={gym.id} value={gym.id}>{gym.id}. {gym.name}</option>)}</select></label>
-        <fieldset><legend>Grupos autorizados</legend>{groupOptions.map(group=><label key={group.groupId} className="activity-group-check"><input type="checkbox" checked={form.groupIds.includes(group.groupId)} onChange={event=>setForm({...form,groupIds:event.target.checked?[...form.groupIds,group.groupId]:form.groupIds.filter(id=>id!==group.groupId)})}/>{group.title}</label>)}</fieldset>
+        <label>Grupo<select value={form.groupIds[0]??scope.groupId} onChange={event=>setForm({...form,groupIds:[event.target.value]})}>{groupOptions.map(group=><option key={group.groupId} value={group.groupId}>{group.title||'Grupo autorizado'}</option>)}</select></label>
+        <details className="activity-advanced"><summary>Opciones avanzadas</summary><label>Descripción<textarea value={form.description} maxLength={500} onChange={event=>setForm({...form,description:event.target.value})}/></label><label>Instrucciones<textarea value={form.instructions} maxLength={1000} onChange={event=>setForm({...form,instructions:event.target.value})}/></label></details>
         {editorError&&<p className="teacher-error" role="alert">{editorError}</p>}
-        <div className="teacher-actions"><button type="button" className="button" onClick={()=>{const urls=checkUrls(form);if(urls)setPreview({title:form.title||'Borrador sin título',...urls,provider:form.provider});}}>Previsualizar borrador</button><button type="button" className="button primary" onClick={()=>void saveDraft()} disabled={busy}>Guardar borrador</button><button type="button" className="button" onClick={closeEditor} disabled={busy}>Cancelar</button></div>
+        <div className="teacher-actions"><button type="button" className="button" onClick={()=>openPreview(form)}>Previsualizar</button><button type="button" className="button" onClick={()=>void saveDraft(false)} disabled={busy}>Guardar borrador</button><button type="button" className="button primary" onClick={()=>void (partialRef.current?.key===formKey(form)?retryPublish():saveDraft(true))} disabled={busy}>Publicar actividad</button><button type="button" className="button" onClick={closeEditor} disabled={busy}>Cancelar</button></div>
       </form>
     </dialog>
 
     <dialog ref={previewRef} className="teacher-dialog activity-preview-dialog" aria-labelledby="activity-preview-title" onCancel={()=>setPreview(null)} onClose={()=>setPreview(null)}>
       <h2 id="activity-preview-title">Vista previa: {preview?.title}</h2>
       <p className="activity-preview-warning">Vista previa docente. No se publica ni se envía al alumno.</p>
-      {preview&&<><div className="activity-preview-frame"><iframe title={`Vista previa de ${preview.title}`} src={preview.embedUrl} {...iframePolicy(preview.provider)}/></div><p><a href={preview.sourceUrl} target="_blank" rel="noopener noreferrer">Abrir en {providerLabel(preview.provider)}</a></p></>}
+      {preview&&<>{preview.embedUrl?<div className="activity-preview-frame"><iframe title={`Vista previa de ${preview.title}`} src={preview.embedUrl} {...iframePolicy(preview.provider)}/></div>:<p className="notice">Este recurso no ofrece una integración incrustada validada. Se abrirá en el proveedor.</p>}<p><a href={preview.sourceUrl} target="_blank" rel="noopener noreferrer">Abrir en {providerLabel(preview.provider)}</a></p></>}
       <button className="button" onClick={()=>{setPreview(null);previewRef.current?.close();}}>Cerrar vista previa</button>
     </dialog>
   </section>;

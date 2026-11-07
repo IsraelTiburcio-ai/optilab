@@ -21,7 +21,7 @@ export function GameCard({game, index = 0}: {game: Game; index?: number}) {
   return <article className={`cartridge ${practiced ? 'practiced' : ''}`} style={{'--accent': gym.color, '--pale': gym.pale} as CSSProperties}>
     <div className="cartridge-art">
       {game.gimnasio === 3 ? <SimplexCover repo={game.repo}/> : <div className="game-glyph" aria-hidden="true">{['◈','⌘','⊞','⟷','△'][(index + game.gimnasio - 1) % 5]}</div>}
-      <span className="serial">OPTI / {String(games.indexOf(game) + 1).padStart(2, '0')}</span>
+      <span className="serial">OPTI / {String(games.indexOf(game) + 1).padStart(2, '0')}</span><span className="cartridge-provider">OptiLab</span>
       <span className="game-region">GIMNASIO {game.gimnasio}</span>
       {practiced && <span className="practice-check" aria-label="Practicado"><Check size={18}/></span>}
     </div>

@@ -10,20 +10,21 @@ export function approvedActivityUrl(provider:ActivityProvider,value:string,kind:
     const key=kind==='source'?'v':'id';
     if(url.pathname!==(kind==='source'?'/watch':'/show.php')||entries.length!==1||url.searchParams.get(key)!==resourceId)return null;
   }else if(provider==='wordwall'){
-    if(url.hostname!=='wordwall.net'||!/^[a-f0-9]{32}$/.test(resourceId))return null;
+    if(url.hostname!=='wordwall.net')return null;
     if(kind==='source'){
-      const path=/^\/(?:es\/)?resource\/[1-9][0-9]{0,11}\/([^/]{1,480})$/.exec(url.pathname);
-      if(!path||entries.length)return null;
+      if(!/^(?:[a-f0-9]{32}|[1-9][0-9]{0,11})$/.test(resourceId))return null;
+      const path=/^\/(?:es\/)?resource\/([1-9][0-9]{0,11})\/([^/]{1,480})$/.exec(url.pathname);
+      if(!path||entries.length||(/^[0-9]+$/.test(resourceId)&&path[1]!==resourceId))return null;
       try{if(!/^[\p{L}\p{N}_-]{1,160}$/u.test(decodeURIComponent(path[1])))return null;}catch{return null;}
     }else{
-      if(url.pathname!==`/es/embed/${resourceId}`||entries.length!==3||entries.some(([key,value])=>!['themeId','templateId','fontStackId'].includes(key)||!/^(0|[1-9][0-9]{0,5})$/.test(value)))return null;
+      if(!/^[a-f0-9]{32}$/.test(resourceId)||url.pathname!==`/es/embed/${resourceId}`||entries.length!==3||entries.some(([key,value])=>!['themeId','templateId','fontStackId'].includes(key)||!/^(0|[1-9][0-9]{0,5})$/.test(value)))return null;
     }
   }else return null;
   return url.href;
 }
-export function validatedActivityUrls(provider:ActivityProvider,resourceId:string,source:string,embed:string):{sourceUrl:string;embedUrl:string}|null {
-  const sourceUrl=approvedActivityUrl(provider,source,'source',resourceId),embedUrl=approvedActivityUrl(provider,embed,'embed',resourceId);
-  return sourceUrl&&embedUrl?{sourceUrl,embedUrl}:null;
+export function validatedActivityUrls(provider:ActivityProvider,resourceId:string,source:string,embed:string|null):{sourceUrl:string;embedUrl:string|null}|null {
+  const sourceUrl=approvedActivityUrl(provider,source,'source',resourceId),embedUrl=embed===null?null:approvedActivityUrl(provider,embed,'embed',resourceId);
+  return sourceUrl&&(embed===null||embedUrl)?{sourceUrl,embedUrl}:null;
 }
 export function providerTelemetry() {
   return {opened:false,completed:false,accuracy:false,errors:false,elapsedMs:false,evidence:'none' as const};
