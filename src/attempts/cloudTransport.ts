@@ -1,3 +1,6 @@
+import {admissionAllowed,admissionWatch} from '../progress/admissionSignal';
+import {syncMode} from '../progress/config';
+import type {Ledger} from './model';
 import {collection,doc,onSnapshot,query,limit,runTransaction,serverTimestamp,type Firestore} from 'firebase/firestore';
 import {attemptId,AttemptConflict,mergeLedgers,validateLedger,type AttemptTransport} from './cloudModel';
 import {createAttemptChannel} from '../progress/transport';
@@ -23,4 +26,4 @@ export function attemptTransport(db:Firestore,uid:string,valid:()=>boolean):Atte
  if(db.app.options.projectId!=='demo-optilab-sync')throw Error('Solo se admite el proyecto demo en el constructor de pruebas');
  return privateAttemptTransport(db,uid,valid);
 }
-export function createCloudAttemptTransport(uid:string){const {db,valid}=createAttemptChannel(uid);return privateAttemptTransport(db,uid,valid);}
+export function createCloudAttemptTransport(uid:string):AttemptTransport{const create=()=>{const {db,valid}=createAttemptChannel(uid);return privateAttemptTransport(db,uid,valid);};if(syncMode!=='production')return create();return {watch:(next,error)=>admissionWatch<Ledger>(uid,create,next,error),put:event=>{if(!admissionAllowed(uid))return Promise.reject(Error('Admisión pausada; conserva el historial local.'));return create().put(event);}};}

@@ -2,6 +2,7 @@ import {invalid,ApiError} from './errors.js';
 import type {Data,Input,Operation,Scope} from './contracts.js';
 import {normalizeGamertag} from './playerModel.js';
 const shapes:Record<Operation,string[]>={
+  configureParticipation:['courseId','termId','groupId','enabled','expectedVersion','idempotencyKey'],syncAdmission:[],rankingPreference:['courseId','termId','groupId'],groupRanking:['courseId','termId','groupId'],setRankingParticipation:['courseId','termId','groupId','enabled','expectedVersion','idempotencyKey'],recordGroupActivity:['courseId','termId','groupId','activityId','attemptId','idempotencyKey'],
   myScopes:['kind','limit','cursor','courseId'],roster:['courseId','termId','groupId','limit','cursor'],
   requestStatus:['courseId','termId','groupId','requestId','inviteId'],groupInvitations:['courseId','termId','groupId','limit','cursor'],groupProgress:['courseId','termId','groupId','periodDays'],
   activityWorkspace:['courseId','termId','groupId'],publishedGroupActivities:['courseId','termId','groupId'],publishedActivity:['courseId','termId','groupId','activityId'],
@@ -71,6 +72,8 @@ export function parseInput(name:string,value:unknown,maxTtl:number):{operation:O
   if('orderedActivityIds' in value&&(!Array.isArray(value.orderedActivityIds)||value.orderedActivityIds.length>(operation==='saveGymLayout'?60:50)||new Set(value.orderedActivityIds).size!==value.orderedActivityIds.length||value.orderedActivityIds.some(id=>typeof id!=='string'||!identifier(id))))throw invalid();
   if('hiddenOriginalGameIds' in value&&(!Array.isArray(value.hiddenOriginalGameIds)||value.hiddenOriginalGameIds.length>20||new Set(value.hiddenOriginalGameIds).size!==value.hiddenOriginalGameIds.length||value.hiddenOriginalGameIds.some(id=>typeof id!=='string'||!identifier(id))))throw invalid();
   if('externalVisibility' in value&&(!Array.isArray(value.externalVisibility)||value.externalVisibility.length>50||new Set(value.externalVisibility.map((v:any)=>v?.activityId)).size!==value.externalVisibility.length||value.externalVisibility.some((v:any)=>!exact(v,['activityId','expectedVersion','visible'])||!identifier(v.activityId)||!integer(v.expectedVersion,1,2147483646)||typeof v.visible!=='boolean')))throw invalid();
+  if('enabled' in value&&typeof value.enabled!=='boolean')throw invalid();
+  if('attemptId' in value&&(typeof value.attemptId!=='string'||!/^[-A-Za-z0-9_:]{1,160}$/.test(value.attemptId)))throw invalid();
   if('gymId' in value&&!integer(value.gymId,1,5))throw invalid();
   if('provider' in value&&!['wordwall','learningapps'].includes(value.provider))throw invalid();
   if('resourceId' in value&&(typeof value.resourceId!=='string'||value.resourceId.length>80))throw invalid();

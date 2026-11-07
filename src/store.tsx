@@ -1,6 +1,8 @@
 import {createContext, lazy, Suspense, useContext, useEffect, useRef, useState, type ReactNode} from 'react';
 import {useAuth} from './auth/AuthProvider';
-import {syncEnabled} from './progress/config';
+import {useIntegratedFeatures} from './integration/features';
+import {ProductionAdmission} from './progress/ProductionAdmission';
+import {syncEnabled,syncMode} from './progress/config';
 import type {ProgressEngine, SyncView} from './progress/engine';
 import {games, gyms, gymGames} from './data';
 import {savedResults, type SavedGameResult} from './integration/protocol';
@@ -62,6 +64,7 @@ function load(): Progress {
 }
 export const ProgressContext = createContext<(ReturnType<typeof useProgressState> & {sync:{engine:ProgressEngine;view:SyncView}|null}) | null>(null);
 function useProgressState() {
+  const integrated=useIntegratedFeatures();
   const [state, setState] = useState(load);
   const initialState=useRef(state);
   const [storageOK, setStorageOK] = useState(true);
@@ -77,6 +80,7 @@ function useProgressState() {
   }, [state]);
   return {
     state, badges, storageOK, evolution,
+    markPracticed:(id:string)=>setState(p=>integrated&&games.some(g=>g.repo===id)&&!p.practiced[id]?withEvolution({...p,practiced:{...p.practiced,[id]:new Date().toISOString()}}):p),
     toggle: (id: string) => setState(p => {
       if (!games.some(g=>g.repo===id)) return p;
       const practiced = {...p.practiced};
@@ -89,7 +93,7 @@ function useProgressState() {
     saveGameResult: (result: SavedGameResult) => setState(p => {
       if (!savedResults([result]).length || p.gameResults.some(r => r.runId === result.runId)) return p;
       // Completion is separate from manual practice and exploration badges.
-      return {...p, gameResults: [...p.gameResults, result].slice(-50)};
+      return withEvolution({...p, practiced:integrated?{...p.practiced,[result.gameId]:p.practiced[result.gameId]??result.date}:p.practiced,gameResults: [...p.gameResults, result].slice(-50)});
     }),
     setRoute: (route: string[]) => setState(p => ({...p, route})),
     nickname: (nickname: string) => setState(p => ({...p, nickname})),
@@ -111,6 +115,7 @@ const CloudProgress=lazy(()=>import('./progress/CloudProgress'));
 export function ProgressProvider({children}: {children: ReactNode}) {
   const auth=useAuth();
   if(syncEnabled&&auth.status==='loading')return <p role="status">Comprobando la identidad antes de abrir tu progreso…</p>;
+  if(syncMode==='production'&&auth.user)return <ProductionAdmission key={auth.user.uid} uid={auth.user.uid} fallback={<GuestProgress>{children}</GuestProgress>}>{children}</ProductionAdmission>;
   if(syncEnabled&&auth.user)return <Suspense fallback={<p role="status">Abriendo el progreso de esta cuenta…</p>}>
     <CloudProgress key={auth.user.uid} uid={auth.user.uid}>{children}</CloudProgress>
   </Suspense>;

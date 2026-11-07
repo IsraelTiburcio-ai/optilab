@@ -1,9 +1,12 @@
+import {useIntegratedFeatures} from './features';
+import {useProgress} from '../store';
 import {useAttempts} from '../attempts/local';
 import {useCallback,useEffect,useRef,useState,type RefObject} from 'react';
 import {isResultPilot,ORIGINAL_RESULTS_PROTOCOL,OriginalResultReceiver,type OriginalResult} from './originalResults';
 
 export function useOriginalResults(gameId:string,session:string,sourceUrl:string,frame:RefObject<HTMLIFrameElement|null>){
-  const attempts=useAttempts();
+  const integrated=useIntegratedFeatures(),integratedRef=useRef(integrated);integratedRef.current=integrated;
+  const attempts=useAttempts(),{markPracticed}=useProgress(),complete=useRef(markPracticed);complete.current=markPracticed;
   const enabled=isResultPilot(gameId);
   const [status,setStatus]=useState<'waiting'|'connected'|'playing'|'ended'|'aborted'|'retired'>('waiting');
   const [report,setReport]=useState<{runId:string;result:OriginalResult}|null>(null);
@@ -23,7 +26,7 @@ export function useOriginalResults(gameId:string,session:string,sourceUrl:string
       if(message.type==='game:ready'){attempts.record(gameId,'opened',session+':open');ready=true;setStatus('connected');}
       else if(message.type==='game:started'){setReport(null);setStatus('playing');}
       else if(message.type==='game:aborted'){setReport(null);setStatus('aborted');}
-      else{attempts.record(gameId,'reported',message.runId,{...message.result});setReport({runId:message.runId,result:message.result});setStatus('ended');}
+      else{attempts.record(gameId,'reported',message.runId,{...message.result,...integratedRef.current?{completed:message.result.reason==='completed'}:{}});if(integratedRef.current&&message.result.reason==='completed')complete.current(gameId);setReport({runId:message.runId,result:message.result});setStatus('ended');}
     };
     window.addEventListener('message',receive);if(loads.current)load.current();const timer=setInterval(init,600);
     return ()=>{active=false;receiver.invalidate();load.current=()=>{};window.removeEventListener('message',receive);clearInterval(timer);};

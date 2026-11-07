@@ -144,7 +144,7 @@ export async function seedDashboardProgress(fixture:Fixture,entries:DashboardPro
       for(const kind of ['opened','declared','reported'] as const){
         const id=crypto.randomUUID();
         batch.set(fixture.sdk.db.doc(`${root}/reportedAttempts/${entry.activityId}--${id}`),{version:1,id,activityId:entry.activityId,kind,
-          trust:kind==='reported'?'client-report':'declaration',observedAt:new Date(observed).toISOString(),...(kind==='reported'?{result:{completed:true}}:{}),uid,serverReceivedAt:fixture.sdk.timestamp(observed)});
+          trust:kind==='reported'?'client-report':'declaration',context:fixture.scope(),observedAt:new Date(observed).toISOString(),...(kind==='reported'?{result:{completed:true}}:{}),uid,serverReceivedAt:fixture.sdk.timestamp(observed)});
       }
     });
   }

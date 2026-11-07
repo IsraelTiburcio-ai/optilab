@@ -42,7 +42,9 @@
     "single:snapshot": "node scripts/single-operator-snapshot.mjs",
     "single:session": "node scripts/single-operator-session.mjs",
     "pilot:provision": "node scripts/pilot-provision.mjs",
-    "pilot:preflight": "node scripts/pilot-preflight.mjs"
+    "pilot:preflight": "node scripts/pilot-preflight.mjs",
+    "test:integrated:core": "node --import tsx --test --test-reporter=spec tests/integrated/*.test.ts",
+    "test:integrated:ui": "playwright test --config playwright.integrated.config.ts"
   },
   "dependencies": {
     "@vercel/oidc": "4.0.6",

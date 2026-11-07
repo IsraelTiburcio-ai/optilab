@@ -3,20 +3,26 @@ import {AttemptCloudContext} from './cloudContext';
 import {attemptStorageNotice} from '../progress/privacyCopy';
 import {useContext,useEffect,useState,useRef,useSyncExternalStore} from 'react';
 import {useAuth} from '../auth/AuthProvider';
-import {empty,metrics,type Kind} from './model';
+import {useIntegratedFeatures} from '../integration/features';
+import {useLocation,useParams} from 'react-router-dom';
+import {empty,metrics,validContext,type Kind} from './model';
 import * as storage from './storage';
 import './local.css';
 
 export function useAttempts(){
  const {user,status}=useAuth();
  const scope=user?.uid??'guest';
+ const location=useLocation(),params=useParams(),query=new URLSearchParams(location.search);
+ const candidate={courseId:params.courseId??query.get('courseId'),termId:params.termId??query.get('termId'),groupId:params.groupId??query.get('groupId')};
+ const integrated=useIntegratedFeatures();
+ const context=validContext(candidate)?candidate:undefined;
  const owner=useRef<string|null>(null),current=useRef(scope);
  current.current=status==='loading'?'':scope;
  return {scope,ready:status!=='loading',record:(activityId:string,kind:Kind,id:string,result?:Record<string,number|string|boolean>)=>{
   if(status==='loading')return;
   if(owner.current===null)owner.current=scope;
   if(owner.current!==scope)return;
-  void storage.record(scope,{version:1,id,activityId,kind,trust:kind==='reported'?'client-report':'declaration',observedAt:new Date().toISOString(),...(result?{result}:{})},()=>current.current===scope);
+  void storage.record(scope,{version:1,id,activityId,kind,trust:kind==='reported'?'client-report':'declaration',observedAt:new Date().toISOString(),...(context?{context}:{}),...(result?{result}:{})},()=>current.current===scope);
  }};
 }
 

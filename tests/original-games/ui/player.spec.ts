@@ -20,7 +20,7 @@ for(const id of ids)test(`${id}: sandbox opaco y mensajes sin resultados ni prog
   const before=await page.evaluate(()=>localStorage.getItem('optilab-v1'));
   expect(await child.locator('body').evaluate(()=>{try{localStorage.setItem('optilab-v1','corrupted');return false;}catch(e){return (e as Error).name==='SecurityError';}})).toBe(true);
   await child.locator('body').evaluate(()=>{parent.postMessage({protocol:'optilab-game',version:1,type:'game:completed',gameId:'memorama-simplex',result:{accuracy:100}},'*');parent.postMessage('AppSolved|pznycxd7t21|100|4|0','*');});
-  await expect(page.getByText(isResultPilot(id)?'sin guardar resultados ni conceder recompensas':'Este piloto no comunica resultados',{exact:false})).toBeVisible();expect(await page.evaluate(()=>localStorage.getItem('optilab-v1'))).toBe(before);await expect(page.locator('.game-result-panel,.external-observed,.original-session-result')).toHaveCount(0);
+  const pilot=isResultPilot(id);await expect(page.getByText(pilot?'El resultado de esta sesión se conserva como intento informado':'Este piloto no comunica resultados',{exact:false})).toBeVisible();if(!pilot){expect(await page.evaluate(()=>localStorage.getItem('optilab-v1'))).toBe(before);await expect(page.locator('.game-result-panel,.external-observed,.original-session-result')).toHaveCount(0);}
 });
 test('rutas no permiten URLs arbitrarias ni habilitan otros juegos',async({page})=>{
   for(const id of ['not-in-catalog','memorama-simplex','https%3A%2F%2Fevil.example']){await page.goto(`#/jugar-original/${id}?url=https://evil.example`);await expect(page.getByRole('heading',{name:'Este juego no está disponible en el piloto integrado'})).toBeVisible();await expect(page.locator('.original-player iframe')).toHaveCount(0);}

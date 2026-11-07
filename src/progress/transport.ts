@@ -1,3 +1,4 @@
+import {admissionAllowed,admissionWatch} from './admissionSignal';
 import {getApp} from 'firebase/app';
 import {getAuth} from 'firebase/auth';
 import {connectFirestoreEmulator, getFirestore, memoryLocalCache, initializeFirestore,
@@ -159,14 +160,15 @@ export function createProductionTransport(uid:string):Transport {
   const app=getApp('optilab-accounts'),auth=getAuth(app);
   if(app.options.projectId!==productionSyncTarget.projectId||app.options.authDomain!=='optilab-cd829.firebaseapp.com'||auth.emulatorConfig)
     throw new Error('La instancia Firebase no coincide con el destino productivo aprobado.');
-  if(auth.currentUser?.uid!==uid||auth.currentUser.isAnonymous||logoutBlocked(uid))throw new Error('La identidad cambió antes de abrir el progreso.');
+  if(!admissionAllowed(uid)||auth.currentUser?.uid!==uid||auth.currentUser.isAnonymous||logoutBlocked(uid))throw new Error('La identidad cambió antes de abrir el progreso.');
   // No persistent SDK cache: the existing journal/backups stay partitioned by UID.
   productionDb??=initializeFirestore(app,{localCache:memoryLocalCache()});
-  return privateProgressTransport(productionDb,uid,()=>productionSyncAllowed(import.meta.env??{},authSettings,location.origin)&&auth.currentUser?.uid===uid&&!auth.currentUser.isAnonymous&&!logoutBlocked(uid));
+  return privateProgressTransport(productionDb,uid,()=>admissionAllowed(uid)&&productionSyncAllowed(import.meta.env??{},authSettings,location.origin)&&auth.currentUser?.uid===uid&&!auth.currentUser.isAnonymous&&!logoutBlocked(uid));
 }
 export function createProgressTransport(uid:string):Transport {
   if(syncAllowed(import.meta.env??{},authSettings,typeof location==='undefined'?'':location.hostname))return createEmulatorTransport(uid);
-  return createProductionTransport(uid); // Revalidates every production gate before SDK access.
+  if(!productionSyncAllowed(import.meta.env??{},authSettings,typeof location==='undefined'?'':location.origin))throw Error('Sincronización productiva desactivada');
+  return {watch:(next,error)=>admissionWatch<Snapshot>(uid,()=>createProductionTransport(uid),next,error),commit:op=>{if(!admissionAllowed(uid))return Promise.reject(Error('Admisión pausada; los cambios permanecen en la cola local.'));return createProductionTransport(uid).commit(op);}};
 }
 let emulatorDb:Firestore|undefined;
 export function createEmulatorTransport(uid:string):Transport {
@@ -185,9 +187,9 @@ export function createEmulatorTransport(uid:string):Transport {
 
 export function createAttemptChannel(uid:string){
   // Factories recheck project, origin, Auth emulator/production identity and logout fence.
-  createProgressTransport(uid);
+  if(syncAllowed(import.meta.env??{},authSettings,location.hostname))createEmulatorTransport(uid);else createProductionTransport(uid);
   const app=getApp('optilab-accounts'),auth=getAuth(app);
   return {db:getFirestore(app),valid:()=>
-    (syncAllowed(import.meta.env??{},authSettings,location.hostname)||productionSyncAllowed(import.meta.env??{},authSettings,location.origin))&&
+    (syncAllowed(import.meta.env??{},authSettings,location.hostname)||admissionAllowed(uid)&&productionSyncAllowed(import.meta.env??{},authSettings,location.origin))&&
     auth.currentUser?.uid===uid&&!logoutBlocked(uid)&&!auth.currentUser.isAnonymous&&auth.currentUser.emailVerified};
 }

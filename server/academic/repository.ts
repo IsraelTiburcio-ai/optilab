@@ -13,18 +13,18 @@ export const groupPath=(s:Scope)=>{if(!identifier(s.groupId))throw new Error('IN
 /** Deny even trusted-code mistakes targeting personal progress or arbitrary paths. */
 export function academicPath(path:string):string {
   const id='[A-Za-z0-9_-]{1,128}',c='[A-Za-z0-9_-]{1,80}';
-  const allowed=[`courses/${c}`,`courses/${c}/(?:staff|members|administration|academicMemberships)/${id}`,`courses/${c}/academicSettings/current`,
+  const allowed=[`syncPilotControl/current`,`syncPilotMembers/${id}`,`singleOperatorTestControl/current`,`courses/${c}`,`courses/${c}/(?:staff|members|administration|academicMemberships)/${id}`,`courses/${c}/academicSettings/current`,
     `courses/${c}/terms/${c}`,`courses/${c}/terms/${c}/groups/${c}`,
-    `courses/${c}/terms/${c}/groups/${c}/(?:staff|members|administration|membershipDetails|invitations|membershipRequests|roster|membershipEvents|gymLayouts)/${id}`,
+    `courses/${c}/terms/${c}/groups/${c}/(?:staff|members|administration|membershipDetails|invitations|membershipRequests|roster|membershipEvents|gymLayouts|rankingPreferences|rankingControl|participation)/${id}`,
     `courses/${c}/terms/${c}/groups/${c}/settings/current`,`courses/${c}/terms/${c}/groups/${c}/enrollmentLink/current`,
-    `users/${id}/(?:enrollments|teachingScopes)/${id}`,`users/${id}/sync/current`,`users/${id}/epochs/${id}/(?:fields|diagnostics|gameRuns)/${id}`,`users/${id}/reportedAttempts/${id}`,`academicOperations/${id}`,`academicAudit/${id}`,`academicProfiles/${id}`,`playerIdentities/${id}`,`gamertagReservations/${id}`,
+    `users/${id}/(?:enrollments|teachingScopes)/${id}`,`users/${id}/sync/current`,`users/${id}/epochs/${id}/(?:fields|diagnostics|gameRuns)/${id}`,`users/${id}/reportedAttempts/[A-Za-z0-9_:-]{1,240}`,`academicOperations/${id}`,`academicAudit/${id}`,`academicProfiles/${id}`,`playerIdentities/${id}`,`gamertagReservations/${id}`,
     `courses/${c}/activities/${id}`,`courses/${c}/activities/${id}/revisions/${id}`,`courses/${c}/terms/${c}/groups/${c}/groupActivities/${id}`,`courses/${c}/terms/${c}/groups/${c}/activityPlacements/${id}`];
   if(!allowed.some(pattern=>new RegExp(`^${pattern}$`).test(path)))throw new Error('INVALID_REPOSITORY_PATH');return path;
 }
 export class AcademicTransaction {
   constructor(private db:Firestore,private tx:Transaction,private track:(key:keyof Metrics,n:number)=>void){}
   async get(path:string):Promise<Data|null>{this.track('documentReadAttempts',1);const s=await this.tx.get(this.db.doc(academicPath(path)));return s.exists?s.data()!:null;}
-  set(path:string,data:Data){this.track('writeIntents',1);this.tx.set(this.db.doc(academicPath(path)),data);}
+  set(path:string,data:Data){if(/^(syncPilotControl|syncPilotMembers|singleOperatorTestControl)\//.test(path))throw new Error('READ_ONLY_METADATA');this.track('writeIntents',1);this.tx.set(this.db.doc(academicPath(path)),data);}
   async page(path:string,limit:number,cursor?:string,status?:string):Promise<{id:string;data:Data}[]> {
     const rows=await this.tx.get(pageQuery(this.db,path,limit,cursor,status));
     this.track('documentReadAttempts',rows.size||1);this.track('queryDocumentsReturned',rows.size);

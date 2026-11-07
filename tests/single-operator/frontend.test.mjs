@@ -21,7 +21,7 @@ function fixture(){
 }
 test('single ON binds owner/current SHA/digest/paused receipts; no raw UID or private decisions enter build',()=>{
   const f=fixture(),result=frontendEnvironment('on',f);
-  assert.equal(result.env.VITE_PROGRESS_SYNC,'production');assert.equal(result.env.VITE_SYNC_PILOT,'single-operator-test-v1');
+  assert.equal(result.env.VITE_INTEGRATED_PROGRESS,'pilot-v1');assert.equal(result.env.VITE_ACADEMIC_API_MODE,'production');assert.equal(result.env.VITE_PROGRESS_SYNC,'production');assert.equal(result.env.VITE_SYNC_PILOT,'single-operator-test-v1');
   assert.equal(result.env.VITE_SINGLE_OPERATOR_END,f.manifest.endAt);assert(!JSON.stringify(result).includes(f.manifest.uid));
   assert.equal(result.stamp.rulesSha256,f.approval.candidateRulesSha256);assert.equal(result.stamp.frontendSha,f.manifest.frontendSha);
 });
@@ -38,7 +38,7 @@ test('ON rejects unapproved, expired, stale, opened, mismatched and nonowner rel
 });
 test('OFF clears every Sync gate even without manifest, receipts or expired secrets',()=>{
   const f=fixture(),off=frontendEnvironment('off',{context:f.context,now:f.now});
-  assert.equal(off.env.VITE_PROGRESS_SYNC,'disabled');assert.equal(off.env.VITE_SYNC_PILOT,'');assert.equal(off.env.VITE_SINGLE_OPERATOR_DIGEST,'');assert.equal(off.env.VITE_SINGLE_OPERATOR_START,'');assert.equal(off.env.VITE_SINGLE_OPERATOR_END,'');
+  assert.equal(off.env.VITE_INTEGRATED_PROGRESS,'');assert.equal(off.env.VITE_ACADEMIC_API_MODE,'production');assert.equal(off.env.VITE_PROGRESS_SYNC,'disabled');assert.equal(off.env.VITE_SYNC_PILOT,'');assert.equal(off.env.VITE_SINGLE_OPERATOR_DIGEST,'');assert.equal(off.env.VITE_SINGLE_OPERATOR_START,'');assert.equal(off.env.VITE_SINGLE_OPERATOR_END,'');
   assert.equal(off.stamp.sync,'OFF');assert.equal(off.stamp.windowDigest,null);
   assert.throws(()=>buildContext('off',{...f.context,actor:'someone-else'}));
 });

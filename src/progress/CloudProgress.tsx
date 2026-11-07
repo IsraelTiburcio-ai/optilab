@@ -1,3 +1,4 @@
+import {useIntegratedFeatures} from '../integration/features';
 import CloudAttempts from '../attempts/CloudAttempts';
 import {useEffect, useState, useSyncExternalStore, type ReactNode} from 'react';
 import {ProgressContext} from '../store';
@@ -13,6 +14,7 @@ import {accountStorage} from './storage';
 import {productionSessionKind,singleOperatorWindowAllowed,observeSingleOperatorExpiry} from './productionConfig';
 
 export default function CloudProgress({uid,children}:{uid:string;children:ReactNode}) {
+  const integrated=useIntegratedFeatures();
   const [local]=useState(accountStorage);
   const [engine]=useState(()=>new ProgressEngine(uid,local.storage,createProgressTransport(uid),600,local.durable));
   const view=useSyncExternalStore(engine.subscribe,engine.getSnapshot);
@@ -31,6 +33,7 @@ export default function CloudProgress({uid,children}:{uid:string;children:ReactN
   const evolution=evolutionProgress(p.practiced,p.evolutionMilestones,games);
   return <ProgressContext.Provider value={{state:p,badges:gyms.filter(g=>gymGames(g.id).every(x=>p.practiced[x.repo])).map(g=>g.id),
     storageOK:local.durable&&!view.error.includes('Almacenamiento'),evolution,sync:{engine,view},
+    markPracticed:id=>change(v=>integrated&&games.some(g=>g.repo===id)&&!v.practiced[id]?withEvolution({...v,practiced:{...v.practiced,[id]:new Date().toISOString()}}):v),
     toggle:id=>change(v=>{
       if(!games.some(g=>g.repo===id))return v;
       const practiced={...v.practiced};if(practiced[id])delete practiced[id];else practiced[id]=new Date().toISOString();
@@ -38,7 +41,7 @@ export default function CloudProgress({uid,children}:{uid:string;children:ReactN
     }),
     visit:id=>change(v=>v.visited.includes(id)?v:{...v,visited:[...v.visited,id]}),
     saveResult:r=>change(v=>({...v,results:[...v.results,r].slice(-30)})),
-    saveGameResult:r=>change(v=>!savedResults([r]).length||v.gameResults.some(x=>x.runId===r.runId)?v:{...v,gameResults:[...v.gameResults,r].slice(-50)}),
+    saveGameResult:r=>change(v=>!savedResults([r]).length||v.gameResults.some(x=>x.runId===r.runId)?v:withEvolution({...v,practiced:integrated?{...v.practiced,[r.gameId]:v.practiced[r.gameId]??r.date}:v.practiced,gameResults:[...v.gameResults,r].slice(-50)})),
     setRoute:route=>change(v=>({...v,route})),nickname:nickname=>change(v=>({...v,nickname})),
     selectAvatar:avatarId=>{if(isAvatarId(avatarId))change(v=>({...v,avatarId}));},
     selectCompanion:companionId=>{if(isCompanionId(companionId))change(v=>({...v,companionId}));},
