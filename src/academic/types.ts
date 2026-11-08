@@ -83,6 +83,7 @@ export interface Api {
   createTerm:{input:Command&{courseId:string;title:string};output:MutationResult};
   createGroup:{input:Command&{courseId:string;termId:string;title:string};output:MutationResult};
   activityWorkspace:{input:Scope;output:ActivityWorkspace};
+  teacherPublishedGroupActivities:{input:Scope;output:PublishedActivities};
   publishedGroupActivities:{input:Scope;output:PublishedActivities};
   publishedActivity:{input:Scope&{activityId:string};output:PublishedActivity};
   saveActivityDraft:{input:Scope&Command&{groupIds:string[];activityId?:string;expectedVersion?:number;provider:ActivityProvider;resourceId:string;sourceUrl:string;embedUrl:string|null;title:string;description:string;instructions:string;gymId:number};output:MutationResult};
@@ -92,4 +93,4 @@ export interface Api {
   moveActivity:{input:Scope&Command&{activityId:string;gymId:number;expectedVersion:number};output:MutationResult};
   setActivityStatus:{input:Scope&Command&{activityId:string;status:'hidden'|'archived';expectedVersion:number};output:MutationResult};
 }
-export type CommandName=Exclude<keyof Api,'syncAdmission'|'rankingPreference'|'groupRanking'|'myScopes'|'roster'|'groupRequests'|'groupInvitations'|'groupProgress'|'getAcademicProfile'|'requestStatus'|'getPlayerIdentity'|'gamertagAvailability'|'groupEnrollmentLink'|'activityWorkspace'|'publishedGroupActivities'|'publishedActivity'>;
+export type CommandName=Exclude<keyof Api,'syncAdmission'|'rankingPreference'|'groupRanking'|'myScopes'|'roster'|'groupRequests'|'groupInvitations'|'groupProgress'|'getAcademicProfile'|'requestStatus'|'getPlayerIdentity'|'gamertagAvailability'|'groupEnrollmentLink'|'activityWorkspace'|'teacherPublishedGroupActivities'|'publishedGroupActivities'|'publishedActivity'>;

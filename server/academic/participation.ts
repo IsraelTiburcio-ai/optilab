@@ -2,11 +2,13 @@ import {validOriginalResult,isResultPilot} from '../../src/integration/originalR
 import {validResult} from '../../src/integration/protocol.js';
 import type {Actor,Data,Input,Scope} from './contracts.js';
 import {activeContext,grant,type Reader,type Policy} from './authorization.js';
-import {coursePath,groupPath,type AcademicReadView} from './repository.js';
+import {coursePath,groupPath,hash,type AcademicReadView} from './repository.js';
 import {scopeOf,exact,integer} from './validation.js';
 import {denied,conflict} from './errors.js';
 import {plan} from './plans.js';
 import {millis} from './models.js';
+import {randomBytes} from 'node:crypto';
+import type {AcademicTransaction} from './repository.js';
 import {ownPlayer} from './players.js';
 import {activeMembers} from './progress.js';
 import {gameById} from './catalog.js';
@@ -41,15 +43,23 @@ export async function recordGroupActivity(r:AcademicReadView,actor:Actor,i:Input
  activities[i.activityId!]=value;if(Object.keys(activities).length>300)throw conflict();
  return plan({outcome:'group-activity-projected',count:1},[{path,data:{schemaVersion:1,uid:actor.uid,...s,activities,updatedAt:time()}}]);
 }
-export async function groupRanking(r:AcademicReadView,policy:Policy,actor:Actor,i:Input){
+export async function groupRanking(r:AcademicTransaction,policy:Policy,actor:Actor,i:Input){
  const s=scopeOf(i);try{await policy.group(r,actor.uid,s,'readHistory');}catch(e){if((e as {status?:number}).status!==403)throw e;await student(r,actor.uid,s);}
  const control=controlDocument(await r.get(`${groupPath(s)}/rankingControl/current`),s);if(control?.enabled===false)return {scope:s,enabled:false,controlRevision:control?.revision??0,criterion:'unique-group-openings-v1',trust:'client-reported-participation',truncated:false,rows:[]};
  const {members,truncated}=await activeMembers(r,s),rows:{alias:string;participation:number;position:number|null}[]=[];
  // Only this group's materialized facts are read; no private profile, email, UID or score is returned.
- for(const member of members){const p=preference(await r.get(preferencePath(s,member.uid)),member.uid,s);if(!p?.enabled)continue;const identity=(await ownPlayer(r,member.uid)).identity;if(!identity)continue;
+ const aliasesToCreate:{path:string;data:Data}[]=[];
+ for(const member of members){
+ const path=`${groupPath(s)}/rankingAliases/${member.uid}`,stored=await r.get(path);
+ if(stored&&(!exact(stored,['schemaVersion','courseId','termId','groupId','uid','alias'])||stored.schemaVersion!==1||stored.courseId!==s.courseId||stored.termId!==s.termId||stored.groupId!==s.groupId||stored.uid!==member.uid||typeof stored.alias!=='string'||!/^Explorador-[a-f0-9]{32}$/.test(stored.alias)))throw conflict();
+ const alias=stored?.alias??'Explorador-'+randomBytes(16).toString('hex');
+ if(!stored)aliasesToCreate.push({path,data:{schemaVersion:1,...s,uid:member.uid,alias}});
  const projected=participationDocument(await r.get(`${groupPath(s)}/participation/${member.uid}`),member.uid,s);
  const count=Object.values(projected?.activities??{}).filter((v:any)=>v?.opened===true).length;
- rows.push({alias:identity.gamertag,participation:count,position:null});}
+ rows.push({alias,participation:count,position:null});}
+ // Firestore requires every read to finish before the first write. Concurrent
+ // requests retry on the alias document, so only the committed value is returned.
+ for(const entry of aliasesToCreate)r.set(entry.path,entry.data);
  rows.sort((a,b)=>b.participation-a.participation||a.alias.localeCompare(b.alias,'es'));let previous=-1,position=0;rows.forEach((row,index)=>{if(row.participation!==previous)position=index+1;previous=row.participation;row.position=truncated?null:position;});
  return {scope:s,enabled:true,controlRevision:control?.revision??0,criterion:'unique-group-openings-v1',trust:'client-reported-participation',truncated,rows};
 }

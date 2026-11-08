@@ -22,7 +22,7 @@ export function AcademicAccessProvider({children}:{children:ReactNode}){
     void call('getPlayerIdentity',{}).then(result=>{if(current())setData(old=>({...old,uid,identity:result.identity}));}).catch(()=>{});
     return ()=>{active=false;controller.abort();};
   },[auth.user?.uid,auth.status,revision]);
-  useEffect(()=>{const update=()=>refresh();window.addEventListener('academic-identity-updated',update);window.addEventListener('focus',update);return ()=>{window.removeEventListener('academic-identity-updated',update);window.removeEventListener('focus',update);};},[]);
+  useEffect(()=>{let lastFocus=Date.now();const update=()=>refresh(),focus=()=>{if(Date.now()-lastFocus>=60000){lastFocus=Date.now();refresh();}};window.addEventListener('academic-identity-updated',update);window.addEventListener('focus',focus);return ()=>{window.removeEventListener('academic-identity-updated',update);window.removeEventListener('focus',focus);};},[]);
   const valid=data.uid===auth.user?.uid;
   return <Context.Provider value={{teacher:valid&&data.teacher,checked:auth.user?valid&&data.checked:auth.status!=='loading',identity:valid?data.identity:undefined,error:valid?error:'',refresh}}>{children}</Context.Provider>;
 }

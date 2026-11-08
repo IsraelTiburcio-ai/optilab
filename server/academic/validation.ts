@@ -5,7 +5,7 @@ const shapes:Record<Operation,string[]>={
   configureParticipation:['courseId','termId','groupId','enabled','expectedVersion','idempotencyKey'],syncAdmission:[],rankingPreference:['courseId','termId','groupId'],groupRanking:['courseId','termId','groupId'],setRankingParticipation:['courseId','termId','groupId','enabled','expectedVersion','idempotencyKey'],recordGroupActivity:['courseId','termId','groupId','activityId','attemptId','idempotencyKey'],
   myScopes:['kind','limit','cursor','courseId'],roster:['courseId','termId','groupId','limit','cursor'],
   requestStatus:['courseId','termId','groupId','requestId','inviteId'],groupInvitations:['courseId','termId','groupId','limit','cursor'],groupProgress:['courseId','termId','groupId','periodDays'],
-  activityWorkspace:['courseId','termId','groupId'],publishedGroupActivities:['courseId','termId','groupId'],publishedActivity:['courseId','termId','groupId','activityId'],
+  activityWorkspace:['courseId','termId','groupId'],teacherPublishedGroupActivities:['courseId','termId','groupId'],publishedGroupActivities:['courseId','termId','groupId'],publishedActivity:['courseId','termId','groupId','activityId'],
   saveActivityDraft:['courseId','termId','groupId','groupIds','activityId','expectedVersion','idempotencyKey','provider','resourceId','sourceUrl','embedUrl','title','description','instructions','gymId'],
   publishActivities:['courseId','termId','groupId','groupIds','activityId','expectedVersion','idempotencyKey'],
   saveGymLayout:['courseId','termId','groupId','gymId','orderedActivityIds','hiddenOriginalGameIds','externalVisibility','expectedVersion','idempotencyKey'],

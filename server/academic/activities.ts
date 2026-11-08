@@ -122,6 +122,13 @@ export async function activityWorkspace(r:AcademicReadView,policy:Policy,actor:A
 }
 export async function publishedGroupActivities(r:AcademicReadView,actor:Actor,input:Input):Promise<Data> {
   const s=scopeOf(input);await studentGroup(r,actor.uid,s);
+  return publishedGroupView(r,s);
+}
+export async function teacherPublishedGroupActivities(r:AcademicReadView,policy:Policy,actor:Actor,input:Input):Promise<Data> {
+  const s=scopeOf(input);await policy.group(r,actor.uid,s);
+  return publishedGroupView(r,s);
+}
+async function publishedGroupView(r:AcademicReadView,s:Scope):Promise<Data> {
   const gyms=[],assignments=(await activityRows(r,`${groupPath(s)}/groupActivities`)).map(({id,data})=>assignment(data,s,id));
   for(const gymId of gymIds){
     const publishedOrder=assignments.some(a=>a.gymId===gymId&&a.status==='published')?placement(await r.get(placementPath(s,gymId)),s,gymId).orderedActivityIds:[];

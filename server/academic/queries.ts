@@ -1,4 +1,4 @@
-import {syncAdmission,rankingPreference,groupRanking} from './participation.js';
+import {syncAdmission,rankingPreference} from './participation.js';
 import type {Actor,Input,Operation,Scope,Data} from './contracts.js';
 import {scopeOf,identifier,exact,integer} from './validation.js';
 import {activeContext,contextData,grant,type Policy} from './authorization.js';
@@ -9,11 +9,10 @@ import {currentEnrollmentLink} from './enrollmentLinks.js';
 import {invitation,request,publicInvite,publicRequest,scoped,roster,millis,details} from './models.js';
 import {ApiError,denied,conflict} from './errors.js';
 import {groupProgress} from './progress.js';
-import {activityWorkspace,publishedGroupActivities,publishedActivity} from './activities.js';
+import {activityWorkspace,publishedGroupActivities,teacherPublishedGroupActivities,publishedActivity} from './activities.js';
 export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Actor,operation:Operation,input:Input,progressAttemptLimit=200):Promise<Data> {
   if(operation==='syncAdmission')return syncAdmission(repo,actor);
   if(operation==='rankingPreference')return rankingPreference(repo,actor,input);
-  if(operation==='groupRanking')return groupRanking(repo,policy,actor,input);
   if(operation==='getAcademicProfile')return ownProfile(repo,actor.uid);
   if(operation==='getPlayerIdentity')return ownPlayer(repo,actor.uid);
   if(operation==='gamertagAvailability')return tagAvailability(repo,actor.uid,input.gamertag!);
@@ -59,6 +58,7 @@ export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Ac
   }
   const s=scopeOf(input),root=groupPath(s);
   if(operation==='activityWorkspace')return activityWorkspace(repo,policy,actor,input);
+  if(operation==='teacherPublishedGroupActivities')return teacherPublishedGroupActivities(repo,policy,actor,input);
   if(operation==='publishedGroupActivities')return publishedGroupActivities(repo,actor,input);
   if(operation==='publishedActivity')return publishedActivity(repo,actor,input);
   if(operation==='groupProgress')return groupProgress(repo,policy,actor,input,progressAttemptLimit);

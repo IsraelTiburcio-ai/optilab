@@ -1,4 +1,4 @@
-import {student,configureParticipation,setRankingParticipation,recordGroupActivity} from './participation.js';
+import {student,configureParticipation,setRankingParticipation,recordGroupActivity,groupRanking} from './participation.js';
 import type {Actor,Input,Operation,Data} from './contracts.js';
 import {reads} from './contracts.js';
 import {scopeOf,parseInput,exact,isRecord,identifier,integer} from './validation.js';
@@ -44,6 +44,8 @@ export class AcademicService {
   private async perform(actor:Actor,name:string,value:unknown):Promise<Data> {
     const {operation:op,input:i}=parseInput(name,value,this.maxTtl);
     // Authorization, metadata and page rows share one read-only snapshot.
+    // Ranking lazily provisions opaque aliases in one authorization-checked transaction.
+    if(op==='groupRanking')return this.repo.transaction(tx=>groupRanking(tx,this.policy,actor,i));
     if(reads.has(op))return this.repo.readTransaction(view=>readOperation(view,this.policy,actor,op,i,this.progressAttemptLimit));
     await this.authorize(this.repo,actor,op,i);
     let identity:AuthIdentity|null=null;

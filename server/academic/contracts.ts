@@ -4,7 +4,7 @@ export type Operation='configureParticipation'|'syncAdmission'|'rankingPreferenc
   'createInvitation'|'reissueInvitation'|'revokeInvitation'|'requestMembership'|'approveMembership'|'rejectMembership'|
   'revokeMembership'|'transferMembership'|'createTerm'|'createGroup'|'getAcademicProfile'|'updateAcademicProfile'|
   'getPlayerIdentity'|'gamertagAvailability'|'savePlayerIdentity'|'groupEnrollmentLink'|'rotateEnrollmentLink'|'revokeEnrollmentLink'|'redeemInvitation'|'groupProgress'|
-  'activityWorkspace'|'publishedGroupActivities'|'publishedActivity'|'saveActivityDraft'|'publishActivities'|'saveGymLayout'|'reorderActivities'|'moveActivity'|'setActivityStatus';
+  'activityWorkspace'|'teacherPublishedGroupActivities'|'publishedGroupActivities'|'publishedActivity'|'saveActivityDraft'|'publishActivities'|'saveGymLayout'|'reorderActivities'|'moveActivity'|'setActivityStatus';
 export interface Input extends Partial<Scope> {
   enabled?:boolean;attemptId?:string;idempotencyKey?:string;expectedVersion?:number;inviteId?:string;requestId?:string;uid?:string;
   token?:string;expiresInSeconds?:number;maxUses?:number;maxPending?:number;periodDays?:number;
@@ -14,5 +14,5 @@ export interface Input extends Partial<Scope> {
   groupIds?:string[];activityId?:string;provider?:string;resourceId?:string;sourceUrl?:string;embedUrl?:string|null;hiddenOriginalGameIds?:string[];externalVisibility?:{activityId:string;expectedVersion:number;visible:boolean}[];
   description?:string;instructions?:string;gymId?:number;orderedActivityIds?:string[];
 }
-export const reads=new Set<Operation>(['syncAdmission','rankingPreference','groupRanking','myScopes','roster','requestStatus','groupInvitations','membershipEvents','groupRequests','getAcademicProfile','getPlayerIdentity','gamertagAvailability','groupEnrollmentLink','groupProgress','activityWorkspace','publishedGroupActivities','publishedActivity']);
+export const reads=new Set<Operation>(['syncAdmission','rankingPreference','groupRanking','myScopes','roster','requestStatus','groupInvitations','membershipEvents','groupRequests','getAcademicProfile','getPlayerIdentity','gamertagAvailability','groupEnrollmentLink','groupProgress','activityWorkspace','teacherPublishedGroupActivities','publishedGroupActivities','publishedActivity']);
 export type Data=Record<string,any>;

@@ -1,4 +1,6 @@
-import {syncMode} from '../progress/config';
+import {syncMode,syncEnabled} from '../progress/config';
+import {lazy,Suspense} from 'react';
+const SyncPanel=lazy(()=>import('../progress/SyncPanel'));
 import {AttemptHistory} from '../attempts/local';
 import {useEffect, useRef, useState,useSyncExternalStore, type FormEvent} from 'react';
 import {Link} from 'react-router-dom';
@@ -46,7 +48,7 @@ export default function Account() {
     if (mode === 'register' && password !== confirmation) {setError('Las contraseñas no coinciden. Revisa ambos campos.'); return;}
     if (mode === 'reset') void run(() => auth.resetPassword(email.trim()), 'Si este correo tiene una cuenta, recibirás un enlace para restablecer la contraseña. Revisa también la carpeta de correo no deseado.');
     else if (mode === 'register') void run(() => auth.register(email.trim(), password), 'Cuenta creada. Te enviamos un correo de verificación; tu aventura local permanece intacta.');
-    else void run(() => auth.login(email.trim(), password), 'Sesión iniciada. Tu progreso sigue siendo local en esta fase.');
+    else void run(() => auth.login(email.trim(), password), syncEnabled?'Sesión iniciada. Revisa las opciones de sincronización en Cuenta.':'Sesión iniciada. Tu progreso se conserva en este navegador.');
   }
 
   return <section className="account-page">
@@ -103,6 +105,8 @@ export default function Account() {
       </>}
       <Link className="account-guest-link" to="/mapa">{auth.user ? 'Explorar el mapa' : 'Continuar como invitado'} <ArrowRight size={16}/></Link>
     </section></div>
+    {academicEnabled&&<p className="notice">En grupos activos, el ranking incluye automáticamente un alias opaco y aperturas de actividades informadas para el grupo; no muestra tu nombre, correo ni UID. Las preferencias de participación anteriores ya no controlan la inclusión. La docente puede pausar el ranking. Los consentimientos de aventura e historial siguen siendo independientes.</p>}
+    {syncEnabled&&<section id="sincronizacion" aria-label="Sincronización y respaldos"><h2>Sincronización y respaldos</h2><Suspense fallback={<p role="status">Preparando respaldos…</p>}><SyncPanel/></Suspense></section>}
     <AttemptHistory key={auth.user?.uid??'guest'}/>
   </section>;
 }

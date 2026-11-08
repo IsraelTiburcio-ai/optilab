@@ -52,7 +52,7 @@ export const test=base.extend<{fixture:Fixture},{backend:Worker}>({
       const cors={...(request.headers().origin?{'access-control-allow-origin':request.headers().origin}:{})};
       if(fault.forbidden===op){fault.forbidden='';await route.fulfill({status:403,contentType:'application/json',headers:cors,body:'{"error":{"code":"FORBIDDEN"}}'});return;}
       if(fault.rate===op){fault.rate='';await route.fulfill({status:429,contentType:'application/json',headers:cors,body:'{"error":{"code":"RATE_LIMIT"}}'});return;}
-      if(!['myScopes','roster','groupRequests','groupInvitations','activityWorkspace','publishedGroupActivities','publishedActivity'].includes(op))commands.push(op);
+      if(!['myScopes','roster','groupRequests','groupInvitations','activityWorkspace','teacherPublishedGroupActivities','publishedGroupActivities','publishedActivity'].includes(op))commands.push(op);
       try{
         const response=await route.fetch({url:backend.base+new URL(request.url()).pathname,headers:{...request.headers(),host:new URL(backend.base).host,origin:'http://127.0.0.1:5195'}});
         const responseHeaders={...response.headers(),...(request.headers().origin?{'access-control-allow-origin':request.headers().origin}:{})};

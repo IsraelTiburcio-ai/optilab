@@ -11,8 +11,8 @@ async function markPractice(page:Page,fixture:Fixture) {
   await page.goto('#/optidex?'+new URLSearchParams(fixture.scope()));
   const game=page.locator('.cartridge').filter({hasText:'System Catch'});
   await game.getByRole('button',{name:'Marcar como practicado',exact:true}).click();
-  await expect(progress(page).getByRole('status')).toContainText('Sincronizado',{timeout:20000});
-  await page.goto('#/cuenta');await expect(attempts(page).getByRole('status')).toContainText('synced',{timeout:20000});
+  await page.goto('#/cuenta');await expect(progress(page).getByRole('status')).toContainText('Sincronizado',{timeout:20000});
+  await expect(attempts(page).getByRole('status')).toContainText('synced',{timeout:20000});
 }
 async function revoke(page:Page,fixture:Fixture,uid:string) {
   const member=(await fixture.call('teacherA','roster',fixture.scope())).body.items.find((row:any)=>row.uid===uid);

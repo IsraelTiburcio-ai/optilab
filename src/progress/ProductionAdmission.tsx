@@ -1,3 +1,4 @@
+import {LoadingShell} from '../components/LoadingShell';
 import {lazy,Suspense,useEffect,useRef,useState,type ReactNode} from 'react';
 import {useAuth} from '../auth/AuthProvider';
 import {academicClient} from '../academic/client';
@@ -11,7 +12,7 @@ export function ProductionAdmission({uid,children,fallback}:{uid:string;children
    if(!alive)return;setAdmission(uid,allowed);setState(old=>({checked:true,ever:old.ever||allowed,active:allowed}));timer=setTimeout(check,30000);
   };void check();return()=>{alive=false;clearTimeout(timer);controller.abort();clearAdmission(uid);};
  },[uid]);
- if(!state.checked)return <p role="status">Comprobando la admisión de esta cuenta…</p>;
+ if(!state.checked)return <LoadingShell/>;
  if(!state.ever)return <><p role="status">Verifica tu correo y comprueba la conexión para sincronizar. Tu progreso local se conserva.</p>{fallback}</>;
- return <>{!state.active&&<p role="alert">Sincronización no disponible o pausada. Tu copia por cuenta y las operaciones pendientes se conservan; exporta antes de salir. Recarga tras la reapertura autorizada.</p>}<Suspense fallback={<p role="status">Abriendo el perfil privado de la cuenta…</p>}><CloudProgress uid={uid}>{children}</CloudProgress></Suspense></>;
+ return <>{!state.active&&<p role="alert">Sincronización no disponible o pausada. Tu copia por cuenta y las operaciones pendientes se conservan; exporta antes de salir. Recarga tras la reapertura autorizada.</p>}<Suspense fallback={<LoadingShell/>}><CloudProgress uid={uid}>{children}</CloudProgress></Suspense></>;
 }
