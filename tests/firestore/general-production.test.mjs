@@ -23,3 +23,8 @@ test('retired pilot expiry does not block normal accounts; erasure fence and eme
  await admin('syncProductionControl/current',{version:1,readsEnabled:false,writesEnabled:false});await assertFails(getDoc(doc(a,path('first'))));
  await admin('syncProductionControl/current',{version:1,readsEnabled:true,writesEnabled:true});await admin('syncPilotMembers/general-a',{status:'erased'});await assertFails(getDoc(doc(a,path('first'))));await assertFails(setDoc(doc(a,path('erased')),event('erased')));
 });
+test('production rules deny direct access to opaque ranking alias mappings',async()=>{
+ const target='courses/demo/terms/demo/groups/demo/rankingAliases/general-a';
+ await admin(target,{schemaVersion:1,uid:'general-a',alias:'Explorador-'+ 'b'.repeat(32)});
+ for(const uid of ['general-a','general-b']){const client=env.authenticatedContext(uid,{email_verified:true}).firestore();await assertFails(getDoc(doc(client,target)));await assertFails(setDoc(doc(client,target),{uid,alias:'forged'}));}
+});

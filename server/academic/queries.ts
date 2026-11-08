@@ -1,4 +1,4 @@
-import {syncAdmission,rankingPreference,groupRanking} from './participation.js';
+import {syncAdmission,rankingPreference} from './participation.js';
 import type {Actor,Input,Operation,Scope,Data} from './contracts.js';
 import {scopeOf,identifier,exact,integer} from './validation.js';
 import {activeContext,contextData,grant,type Policy} from './authorization.js';
@@ -13,7 +13,6 @@ import {activityWorkspace,publishedGroupActivities,teacherPublishedGroupActiviti
 export async function readOperation(repo:AcademicReadView,policy:Policy,actor:Actor,operation:Operation,input:Input,progressAttemptLimit=200):Promise<Data> {
   if(operation==='syncAdmission')return syncAdmission(repo,actor);
   if(operation==='rankingPreference')return rankingPreference(repo,actor,input);
-  if(operation==='groupRanking')return groupRanking(repo,policy,actor,input);
   if(operation==='getAcademicProfile')return ownProfile(repo,actor.uid);
   if(operation==='getPlayerIdentity')return ownPlayer(repo,actor.uid);
   if(operation==='gamertagAvailability')return tagAvailability(repo,actor.uid,input.gamertag!);

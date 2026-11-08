@@ -2,6 +2,8 @@
 
 Esta entrega conserva el despliegue ordinario con Sync OFF. No ejecuta despliegues ni cambia autorizaciones existentes. La función integrada requiere `VITE_INTEGRATED_PROGRESS=pilot-v1` y una configuración Sync válida. Las publicaciones manuales existentes incorporan la marca, conservando sus aprobaciones, SHA exacto, Rules vivas, expiración y pausa. El piloto de dos revisores y la sesión individual mantienen sus contratos separados.
 
+> Aviso de versión: este documento describe el piloto original. En la versión de producción general actual, la participación en el ranking es automática para integrantes activos y las preferencias antiguas ya no controlan la inclusión. Consulta [Producción general](GENERAL-PRODUCTION.md) para el comportamiento vigente y los alias persistentes.
+
 ## Datos y compatibilidad
 
 - `reportedAttempts` v1 conserva documentos inmutables por UID; agrega contexto académico opcional exacto y IDs de actividades externas permitidos. Las Rules no convierten ese contexto en autorización: el API verifica matrícula/grupo, documento persistido y recurso asignado. Ningún resultado adquiere validación académica.

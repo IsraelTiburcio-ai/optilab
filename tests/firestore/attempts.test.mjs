@@ -15,5 +15,12 @@ test('contexto opcional exacto, actividades externas y ninguna escritura académ
  const db=env.authenticatedContext('a',{email_verified:true}).firestore(),context={courseId:'demo-course',termId:'demo-term',groupId:'demo-group'},activity='a_'+'a'.repeat(32);
  await assertSucceeds(setDoc(doc(db,path('scoped',activity)),{...payload('scoped',activity),context}));
  for(const [index,invalid] of [{...context,uid:'b'},{...context,groupId:'../other'},{courseId:'demo-course',termId:'demo-term'},null].entries())await assertFails(setDoc(doc(db,path('context-bad-'+index)),{...payload('context-bad-'+index),context:invalid}));
- for(const collection of ['participation','rankingPreferences','rankingControl'])await assertFails(setDoc(doc(db,`courses/demo-course/terms/demo-term/groups/demo-group/${collection}/a`),{enabled:true}));
+ for(const collection of ['participation','rankingPreferences','rankingControl','rankingAliases'])await assertFails(setDoc(doc(db,`courses/demo-course/terms/demo-term/groups/demo-group/${collection}/a`),{enabled:true}));
+});
+
+test('ranking alias mappings cannot be read or written by any client',async()=>{
+ const path='courses/demo-course/terms/demo-term/groups/demo-group/rankingAliases/a';
+ await env.withSecurityRulesDisabled(c=>setDoc(doc(c.firestore(),path),{schemaVersion:1,uid:'a',alias:'Explorador-'+ 'a'.repeat(32)}));
+ for(const uid of ['a','b']){const db=env.authenticatedContext(uid,{email_verified:true}).firestore();await assertFails(getDoc(doc(db,path)));await assertFails(setDoc(doc(db,path),{uid,alias:'forged'}));}
+ await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(),path)));
 });
