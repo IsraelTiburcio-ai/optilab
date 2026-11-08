@@ -154,7 +154,7 @@ test('conflicto docente conserva los cambios y nunca sobrescribe la versión gan
   await manager.getByRole('button',{name:'Guardar cambios',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Guardar y continuar'}).click();await expect(page.getByRole('dialog').getByRole('alert')).toContainText('La información cambió');
   expect((await workspace(fixture)).layouts[2].orderedActivityIds).toEqual(winning);await page.getByRole('dialog').getByRole('button',{name:'Seguir editando'}).click();
   await tab(page,'Biblioteca');await page.getByRole('dialog').getByRole('button',{name:'Descartar cambios'}).click();await tab(page,'Gimnasios');
-  const current=await workspace(fixture);const names=await manager.locator('.gym-manager-row strong').allTextContents();expect(names).toHaveLength(current.layouts[2].orderedActivityIds.length);await expect(manager.getByText('No hay cambios pendientes.',{exact:false})).toBeVisible();
+  const current=await workspace(fixture);await expect(manager.locator('.gym-manager-row')).toHaveCount(current.layouts[2].orderedActivityIds.length);await expect(manager.getByText('No hay cambios pendientes.',{exact:false})).toBeVisible();
 });
 test('respuesta perdida del guardado se reintenta sin duplicar revisiones',async({page,fixture})=>{
   await openActivities(page,fixture);const manager=page.locator('.gym-manager');await expect(manager.locator('.gym-manager-row')).toHaveCount(5);
