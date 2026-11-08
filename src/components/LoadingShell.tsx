@@ -1,8 +1,9 @@
-import {Link,useLocation} from 'react-router-dom';
+import {useLocation} from 'react-router-dom';
+import {SiteHeader} from './SiteHeader';
 import './loading.css';
 /** Public placeholders only: never render a previous account while identity is unresolved. */
 export function LoadingShell(){
- return <div className="loading-shell"><header className="loading-header"><Link to="/" className="loading-brand">OPTI<span>LAB</span></Link><nav aria-label="Navegación principal"><Link to="/">Inicio</Link><Link to="/mapa">Mapa</Link><Link to="/optidex">OptiDex</Link><Link to="/entrenar">Entrenar</Link><Link to="/aventura">Mi aventura</Link><Link to="/cuenta">Cuenta</Link></nav></header><LoadingContent/></div>;
+ return <div className="loading-shell"><SiteHeader/><main id="contenido"><LoadingContent/></main></div>;
 }
 export function LoadingContent(){
  const {pathname}=useLocation();const page=pathname==='/docente'?'docente':pathname==='/cuenta'?'cuenta':pathname==='/optidex'?'optidex':pathname.startsWith('/gimnasio')?'gimnasio':'inicio';

@@ -1,3 +1,4 @@
+import {TeacherSkeleton} from './TeacherSkeleton';
 import {useCallback,useEffect,useLayoutEffect,useRef,useState,type DragEvent} from 'react';
 import {ChevronDown,ChevronUp,Eye,EyeOff,RotateCcw,ExternalLink} from 'lucide-react';
 import {useBlocker,type BlockerFunction} from 'react-router-dom';
@@ -87,7 +88,7 @@ export function GymManager({scope,scopes,call,disabled=false}:{scope:TeachingSco
     {error&&<p role="alert" className="teacher-error">{error} {!dirty&&<button className="button" onClick={()=>setReload(n=>n+1)}>Reintentar</button>}</p>}
     {notice&&<p role="status" className="teacher-success">{notice}</p>}
     <p className="muted" role="status">{dirty?'Tienes cambios pendientes de guardar.':'No hay cambios pendientes.'} El orden y la visibilidad se guardan juntos.</p>
-    {loading?<p role="status">Cargando las actividades del gimnasio…</p>:workspace&&<><p className="muted">Arrastra las filas o usa Subir y Bajar con el teclado. Ocultar no borra el progreso ni cambia las insignias.</p>
+    {loading?<TeacherSkeleton variant="list"/>:workspace&&<><p className="muted">Arrastra las filas o usa Subir y Bajar con el teclado. Ocultar no borra el progreso ni cambia las insignias.</p>
       <ol className="gym-manager-list" aria-label={`Actividades de ${gyms[gymId-1].name}`}>{rows.map((row,index)=><li key={row.id} className={`gym-manager-row ${isHidden(row)?'is-hidden':''}`} draggable={!disabled&&!busy} onDragStart={()=>{drag.current=row.id;}} onDragEnd={()=>{drag.current=null;}} onDragOver={e=>e.preventDefault()} onDrop={e=>drop(e,row.id)}>
         <span className="gym-manager-order" aria-hidden="true">{String(index+1).padStart(2,'0')}</span><div className="gym-manager-copy"><strong>{row.title}</strong><small>{row.provider} · {row.assignment?.status==='draft'?'Borrador':row.assignment?.status==='archived'?'Archivada':isHidden(row)?'Oculta para tus alumnos':'Visible para tus alumnos'}</small>{pendingRow(row,index)&&<small className="gym-pending">Cambio pendiente</small>}</div>
         <div className="gym-manager-actions"><button className="button" aria-label={`Subir ${row.title}`} disabled={disabled||busy||index===0} onClick={()=>move(index,-1)}><ChevronUp size={16}/> Subir</button><button className="button" aria-label={`Bajar ${row.title}`} disabled={disabled||busy||index===rows.length-1} onClick={()=>move(index,1)}><ChevronDown size={16}/> Bajar</button>

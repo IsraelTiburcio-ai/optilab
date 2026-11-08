@@ -13,7 +13,7 @@ test('catálogo académico por grupo y vista docente sin registrar práctica',as
   await page.setViewportSize({width:390,height:844});
   if(process.env.UX_CAPTURE_DIR)await page.screenshot({path:`${process.env.UX_CAPTURE_DIR}/${test.info().project.use.browserName}-teacher-gym-mobile.png`,fullPage:true});
   await expect(page.getByRole('button',{name:'Marcar como practicado'})).toHaveCount(0);
-  await expect(teacherCard.getByRole('link',{name:/Vista previa/})).toHaveAttribute('href',/wordwall\.net/);
+  await teacherCard.getByRole('link',{name:/Vista previa/}).click();await expect(page.getByText('Vista previa docente: no se registra progreso ni participación.')).toBeVisible();await expect(page.getByText('Este recurso se abre en la página del proveedor.',{exact:false})).toBeVisible();await page.getByRole('link',{name:'← Regresar al gimnasio'}).click();await expect(teacherCard).toBeVisible();
   let scopeReads=0;page.on('request',request=>{if(request.url().endsWith('/myScopes'))scopeReads++;});
   await page.goto('#/optidex');await expect(teacherCard).toBeVisible();expect(scopeReads).toBe(0);
   await page.getByLabel('Buscar por nombre o tema').fill('Actividad de clase ficticia');await expect(page.locator('.cartridge')).toHaveCount(1);

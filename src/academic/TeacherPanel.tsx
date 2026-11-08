@@ -1,3 +1,4 @@
+import {TeacherSkeleton} from './TeacherSkeleton';
 import {integratedBuild} from '../integration/features';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {Link} from 'react-router-dom';
@@ -85,7 +86,7 @@ function TeacherSession({uid}:{uid:string}) {
     {notice&&<p ref={noticeRef} tabIndex={-1} className="teacher-success" role="status">{notice}</p>}
     {error&&<p className="teacher-error" role="alert">{error}</p>}
     <div className="teacher-toolbar"><button className="button" disabled={disabled||loading} onClick={()=>{setNotice('');setReset(v=>v+1);void discover(false,scope?scope:undefined);}}>Actualizar grupos y datos</button></div>
-    {loading&&<p role="status">Comprobando tus grupos autorizados…</p>}
+    {loading&&<TeacherSkeleton variant="directory"/>}
     {!loading&&!error&&!scopes.length&&<div className="paper teacher-empty"><Users size={30}/><h2>Sin acceso docente autorizado</h2><p>Esta cuenta no tiene grupos docentes disponibles. Una cuenta de alumno o un rol declarado en el navegador no concede acceso.</p></div>}
     {creating?<Creation scopes={scopes} call={call} refresh={refresh} prepare={prepare} busy={disabled} back={()=>setCreating(false)} hasMore={!!cursor} loadingScopes={loading} loadMore={()=>void discover(true)}/>:
       scope?<><div className="teacher-group-heading"><button className="button" disabled={disabled} onClick={()=>{setSelected('');setNotice('');}}>← Mis grupos</button><div><span className="eyebrow">{scope.courseTitle} · {scope.termTitle}</span><h2>{scope.title}</h2></div></div>

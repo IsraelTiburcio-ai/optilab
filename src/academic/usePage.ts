@@ -4,7 +4,7 @@ import type {Api,Page} from './types';
 type Read='roster'|'groupRequests'|'groupInvitations'|'myScopes';
 export function useAcademicPage<K extends Read>(call:AcademicCall,operation:K,input:Api[K]['input'],refresh:number,enabled=true) {
   const [cursor,setCursor]=useState<string>(),[previous,setPrevious]=useState<(string|undefined)[]>([]);
-  const [data,setData]=useState<Api[K]['output']|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(false);
+  const [data,setData]=useState<Api[K]['output']|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(enabled);
   const serialized=JSON.stringify(input);
   useEffect(()=>{setCursor(undefined);setPrevious([]);},[serialized,refresh]);
   useEffect(()=>{

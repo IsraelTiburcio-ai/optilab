@@ -1,5 +1,5 @@
 import {lazy,Suspense,useEffect,useRef,useState,type CSSProperties} from 'react';
-import {Link,NavLink,Route,Routes,useLocation,useParams} from 'react-router-dom';
+import {Link,Route,Routes,useLocation,useParams} from 'react-router-dom';
 import {ArrowRight,BookOpen,Compass,Home as HomeIcon,KeyRound,Map as MapIcon,Search,Shield,Signpost,Sparkles,Trophy,UserRound,X} from 'lucide-react';
 import {games,gyms,gymGames,normalize,questions,type Game} from './data';
 import {useProgress} from './store';
@@ -29,6 +29,8 @@ import {ExternalActivityCards} from './activities/ExternalActivityCards';
 import {GymGameGrid,useStudentGymConfig,StudentGymContext,ExternalCard,type Item} from './academic/GymGameGrid';
 import './styles/sync.css';
 import {LoadingContent} from './components/LoadingShell';
+import {SiteHeader} from './components/SiteHeader';
+import {ContinueActivity} from './components/ContinueActivity';
 const Account=lazy(()=>import('./pages/Account'));
 const ExternalActivityPlayer=lazy(()=>import('./pages/ExternalActivityPlayer'));
 const PublishedActivityPlayer=lazy(()=>import('./pages/PublishedActivityPlayer'));
@@ -50,8 +52,8 @@ function Home() {
     <p className="hero-description">{hasTeam?'Cada práctica deja huella en vuestra aventura. ¿Hacia dónde vamos hoy?':'Explora, juega y encuentra nuevas formas de entender. Tu próxima gran idea comienza aquí.'}</p>
     <Link className="button primary" to={!state.avatarId?'/entrenador':!state.companionId?'/companero':'/mapa'}>{hasTeam?'Continuar aventura':state.avatarId?'Elegir compañero':'Comenzar aventura'} <ArrowRight size={20}/></Link>
     <span className="hero-note">Sin registros. A tu ritmo. Desde cualquier lugar.</span>
-  </div><div className="hero-scene"><Landscape/>{hasTeam?<div className="hero-team"><AvatarPortrait id={state.avatarId} eager/><CompanionPortrait id={state.companionId} stage={evolution.stage} eager/></div>:<Mascot id={1}/>}<span className="scene-note"><Sparkles size={16}/> {hasTeam?'¡La aventura continúa!':'¡Hay mucho por descubrir!'}</span><span className="coordinate">REGIÓN OPTILAB · 01—05</span></div></section>
-    <section className="adventure-strip"><div><Compass/><span><strong>5 gimnasios</strong><small>Un universo por explorar</small></span></div><div><BookOpen/><span><strong>28 microjuegos</strong><small>Conceptos que cobran vida</small></span></div><div><Shield/><span><strong>Tu propio progreso</strong><small>{Object.keys(state.practiced).length} actividades practicadas</small></span></div></section>
+  </div><div className="hero-scene"><Landscape/>{!hasTeam&&<div className="hero-world-ensemble" aria-hidden="true"><AvatarPortrait id="avatar-02" decorative/><CompanionPortrait id="piv" stage={1} decorative/><CompanionPortrait id="nexo" stage={1} decorative/></div>}{hasTeam?<div className="hero-team"><AvatarPortrait id={state.avatarId} eager/><CompanionPortrait id={state.companionId} stage={evolution.stage} eager/></div>:<Mascot id={1}/>}<span className="scene-note"><Sparkles size={16}/> {hasTeam?'¡La aventura continúa!':'¡Hay mucho por descubrir!'}</span><span className="coordinate">REGIÓN OPTILAB · 01—05</span></div></section>
+    <ContinueActivity/><section className="adventure-strip"><div><Compass/><span><strong>5 gimnasios</strong><small>Un universo por explorar</small></span></div><div><BookOpen/><span><strong>28 microjuegos</strong><small>Conceptos que cobran vida</small></span></div><div><Shield/><span><strong>Tu propio progreso</strong><small>{Object.keys(state.practiced).length} actividades practicadas</small></span></div></section>
     <section className="home-next"><div className="section-heading"><div><span className="eyebrow">ELIGE TU SIGUIENTE PASO</span><h2>La aventura apenas comienza.</h2></div><span className="hand-note">La curiosidad es tu brújula ↗</span></div>
       <div className="entry-grid"><Link to="/mapa" className="entry-card green"><MapIcon/><span className="eyebrow">EXPLORAR</span><h3>Cinco destinos.<br/>Mil conexiones.</h3><p>Conoce la región y entra al gimnasio que más te llame.</p><span>Explorar gimnasios <ArrowRight size={18}/></span></Link>
         <Link to="/entrenar" className="entry-card sand"><Signpost/><span className="eyebrow">ENTRENAR</span><h3>Un pequeño paso.<br/>Un gran avance.</h3><p>Diseña una ruta de práctica para tu siguiente sesión.</p><span>Mi entrenamiento <ArrowRight size={18}/></span></Link>
@@ -100,11 +102,9 @@ export default function App(){
   const {state,storageOK,sync}=useProgress();const location=useLocation();const main=useRef<HTMLElement>(null);
   useEffect(()=>{window.scrollTo(0,0);main.current?.focus();document.title=`OptiLab · ${location.pathname==='/'?'Tu aventura comienza aquí':links.find(l=>l[0]===location.pathname)?.[1]||'Aventura'}`},[location.pathname]);
   return <><a className="skip-link" href="#contenido">Saltar al contenido</a>
-    <header className="site-header"><Link to="/" className="brand" aria-label="OptiLab inicio"><span className="brand-symbol"><Compass size={25}/></span>OPTI<span>LAB</span><small>APRENDE · JUEGA · EXPLORA</small></Link>
-      <nav aria-label="Navegación principal" className={academicEnabled&&access.teacher?'teacher-navigation':undefined}>{links.map(([path,label,Icon])=><NavLink key={path} to={path} end={path==='/'}><Icon size={19}/><span>{label}</span></NavLink>)}{academicEnabled&&access.teacher&&<NavLink to="/docente"><Shield size={19}/><span>Docente</span></NavLink>}</nav>
-      <Link className="header-progress" to="/aventura"><Shield size={18}/><span>{Object.keys(state.practiced).length} / 28</span></Link>
-    </header>
-    {syncEnabled&&sync&&location.pathname!=='/cuenta'&&<aside className="sync-indicator" role={sync.view.error||sync.view.conflict?'alert':'status'}><Link to="/cuenta">{sync.view.conflict?'Conflicto: revisar sincronización':sync.view.error?'Revisar sincronización':sync.view.status==='synced'?'Sincronizado':sync.view.status==='offline'?'Sin conexión':'Sincronización pendiente'}</Link></aside>}
+    <SiteHeader teacher={academicEnabled&&access.teacher} count={Object.keys(state.practiced).length}/>
+    {syncEnabled&&sync&&location.pathname!=='/cuenta'&&(sync.view.error||sync.view.conflict||sync.view.status==='offline'&&sync.view.pending>0)&&<aside className="sync-indicator" role="alert"><Link to="/cuenta">{sync.view.conflict?'Conflicto de sincronización':sync.view.status==='offline'?'Sin conexión · cambios pendientes':'Hay un problema de sincronización'} · Revisar en Cuenta</Link></aside>}
+    {syncEnabled&&sync&&location.pathname!=='/cuenta'&&sync.view.status==='synced'&&<span className="sync-indicator sr-only" aria-hidden="true">Sincronizado</span>}
     <main id="contenido" tabIndex={-1} ref={main}>
       {!storageOK&&<p className="notice" role="status">El almacenamiento no está disponible. Puedes seguir explorando; esta sesión no se conservará al recargar.</p>}
       <EvolutionNotice/>
@@ -112,10 +112,11 @@ export default function App(){
         <Route path="/" element={<Home/>}/><Route path="/entrenador" element={<TrainerSelect/>}/><Route path="/companero" element={<CompanionSelector/>}/>
         <Route path="/mapa" element={<GymMap/>}/><Route path="/gimnasio/:id" element={<GymDetail/>}/><Route path="/jugar/:id" element={<AcademicGameAccess><GamePlayer/></AcademicGameAccess>}/>
         <Route path="/actividad/:activityId" element={<Suspense fallback={<p role="status">Abriendo la actividad complementaria…</p>}><ExternalActivityPlayer/></Suspense>}/>
+        {academicEnabled&&<Route path="/vista-docente/:courseId/:termId/:groupId/actividad/:activityId" element={<Suspense fallback={<LoadingContent/>}><PublishedActivityPlayer preview/></Suspense>}/>}
         {academicEnabled&&<Route path="/grupo/:courseId/:termId/:groupId/actividad/:activityId" element={<Suspense fallback={<p role="status">Abriendo la actividad de tu clase…</p>}><PublishedActivityPlayer/></Suspense>}/>}
         <Route path="/jugar-original/:gameId" element={<Suspense fallback={<p role="status">Abriendo el juego…</p>}><AcademicGameAccess><OriginalGamePlayer/></AcademicGameAccess></Suspense>}/>
         <Route path="/optidex" element={<OptiDex/>}/><Route path="/entrenar" element={<Training/>}/><Route path="/reto" element={<Exam/>}/>
-        <Route path="/aventura" element={<><Profile/><GameHistory/></>}/>
+        <Route path="/aventura" element={<><Profile/><details><summary>Ver bitácora de partidas</summary><GameHistory/></details></>}/>
         <Route path="/cuenta" element={<Suspense fallback={<LoadingContent/>}><Account/></Suspense>}/>
         {TeacherPanel&&<Route path="/docente" element={!access.checked?<LoadingContent/>:access.teacher?<Suspense fallback={<LoadingContent/>}><TeacherPanel/></Suspense>:<><h1>Sin acceso docente autorizado</h1>{access.error&&<p role="alert">{access.error}</p>}<button className="button" onClick={access.refresh}>Actualizar acceso</button><Link className="button" to="/aventura">Volver a mi aventura</Link></>}/>}
         {EnrollmentPage&&<Route path="/unirse" element={<Suspense fallback={<p role="status">Abriendo inscripción académica…</p>}><EnrollmentPage/></Suspense>}/>}
