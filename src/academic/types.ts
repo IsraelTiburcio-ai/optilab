@@ -15,10 +15,21 @@ export interface MutationResult {outcome:string;commandId:string;operation:strin
 export interface PlayerIdentity {revision:number;gamertag:string;avatarId:string;companionId:string;updatedAt:string}
 export interface EnrollmentLink {revision:number;status:'active'|'expired'|'revoked';expiresAt:string}
 export interface GroupProgressGym {gymId:number;title:string;totalGames:number;opened:number;practiced:number;reported:number;completed:number}
+export interface GroupProgressGymMetric {
+  gymId:number;title:string;totalGames:number;availableGames:number;coveragePercent:number;averageProgressPercent:number;participatingStudents:number;
+  games:Array<{gameId:string;title:string;visible:boolean;practicedStudents:number;pendingStudents:number}>;
+}
+export interface GroupProgressSummary {
+  studentsTotal:number;studentsParticipated:number;studentsWithoutActivity:number;
+  practicePairs:number;coveragePercent:number;averageProgressPercent:number;availableOriginalGames:number;
+}
+export interface GroupProgressStudentGymDetail {gymId:number;availableGames:number;practicedGames:number;pendingGames:number;averageProgressPercent:number}
 export interface GroupProgressStudent {
   uid:string;name:string;email:string|null;emailVerified:boolean;gamertag:string|null;
   pendingGames?:number;manualDeclaredGames?:number;lastActivityAt:string|null;opened:number;declared:number;reported:number;validated:number;
   practicedGames:number;completedGames:number;gyms:Array<{gymId:number;opened:number;declared:number;reported:number;completed:number;practiced?:number;pending?:number}>;
+  averageProgressPercent:number;gymDetails:GroupProgressStudentGymDetail[];
+  externalOpened:number;externalDeclared:number;externalReported:number;externalCompleted:number;
 }
 
 export type ActivityProvider='wordwall'|'learningapps';
@@ -42,11 +53,12 @@ export interface PublishedActivity {activityId:string;provider:ActivityProvider;
 export interface PublishedActivities {gyms:Array<{gymId:number;activities:PublishedActivity[];layout:GymLayout}>}
 
 export interface GroupProgress {
-  externalActivities?:{activityId:string;title:string;provider:string;opened:number;declared:number;reported:number;completed:number;validated:number}[];
+  externalActivities?:Array<{activityId:string;title:string;provider:string;gymId:number;opened:number;declared:number;reported:number;completed:number;validated:number;participants:number;participationPercent:number}>;
   scope:Scope;period:{days:number;from:string|null;to:string};generatedAt:string;
   studentsTotal:number;studentsActive:number;activityDataTruncated:boolean;
+  summary:GroupProgressSummary;
   activities:{manualDeclared?:number;practiced?:number;opened:number;declared:number;reported:number;completed:number;validated:number};
-  gyms:GroupProgressGym[];students:GroupProgressStudent[];truncated:boolean;
+  gyms:GroupProgressGym[];gymMetrics:GroupProgressGymMetric[];students:GroupProgressStudent[];truncated:boolean;
 }
 type Command={idempotencyKey:string};type CAS={expectedVersion:number};
 type InviteFields={expiresInSeconds:number;maxUses:number;maxPending:number};
@@ -54,7 +66,7 @@ export interface Api {
   configureParticipation:{input:Scope&Command&CAS&{enabled:boolean};output:MutationResult};
   syncAdmission:{input:Record<string,never>;output:{allowed:boolean;mode:'private-pilot'|'single-operator-test'|'production'|null;expiresAt:string|null}};
   rankingPreference:{input:Scope;output:{enabled:boolean;revision:number}};
-  groupRanking:{input:Scope;output:{scope:Scope;enabled:boolean;controlRevision:number;criterion:'unique-group-openings-v1';trust:'client-reported-participation';truncated:boolean;rows:{alias:string;participation:number;position:number|null}[]}};
+  groupRanking:{input:Scope;output:{scope:Scope;enabled:boolean;controlRevision:number;criterion:'unique-group-openings-v1';trust:'client-reported-participation';truncated:boolean;rows:{alias:string;participation:number;position:number|null}[];self:{alias:string;participation:number;position:number|null}|null}};
   setRankingParticipation:{input:Scope&Command&CAS&{enabled:boolean};output:MutationResult};
   recordGroupActivity:{input:Scope&Command&{activityId:string;attemptId:string};output:MutationResult};
   getPlayerIdentity:{input:Record<string,never>;output:{identity:PlayerIdentity|null}};

@@ -7,6 +7,7 @@ import {AcademicRepository} from '../../server/academic/repository';
 import {AcademicService} from '../../server/academic/service';
 import {ApiError} from '../../server/academic/errors';
 import type {Actor,Scope} from '../../server/academic/contracts';
+import {catalogGyms} from '../../server/academic/catalog';
 const password='fixture-password-123';
 const day=86400000;
 let sdk:EmulatorAdmin,f:Fixtures,service:AcademicService;
@@ -98,6 +99,43 @@ test('teacherA sees active students with unique game counts in the selected peri
   assert.deepEqual(groupGym(1),{gymId:1,title:'Bosque de Sistemas',totalGames:5,opened:1,practiced:1,reported:1,completed:1});
   assert.deepEqual(groupGym(2),{gymId:2,title:'Valle Lineal',totalGames:8,opened:1,practiced:1,reported:0,completed:0});
   assert.deepEqual(groupGym(3),{gymId:3,title:'Fortaleza Simplex',totalGames:5,opened:0,practiced:1,reported:1,completed:1});
+});
+test('coverage and group average separate unique coverage from enrolled-student progress',async()=>{
+  await admit('studentA','a');await admit('studentB','a');const a=f.actors.studentA.uid,b=f.actors.studentB.uid,now=Date.now();
+  const games=catalogGyms.find(gym=>gym.gymId===1)!.games;
+  for(const gameId of games)await attempt(a,gameId,'declared',now-3600000);
+  await attempt(a,games[0],'declared',now-3000000);
+  const result=await execute('teacherA','groupProgress',{...s('a'),periodDays:0});
+  assert.equal(result.studentsTotal,2);assert.equal(result.summary.availableOriginalGames,28);
+  assert.equal(result.summary.coveragePercent,18);assert.equal(result.summary.averageProgressPercent,9);
+  const gym=result.gymMetrics.find((row:any)=>row.gymId===1);
+  assert.equal(gym.availableGames,5);assert.equal(gym.coveragePercent,100);assert.equal(gym.averageProgressPercent,50);
+  assert.equal(gym.games.filter((row:any)=>row.practicedStudents===1).length,5);
+  assert.equal(gym.games[0].pendingStudents,1);
+  assert.equal(result.students.find((row:any)=>row.uid===a).gymDetails.find((row:any)=>row.gymId===1).averageProgressPercent,100);
+  assert.equal(result.students.find((row:any)=>row.uid===b).gymDetails.find((row:any)=>row.gymId===1).averageProgressPercent,0);
+  const layout=`courses/${f.courseId}/terms/${f.termId}/groups/${f.groups.a}/gymLayouts/1`;
+  await sdk.db.doc(layout).set({schemaVersion:1,...s('a'),gymId:1,orderedActivityIds:[],hiddenOriginalGameIds:[games[0]],revision:1,updatedBy:null,updatedAt:null});
+  const hidden=await execute('teacherA','groupProgress',{...s('a'),periodDays:0});
+  const hiddenGym=hidden.gymMetrics.find((row:any)=>row.gymId===1);
+  assert.equal(hiddenGym.availableGames,4);assert.equal(hiddenGym.coveragePercent,100);assert.equal(hiddenGym.averageProgressPercent,50);
+  assert.equal(hiddenGym.games.find((row:any)=>row.gameId===games[0]).pendingStudents,0);
+});
+test('a teacher with active student membership is excluded from progress and ranking',async()=>{
+  await admit('studentA','a');await admit('teacherBoth','a');const student=f.actors.studentA.uid,teacher=f.actors.teacherBoth.uid,now=Date.now();
+  await attempt(student,'system-lab','declared',now);await attempt(teacher,'system-lab','declared',now);
+  const progress=await execute('teacherA','groupProgress',{...s('a'),periodDays:0});
+  assert.equal(progress.studentsTotal,1);assert.deepEqual(progress.students.map((row:any)=>row.uid),[student]);
+  const teacherBoard=await execute('teacherA','groupRanking',s('a'));
+  assert.deepEqual(teacherBoard.rows.map((row:any)=>row.alias).length,1);assert.equal(teacherBoard.self,null);
+  const studentBoard=await execute('studentA','groupRanking',s('a'));
+  assert.equal(studentBoard.rows.length,1);assert.ok(studentBoard.self&&studentBoard.self.position===1);
+});
+test('guest activity without an active membership never enters group metrics or ranking',async()=>{
+  const now=Date.now();await attempt('guest', 'system-lab','declared',now);
+  const progress=await execute('teacherA','groupProgress',{...s('a'),periodDays:0});
+  assert.equal(progress.studentsTotal,0);assert.deepEqual(progress.students,[]);assert.equal(progress.summary.studentsParticipated,0);
+  assert.equal((await execute('teacherA','groupRanking',s('a'))).rows.length,0);
 });
 test('students, foreign teachers and outsiders are denied and other groups stay isolated',async()=>{
   await admit('studentA','a');await admit('studentB','b');
