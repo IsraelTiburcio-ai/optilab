@@ -1,13 +1,13 @@
 import {getAvatar} from '../data/avatars';
 import {AssetImage} from './AssetImage';
 
-export function AvatarPortrait({id, className = '', decorative = false, eager = false}: {
-  id?: string | null; className?: string; decorative?: boolean; eager?: boolean;
+export function AvatarPortrait({id, className = '', decorative = false, eager = false, priority = false}: {
+  id?: string | null; className?: string; decorative?: boolean; eager?: boolean; priority?: boolean;
 }) {
   const avatar = getAvatar(id);
   return <span className={`avatar-portrait ${className}`} role={decorative ? undefined : 'img'}
     aria-label={decorative ? undefined : `${avatar.name}, entrenador de OptiLab`} aria-hidden={decorative || undefined}>
-    <AssetImage src={avatar.image} width={1024} height={1536} eager={eager} fallback={
+    <AssetImage src={avatar.image} width={1024} height={1536} eager={eager || priority} priority={priority} sizes="(max-width: 700px) 160px, 240px" fallback={
       <svg viewBox="0 0 160 220" aria-hidden="true"><path d="M46 73Q21 29 52 22L78 8l35 20 13 42" fill={avatar.color} stroke="#243b40" strokeWidth="4"/>
         <circle cx="80" cy="66" r="34" fill="#f3d7ad" stroke="#243b40" strokeWidth="4"/>
         <path d="M80 111q-51-3-54 52l-5 36h118l-5-36q-4-53-54-52Z" fill={avatar.color} stroke="#243b40" strokeWidth="4"/>

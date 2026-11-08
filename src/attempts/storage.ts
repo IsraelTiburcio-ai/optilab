@@ -42,16 +42,18 @@ function atomicLedger(scope:string,event:Attempt|Ledger,isCurrent:()=>boolean,re
 }
 
 /** Re-read consent and ledger under a shared origin lock. Never erase replay keys. */
-export async function record(scope:string,event:Attempt,isCurrent:()=>boolean){
+export async function record(scope:string,event:Attempt,isCurrent:()=>boolean):Promise<boolean>{
  try {
-  if(!isCurrent()||!consent(scope))return;
+  if(!isCurrent()||!consent(scope))return false;
   if(!navigator.locks)throw Error('Lock unavailable');
+  let completed=false;
   await navigator.locks.request(attemptKey(scope),async()=>{
    if(!isCurrent()||!consent(scope))return;
    await atomicLedger(scope,event,isCurrent);
-   failures.delete(scope);change();
+   completed=true;failures.delete(scope);change();
   });
- }catch{failed(scope);}
+  return completed;
+ }catch{failed(scope);return false;}
 }
 
 export async function readCanonical(scope:string):Promise<Ledger>{

@@ -27,14 +27,14 @@ export default function GymMap() {
         {Array.from({length:28}, (_,i) => <g key={i} transform={`translate(${(i * 157 + 30) % 990} ${(i * 73 + 20) % 580})`}><path d="m0 0-15 30h8l-12 16h38L7 30h8Z" fill={i % 2 ? '#6f9468' : '#83a574'}/></g>)}
       </svg>
       <div className="map-route" aria-label="Seleccionar gimnasio">{gyms.map(g => <Link key={g.id} to={`/gimnasio/${g.id}`} className={`map-node node-${g.id} ${selected === g.id ? 'selected' : ''}`} style={{'--accent':g.color,'--pale':g.pale} as CSSProperties}>
-        <span className="node-island"><CompanionPortrait id={getGymCompanion(g.id).id} stage={1} className="mascot" decorative/><span className="node-number">{g.id}</span><GymBadge id={g.id} decorative/></span>
+        <span className="node-island"><CompanionPortrait id={getGymCompanion(g.id).id} stage={1} className="mascot" decorative eager={g.id<=2} priority={g.id===1} sizes="(max-width: 700px) 98px, 110px"/><span className="node-number">{g.id}</span><GymBadge id={g.id} decorative/></span>
         <strong>{g.name}</strong><small>{gymGames(g.id).filter(x => state.practiced[x.repo]).length}/{gymGames(g.id).length} practicados</small>
       </Link>)}</div>
       <span className="map-compass" aria-hidden="true">N<br/>✧</span><span className="map-caption">Todos los caminos están abiertos.</span>
     </div>
       <aside className="map-panel" style={{'--accent':gym.color,'--pale':gym.pale} as CSSProperties} aria-live="polite">
         <div className="panel-top"><span className="eyebrow">DESTINO {String(gym.id).padStart(2,'0')}</span><GymBadge id={gym.id}/></div>
-        <CompanionPortrait id={getGymCompanion(gym.id).id} stage={1} className="mascot"/><h2>{gym.name}</h2><h3>{gym.topic}</h3><p>{gym.desc}</p>
+        <CompanionPortrait id={getGymCompanion(gym.id).id} stage={1} className="mascot" eager priority sizes="(max-width: 700px) 120px, 125px"/><h2>{gym.name}</h2><h3>{gym.topic}</h3><p>{gym.desc}</p>
         <Progress value={gymGames(gym.id).filter(x => state.practiced[x.repo]).length} total={gymGames(gym.id).length}/>
         <p className="map-badge-rule">{badges.includes(gym.id) ? `Insignia ${gym.badge} conseguida.` : `Insignia ${gym.badge}: marca sus ${gymGames(gym.id).length} juegos como practicados para obtenerla.`}</p>
         <Link className="button primary" to={`/gimnasio/${gym.id}`}>Entrar al gimnasio <ArrowRight size={18}/></Link><small>{gymGames(gym.id).length} juegos · Exploración libre</small>
