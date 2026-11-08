@@ -21,7 +21,7 @@ export default function PublishedActivityPlayer({preview=false}:{preview?:boolea
   if(!courseId||!termId||!groupId||!activityId)return <Unavailable/>;
   if(auth.status==='loading')return <p role="status">Preparando la sesión antes de abrir la actividad…</p>;
   if(!auth.user)return <section className="paper"><h1>Inicia sesión para abrir esta actividad</h1><Link className="button" to="/cuenta">Ir a Cuenta</Link></section>;
-  return <PublishedSession key={`${auth.user.uid}/${courseId}/${termId}/${groupId}/${activityId}/${attempt}`} uid={auth.user.uid} courseId={courseId} termId={termId} groupId={groupId} activityId={activityId} preview={preview} replay={()=>setAttempt(n=>n+1)}/>;
+  return <PublishedSession key={`${preview}:${auth.user.uid}/${courseId}/${termId}/${groupId}/${activityId}/${attempt}`} uid={auth.user.uid} courseId={courseId} termId={termId} groupId={groupId} activityId={activityId} preview={preview} replay={()=>setAttempt(n=>n+1)}/>;
 }
 function PublishedSession({uid,courseId,termId,groupId,activityId,replay,preview}:{preview:boolean;replay:()=>void;uid:string;courseId:string;termId:string;groupId:string;activityId:string}){
   const auth=useAuth(),ref=useRef(auth);ref.current=auth;
@@ -33,7 +33,7 @@ function PublishedSession({uid,courseId,termId,groupId,activityId,replay,preview
     void (preview?api('teacherPublishedGroupActivities',{courseId,termId,groupId}).then(data=>{const found=data.gyms.flatMap(g=>g.activities).find(a=>a.activityId===activityId);if(!found)throw Error('La actividad ya no está publicada.');return found;}):api('publishedActivity',{courseId,termId,groupId,activityId})).then(result=>{if(active)setActivity(result);}).catch(e=>{if(active&&e?.name!=='AbortError')setError(e.message||'La actividad no está disponible.');});
     const timer=setTimeout(()=>{if(active)setPhase(old=>old==='loading'?'slow':old);},15000);
     return ()=>{active=false;controller.abort();clearTimeout(timer);};
-  },[uid,courseId,termId,groupId,activityId]);
+  },[uid,courseId,termId,groupId,activityId,preview]);
   if(error)return <section className="paper"><h1>Actividad no disponible</h1><p role="alert">{error}</p><p>Puede que ya no esté publicada, que haya sido archivada o que tu matrícula ya no esté activa.</p><Link className="button" to={`/gimnasio/3`}>Volver al mapa</Link></section>;
   if(!activity)return <p role="status">Consultando la actividad publicada…</p>;
   const gym=gyms.find(item=>item.id===activity.gymId)??gyms[2];
