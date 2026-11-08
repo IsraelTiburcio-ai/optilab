@@ -1,3 +1,4 @@
+import {TeacherSkeleton} from './TeacherSkeleton';
 import type {Scope,TeachingScope} from './types';
 export const teachingKey=(s:Scope)=>`${s.courseId}/${s.termId}/${s.groupId}`;
 const names=new Intl.Collator('es',{numeric:true,sensitivity:'base'});
@@ -11,7 +12,7 @@ export function GroupDirectory({scopes,loading,hasMore,disabled,loadMore,manage,
         {scopes.filter(s=>s.courseId===course.courseId&&s.termId===term.termId).sort((a,b)=>names.compare(a.title,b.title)).map(s=><article className="paper teacher-group-card" key={teachingKey(s)} data-group-id={s.groupId}><span className="teacher-badge">Grupo de clase</span><h5>{s.title||'Grupo sin título disponible'}</h5><button className="button primary" aria-label={`Administrar grupo ${s.title||'sin título disponible'}`} disabled={disabled} onClick={()=>manage(s)}>Administrar grupo</button></article>)}
       </div></section>)}
     </section>)}
-    {loading&&<p role="status">Consultando tus grupos autorizados…</p>}
+    {loading&&<TeacherSkeleton variant="directory"/>}
     {hasMore&&<button className="button" disabled={disabled||loading} onClick={loadMore}>Cargar más grupos</button>}
     {hasMore&&<p className="muted">Hay más grupos por consultar. No se muestra un total global de alumnos.</p>}
   </section>;

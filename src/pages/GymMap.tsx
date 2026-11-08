@@ -10,7 +10,7 @@ import {GymBadge} from '../components/GymBadge';
 import {Progress} from '../components/Progress';
 
 export default function GymMap() {
-  const [selected, setSelected] = useState(3);
+  const [selected] = useState(3);
   const {state, badges} = useProgress();
   const gym = gyms[selected - 1];
   return <>
@@ -26,10 +26,10 @@ export default function GymMap() {
         <path d="M130 390Q70 140 310 240T480 390 650 240 860 140" fill="none" stroke="#f4dfac" strokeWidth="18" strokeDasharray="3 8"/>
         {Array.from({length:28}, (_,i) => <g key={i} transform={`translate(${(i * 157 + 30) % 990} ${(i * 73 + 20) % 580})`}><path d="m0 0-15 30h8l-12 16h38L7 30h8Z" fill={i % 2 ? '#6f9468' : '#83a574'}/></g>)}
       </svg>
-      <div className="map-route" aria-label="Seleccionar gimnasio">{gyms.map(g => <button key={g.id} className={`map-node node-${g.id} ${selected === g.id ? 'selected' : ''}`} onClick={() => setSelected(g.id)} aria-pressed={selected === g.id} style={{'--accent':g.color,'--pale':g.pale} as CSSProperties}>
+      <div className="map-route" aria-label="Seleccionar gimnasio">{gyms.map(g => <Link key={g.id} to={`/gimnasio/${g.id}`} className={`map-node node-${g.id} ${selected === g.id ? 'selected' : ''}`} style={{'--accent':g.color,'--pale':g.pale} as CSSProperties}>
         <span className="node-island"><CompanionPortrait id={getGymCompanion(g.id).id} stage={1} className="mascot" decorative/><span className="node-number">{g.id}</span><GymBadge id={g.id} decorative/></span>
         <strong>{g.name}</strong><small>{gymGames(g.id).filter(x => state.practiced[x.repo]).length}/{gymGames(g.id).length} practicados</small>
-      </button>)}</div>
+      </Link>)}</div>
       <span className="map-compass" aria-hidden="true">N<br/>✧</span><span className="map-caption">Todos los caminos están abiertos.</span>
     </div>
       <aside className="map-panel" style={{'--accent':gym.color,'--pale':gym.pale} as CSSProperties} aria-live="polite">

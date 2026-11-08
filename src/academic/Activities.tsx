@@ -1,3 +1,4 @@
+import {TeacherSkeleton} from './TeacherSkeleton';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {gyms} from '../data';
 import {iframePolicy} from '../activities/urls';
@@ -118,7 +119,7 @@ export function Activities({scope,scopes,call,refresh,disabled=false,initialGymI
     <p className="activity-editor-note">Las actividades de Wordwall y LearningApps se abren de forma segura. Sus resultados no se cuentan como insignias de OptiLab.</p>
     {error&&<p className="teacher-error" role="alert">{error} <button className="text-button" onClick={refreshWorkspace}>Reintentar</button></p>}
 
-    {loading?<p role="status">Cargando actividades del grupo…</p>:<div className="activity-editor-layout">
+    {loading?<TeacherSkeleton variant="list"/>:<div className="activity-editor-layout">
       <section className="activity-library" aria-labelledby="activity-library-title"><div className="section-heading"><h3 id="activity-library-title">Biblioteca</h3><span>{library.length} actividades</span></div>
         {!library.length?<p className="teacher-empty">Aún no hay actividades. Agrega la primera desde Gimnasios.</p>:<ul>{library.map(definition=>{const assignment=assignmentById.get(definition.activityId);return <li className="activity-library-card" key={definition.activityId}>
           <div><strong>{definition.title}</strong><small>{providerLabel(definition.provider)} · {assignment?statusLabel(assignment.status):'sin asignación'} · v{definition.revision}</small></div>

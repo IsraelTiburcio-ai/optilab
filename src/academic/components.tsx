@@ -1,3 +1,4 @@
+import {TeacherSkeleton} from './TeacherSkeleton';
 import {useEffect,useRef,type ReactNode} from 'react';
 import type {Api,CommandName,MutationResult,AcademicProfile} from './types';
 import {getAvatar} from '../data/avatars';
@@ -8,7 +9,7 @@ export function Pagination({page,hasPrevious,nextCursor,disabled,back,next}:{pag
   return <nav className="teacher-pagination" aria-label="Paginación de la sección"><button className="button" disabled={disabled||!hasPrevious} onClick={back}>Anterior</button><span>Página {page} · hasta 20 registros</span><button className="button" disabled={disabled||!nextCursor} onClick={next}>Siguiente</button></nav>;
 }
 export function SectionState({loading,error,empty,children}:{loading:boolean;error:string;empty:boolean;children:ReactNode}) {
-  return loading?<p role="status">Consultando el archivo del grupo…</p>:error?<p role="alert" className="teacher-error">{error}</p>:empty?<p className="teacher-empty">No hay registros en esta página.</p>:<>{children}</>;
+  return loading?<TeacherSkeleton variant="list"/>:error?<p role="alert" className="teacher-error">{error}</p>:empty?<p className="teacher-empty">No hay registros en esta página.</p>:<>{children}</>;
 }
 export function Confirmation({intent,busy,error,retry,blocked,confirm,cancel,exitSession}:{intent:Intent;busy:boolean;error:string;retry:boolean;blocked:boolean;confirm:()=>void;cancel:()=>void;exitSession?:()=>void}) {
   const dialog=useRef<HTMLDialogElement>(null),cancelButton=useRef<HTMLButtonElement>(null);
