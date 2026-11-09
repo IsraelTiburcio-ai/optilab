@@ -18,13 +18,13 @@ export function useAttempts(){
  const context=validContext(candidate)?candidate:undefined;
  const owner=useRef<string|null>(null),current=useRef(scope);
  current.current=status==='loading'?'':scope;
- return {scope,ready:status!=='loading',record:(activityId:string,kind:Kind,id:string,result?:Record<string,number|string|boolean>,contextOverride?:AttemptContext)=>{
-  if(status==='loading')return;
+ return {scope,ready:status!=='loading',hasConsent:()=>{try{return storage.consent(scope);}catch{return false;}},record:(activityId:string,kind:Kind,id:string,result?:Record<string,number|string|boolean>,contextOverride?:AttemptContext):Promise<boolean>=>{
+  if(status==='loading')return Promise.resolve(false);
   if(owner.current===null)owner.current=scope;
-  if(owner.current!==scope)return;
+  if(owner.current!==scope)return Promise.resolve(false);
   const explicitContext=contextOverride?{courseId:contextOverride.courseId,termId:contextOverride.termId,groupId:contextOverride.groupId}:undefined;
   const eventContext=explicitContext&&validContext(explicitContext)?explicitContext:context;
-  void storage.record(scope,{version:1,id,activityId,kind,trust:kind==='reported'?'client-report':'declaration',observedAt:new Date().toISOString(),...(eventContext?{context:eventContext}:{}),...(result?{result}:{})},()=>current.current===scope);
+  return storage.record(scope,{version:1,id,activityId,kind,trust:kind==='reported'?'client-report':'declaration',observedAt:new Date().toISOString(),...(eventContext?{context:eventContext}:{}),...(result?{result}:{})},()=>current.current===scope);
  }};
 }
 
