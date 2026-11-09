@@ -2,6 +2,8 @@ import {useIntegratedFeatures} from '../integration/features';
 import {ActivityFinished} from '../components/ActivityFinished';
 import {useAuth} from '../auth/AuthProvider';
 import {useAcademicAccess} from '../academic/AcademicAccess';
+import {academicEnabled} from '../academic/config';
+import {PreviewAccessDenied,PreviewAccessPending} from '../integration/PreviewAccess';
 import {useAttempts} from '../attempts/local';
 import {iframeLoadGate} from '../integration/iframeLoadGate';
 import {useEffect, useRef, useState} from 'react';
@@ -15,10 +17,14 @@ import {GAME_ID, GAME_URL, GAME_ORIGIN, PROTOCOL, parseMessage, type SavedGameRe
 import './GamePlayer.css';
 
 export default function GamePlayer() {
-  const {id} = useParams(),auth=useAuth(),location=useLocation(),access=useAcademicAccess(),requestedPreview=new URLSearchParams(location.search).get('preview')==='1',preview=requestedPreview&&access.teacher;
+  const {id} = useParams(),auth=useAuth(),location=useLocation(),access=useAcademicAccess(),requestedPreview=new URLSearchParams(location.search).get('preview')==='1';
   const [attempt, setAttempt] = useState(0);
   if (id !== GAME_ID) return <section className="paper"><h1>Este juego todavía no tiene integración</h1><Link className="button" to="/optidex">Volver al OptiDex</Link></section>;
-  return <PlayerSession key={`${auth.user?.uid??'guest'}:${location.search}:${attempt}`} preview={preview} retry={() => setAttempt(n => n + 1)}/>;
+  if(requestedPreview&&!academicEnabled)return <PreviewAccessDenied to="/jugar/memorama-simplex"/>;
+  if(requestedPreview&&(!access.checked||access.checking))return <PreviewAccessPending/>;
+  if(requestedPreview&&!access.teacher)return <PreviewAccessDenied to="/jugar/memorama-simplex"/>;
+  const preview=requestedPreview;
+  return <PlayerSession key={`${auth.user?.uid??'guest'}:${location.search}:${preview}:${attempt}`} preview={preview} retry={() => setAttempt(n => n + 1)}/>;
 }
 
 function PlayerSession({retry,preview}: {retry: () => void;preview:boolean}) {

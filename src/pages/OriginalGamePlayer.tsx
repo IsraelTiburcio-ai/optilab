@@ -5,6 +5,8 @@ import {Link,useParams,useLocation} from 'react-router-dom';
 import {ArrowUpRight,Shield} from 'lucide-react';
 import {useAuth} from '../auth/AuthProvider';
 import {useAcademicAccess} from '../academic/AcademicAccess';
+import {academicEnabled} from '../academic/config';
+import {PreviewAccessDenied,PreviewAccessPending} from '../integration/PreviewAccess';
 import {gyms,type Game} from '../data';
 import {GameArena} from '../components/GameArena';
 import {embeddedOriginalGame,originalGameIframePolicy} from '../integration/originalGames';
@@ -16,10 +18,14 @@ import './OriginalGamePlayer.css';
 
 export default function OriginalGamePlayer(){
   const [attempt,setAttempt]=useState(0);
-  const auth=useAuth(),location=useLocation(),access=useAcademicAccess(),requestedPreview=new URLSearchParams(location.search).get('preview')==='1',preview=requestedPreview&&access.teacher;
+  const auth=useAuth(),location=useLocation(),access=useAcademicAccess(),requestedPreview=new URLSearchParams(location.search).get('preview')==='1';
   const {gameId}=useParams(),game=embeddedOriginalGame(gameId??'');
   if(!game)return <section className="paper"><h1>Este juego no está disponible en el reproductor integrado</h1><Link className="button" to="/optidex">Volver al OptiDex</Link></section>;
-  return <OriginalSession key={`${auth.user?.uid??'guest'}:${location.search}:${game.repo}:${attempt}`} game={game} preview={preview} replay={()=>setAttempt(n=>n+1)}/>;
+  if(requestedPreview&&!academicEnabled)return <PreviewAccessDenied to={`/jugar-original/${game.repo}`}/>;
+  if(requestedPreview&&(!access.checked||access.checking))return <PreviewAccessPending/>;
+  if(requestedPreview&&!access.teacher)return <PreviewAccessDenied to={`/jugar-original/${game.repo}`}/>;
+  const preview=requestedPreview;
+  return <OriginalSession key={`${auth.user?.uid??'guest'}:${location.search}:${preview}:${game.repo}:${attempt}`} game={game} preview={preview} replay={()=>setAttempt(n=>n+1)}/>;
 }
 function OriginalSession({game,replay,preview}:{game:Game;replay:()=>void;preview:boolean}){
   const integrated=useIntegratedFeatures();
