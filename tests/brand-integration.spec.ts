@@ -2,6 +2,7 @@ import {test,expect} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 test('Brand Kit: shell, PWA and responsive accessibility',async({page,request})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});
  await page.goto('/');
  const principal=page.locator('.brand .brand-logo');
  const footer=page.locator('.footer-brand .brand-logo');
