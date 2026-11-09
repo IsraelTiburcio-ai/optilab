@@ -18,7 +18,7 @@ export default function RankingPage(){
  const scope={courseId,termId,groupId};const options=config.groups.filter(group=>group.status==='active');
  return <section className="paper ranking-page"><div className="ranking-page-heading"><Link className="back-link" to="/">← Volver al inicio</Link><div><span className="eyebrow">TU COMUNIDAD DE APRENDIZAJE</span><h1><Trophy size={28}/> Ranking de mi grupo</h1><p>Consulta la participación registrada en este grupo. Es un acumulado, no una calificación.</p></div></div>
   {!access.teacher&&options.length>1&&<label className="ranking-page-select">Cambiar de grupo<select value={scopeKey(scope)} onChange={event=>{const next=options.find(group=>scopeKey(group)===event.target.value);if(next){config.select(scopeKey(next));navigate(path(next));}}}>{options.map(group=><option key={scopeKey(group)} value={scopeKey(group)}>{[group.courseTitle,group.termTitle,group.title].filter(Boolean).join(' · ')}</option>)}</select></label>}
-  <p className="ranking-page-privacy"><ShieldCheck size={15}/> Solo los integrantes autorizados de este grupo pueden consultar esta vista; la profesora no compite.</p>
+  <p className="ranking-page-privacy"><ShieldCheck size={15}/> Solo integrantes activos de este grupo y docentes autorizados pueden consultar esta vista; la profesora no compite. Los nombres académicos y gamertags no se muestran a invitados ni a otros grupos.</p>
   <GroupRanking scope={scope} teacher={access.teacher} canConfigure={false}/>
  </section>;
 }
