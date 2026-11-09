@@ -6,6 +6,7 @@ test('Brand Kit: shell, PWA and responsive accessibility',async({page,request})=
  const principal=page.locator('.brand .brand-logo');
  const footer=page.locator('.footer-brand .brand-logo');
  await expect(principal).toBeVisible();
+ await expect(principal).toHaveCSS('height','46px');
  await expect(footer).toBeVisible();
  await expect(principal).toHaveAttribute('src',/\/optilab\/brand\/svg\/optilab-logo-principal\.svg$/);
  await expect(footer).toHaveAttribute('src',/\/optilab\/brand\/svg\/optilab-logotipo-color\.svg$/);
