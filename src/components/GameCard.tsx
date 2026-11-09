@@ -41,7 +41,7 @@ export function GameCard({game, index = 0,academicScope,preview=false}: {game: G
         {practiced && <p>Práctica manual registrada el {new Date(practiced).toLocaleDateString('es-MX')}.</p>}
         {game.repo === 'mapa-produccion' && <p className="notice">Correspondencia académica pendiente de revisión con la profesora. No se utiliza en el diagnóstico ni en rutas recomendadas.</p>}
       </div>}
-      {!preview&&<button className="practice-toggle" aria-pressed={!!practiced} onClick={() => (practiced?undefined:attempts.record(game.repo,'declared',crypto.randomUUID()),toggle(game.repo))}><span>{practiced ? <Check size={14}/> : null}</span>{practiced ? 'Practicado · desmarcar' : 'Marcar como practicado'}</button>}
+      {!preview&&<button className="practice-toggle" aria-pressed={!!practiced} onClick={() => (practiced?undefined:attempts.record(game.repo,'declared',crypto.randomUUID(),undefined,academicScope),toggle(game.repo))}><span>{practiced ? <Check size={14}/> : null}</span>{practiced ? 'Practicado · desmarcar' : 'Marcar como practicado'}</button>}
     </div>
   </article>;
 }

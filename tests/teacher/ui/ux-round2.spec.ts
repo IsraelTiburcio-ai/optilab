@@ -53,6 +53,12 @@ test('continuación muestra estados vacíos sin inventar actividad',async({page}
  await page.goto('#/');const empty=page.getByRole('region',{name:'Continúa donde te quedaste'});await expect(empty).toContainText('Activa tu historial');await expect(empty.getByRole('link',{name:'Continuar jugando'})).toHaveCount(0);
  await page.addInitScript(()=>{localStorage.setItem('optilab-attempts:v1:guest:consent','yes');localStorage.setItem('optilab-attempts:v1:guest','{');});await page.reload();await expect(empty).toContainText('No pudimos leer tu historial');if(process.env.UX_CAPTURE_DIR)await empty.screenshot({path:`${process.env.UX_CAPTURE_DIR}/${test.info().project.use.browserName}-continuar-error.png`});await expect(empty.getByRole('link',{name:'Continuar jugando'})).toHaveCount(0);
 });
+test('marcar un juego original desde la tarjeta se proyecta al grupo con sync autorizado',async({page,fixture})=>{
+ test.skip(process.env.VITE_INTEGRATED_PROGRESS!=='pilot-v1','Necesita Sync de emulador.');
+ const scope=fixture.scope();await createStudentIdentity(fixture,'studentA','Alumno tarjeta gimnasio',`uxgym_${id().slice(0,8)}`);await loginExisting(page,fixture,'studentA');await acceptCloud(page);
+ await page.goto('#/gimnasio/1');const card=page.locator('.game-grid .cartridge').filter({hasText:'System Catch'});await expect(card).toBeVisible();await card.getByRole('button',{name:'Marcar como practicado',exact:true}).click();
+ await expect.poll(async()=>{const data=(await fixture.call('teacherA','groupProgress',{...scope,periodDays:0})).body;const student=data.students.find((row:any)=>row.uid===fixture.f.actors.studentA.uid);const gym=student?.gyms.find((row:any)=>row.gymId===1);return {declared:student?.declared,gymDeclared:gym?.declared};},{timeout:20000}).toEqual({declared:1,gymDeclared:1});
+});
 test('ranking solo incluye alumnos, muestra podio y la posición propia',async({page,fixture,browser})=>{
  test.skip(!['pilot-v1','general-v1'].includes(process.env.VITE_INTEGRATED_PROGRESS??''),'Requiere la compilación integrada local.');
  await approvePendingStudents(fixture,['studentB','studentC']);const scope=fixture.scope();

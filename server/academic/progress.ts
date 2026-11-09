@@ -23,8 +23,8 @@ async function activeIds(repo:AcademicReadView,path:string,matches:(id:string,da
   return ids;
 }
 async function isTeacherAccount(repo:AcademicReadView,uid:string):Promise<boolean>{
-  const rows=await repo.page(`users/${uid}/teachingScopes`,1);
-  return rows.some(({data})=>data?.status==='active');
+  const rows=await repo.page(`users/${uid}/teachingScopes`,1,undefined,'active');
+  return rows.length>0;
 }
 async function hiddenOriginalGames(repo:AcademicReadView,s:Scope):Promise<Map<number,Set<string>>>{
   const result=new Map<number,Set<string>>();

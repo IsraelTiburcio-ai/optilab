@@ -5,7 +5,7 @@ import {useContext,useEffect,useState,useRef,useSyncExternalStore} from 'react';
 import {useAuth} from '../auth/AuthProvider';
 import {useIntegratedFeatures} from '../integration/features';
 import {useLocation,useParams} from 'react-router-dom';
-import {empty,metrics,validContext,type Kind} from './model';
+import {empty,metrics,validContext,type AttemptContext,type Kind} from './model';
 import * as storage from './storage';
 import './local.css';
 
@@ -18,11 +18,13 @@ export function useAttempts(){
  const context=validContext(candidate)?candidate:undefined;
  const owner=useRef<string|null>(null),current=useRef(scope);
  current.current=status==='loading'?'':scope;
- return {scope,ready:status!=='loading',record:(activityId:string,kind:Kind,id:string,result?:Record<string,number|string|boolean>)=>{
+ return {scope,ready:status!=='loading',record:(activityId:string,kind:Kind,id:string,result?:Record<string,number|string|boolean>,contextOverride?:AttemptContext)=>{
   if(status==='loading')return;
   if(owner.current===null)owner.current=scope;
   if(owner.current!==scope)return;
-  void storage.record(scope,{version:1,id,activityId,kind,trust:kind==='reported'?'client-report':'declaration',observedAt:new Date().toISOString(),...(context?{context}:{}),...(result?{result}:{})},()=>current.current===scope);
+  const explicitContext=contextOverride?{courseId:contextOverride.courseId,termId:contextOverride.termId,groupId:contextOverride.groupId}:undefined;
+  const eventContext=explicitContext&&validContext(explicitContext)?explicitContext:context;
+  void storage.record(scope,{version:1,id,activityId,kind,trust:kind==='reported'?'client-report':'declaration',observedAt:new Date().toISOString(),...(eventContext?{context:eventContext}:{}),...(result?{result}:{})},()=>current.current===scope);
  }};
 }
 

@@ -121,6 +121,15 @@ test('coverage and group average separate unique coverage from enrolled-student 
   assert.equal(hiddenGym.availableGames,4);assert.equal(hiddenGym.coveragePercent,100);assert.equal(hiddenGym.averageProgressPercent,50);
   assert.equal(hiddenGym.games.find((row:any)=>row.gameId===games[0]).pendingStudents,0);
 });
+test('a teacher with multiple teachingScopes is excluded when any scope is active',async()=>{
+  await admit('studentA','a');await admit('studentB','a');const teacherLike=f.actors.studentA.uid,root=`users/${teacherLike}/teachingScopes`;
+  await sdk.db.doc(`${root}/aaa-inactive`).set({schemaVersion:2,...s('a'),uid:teacherLike,status:'inactive'});
+  await sdk.db.doc(`${root}/zzz-active`).set({schemaVersion:2,...s('a'),uid:teacherLike,status:'active'});
+  const progress=await execute('teacherA','groupProgress',{...s('a'),periodDays:0});
+  assert.equal(progress.studentsTotal,1);assert.deepEqual(progress.students.map((row:any)=>row.uid),[f.actors.studentB.uid]);
+  const board=await execute('teacherA','groupRanking',s('a'));
+  assert.equal(board.rows.length,1);assert.equal(board.self,null);
+});
 test('a teacher with active student membership is excluded from progress and ranking',async()=>{
   await admit('studentA','a');await admit('teacherBoth','a');const student=f.actors.studentA.uid,teacher=f.actors.teacherBoth.uid,now=Date.now();
   await attempt(student,'system-lab','declared',now);await attempt(teacher,'system-lab','declared',now);
