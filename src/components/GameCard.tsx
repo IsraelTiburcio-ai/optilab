@@ -12,12 +12,28 @@ import {SimplexCover} from './SimplexCover';
 export function GameCard({game, index = 0,academicScope,preview=false}: {game: Game; index?: number;preview?:boolean;academicScope?:{courseId:string;termId:string;groupId:string}}) {
   const attempts=useAttempts();
   const {state, toggle} = useProgress();
-  const [details, setDetails] = useState(false);
+  const [details, setDetails] = useState(false),[saving,setSaving]=useState(false),[practiceMessage,setPracticeMessage]=useState<{kind:'personal'|'success'|'error';text:string}|null>(null);
   const gym = gyms[game.gimnasio - 1];
   const practiced = state.practiced[game.repo];
   const memorama = game.repo === GAME_ID;
   const integrated = memorama || !!embeddedOriginalGame(game.repo);
   const completion = state.gameResults.filter(r => r.gameId === game.repo).at(-1);
+  async function markPractice(){
+    if(saving)return;
+    setPracticeMessage(null);
+    if(practiced){toggle(game.repo);return;}
+    if(!academicScope){
+      if(!attempts.hasConsent()){toggle(game.repo);setPracticeMessage({kind:'personal',text:'Práctica personal guardada. No está vinculada a un grupo académico.'});return;}
+      setSaving(true);const saved=await attempts.record(game.repo,'declared',crypto.randomUUID());setSaving(false);toggle(game.repo);setPracticeMessage(saved?{kind:'personal',text:'Práctica personal e intento local guardados. No vinculados a un grupo académico.'}:{kind:'personal',text:'Práctica personal guardada; el registro local falló y no se enviará a ningún docente.'});return;
+    }
+    if(!attempts.hasConsent()){toggle(game.repo);setPracticeMessage({kind:'personal',text:'Práctica personal guardada. Activa el historial de intentos para registrarla para tu docente.'});return;}
+    setSaving(true);
+    const saved=await attempts.record(game.repo,'declared',crypto.randomUUID(),undefined,academicScope);
+    setSaving(false);
+    if(!saved){setPracticeMessage({kind:'error',text:'No se guardó el intento académico. No marcamos la práctica para no mostrar un registro que no existe.'});return;}
+    toggle(game.repo);
+    setPracticeMessage({kind:'success',text:'Intento académico guardado en este dispositivo. Se enviará al grupo solo cuando la sincronización esté autorizada.'});
+  }
   return <article className={`cartridge ${practiced ? 'practiced' : ''}`} style={{'--accent': gym.color, '--pale': gym.pale} as CSSProperties}>
     <div className="cartridge-art">
       {game.gimnasio === 3 ? <SimplexCover repo={game.repo}/> : <div className="game-glyph" aria-hidden="true">{['◈','⌘','⊞','⟷','△'][(index + game.gimnasio - 1) % 5]}</div>}
@@ -41,7 +57,8 @@ export function GameCard({game, index = 0,academicScope,preview=false}: {game: G
         {practiced && <p>Práctica manual registrada el {new Date(practiced).toLocaleDateString('es-MX')}.</p>}
         {game.repo === 'mapa-produccion' && <p className="notice">Correspondencia académica pendiente de revisión con la profesora. No se utiliza en el diagnóstico ni en rutas recomendadas.</p>}
       </div>}
-      {!preview&&<button className="practice-toggle" aria-pressed={!!practiced} onClick={() => (practiced?undefined:attempts.record(game.repo,'declared',crypto.randomUUID()),toggle(game.repo))}><span>{practiced ? <Check size={14}/> : null}</span>{practiced ? 'Practicado · desmarcar' : 'Marcar como practicado'}</button>}
+      {!preview&&<button className="practice-toggle" aria-pressed={!!practiced} aria-busy={saving} disabled={saving} onClick={()=>void markPractice()}><span>{practiced ? <Check size={14}/> : null}</span>{saving?'Guardando…':practiced ? 'Practicado · desmarcar' : 'Marcar como practicado'}</button>}
+      {practiceMessage&&<p role={practiceMessage.kind==='error'?'alert':'status'} className={`muted practice-message ${practiceMessage.kind}`}>{practiceMessage.text}</p>}
     </div>
   </article>;
 }

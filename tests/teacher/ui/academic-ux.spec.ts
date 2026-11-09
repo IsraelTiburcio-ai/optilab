@@ -23,9 +23,9 @@ test('catálogo académico por grupo y vista docente sin registrar práctica',as
 test('ranking automático del grupo y conservación de sesión al navegar',async({page,fixture})=>{
  test.skip(!['pilot-v1','general-v1'].includes(process.env.VITE_INTEGRATED_PROGRESS??''),'Requiere la compilación integrada local.');
  await createStudentIdentity(fixture,'studentA','Persona ficticia',`ux_${crypto.randomUUID().slice(0,8)}`);await loginExisting(page,fixture,'studentA');await page.goto('#/aventura');
- await page.getByText('Ver participación del grupo',{exact:true}).click();
- await expect(page.locator('.group-ranking ol li')).toHaveCount(1);
- await expect(page.locator('.group-ranking ol li')).toContainText('Explorador-');
+ await page.getByText('Ranking de mi grupo',{exact:true}).click();
+ await expect(page.locator('.ranking-table tbody tr')).toHaveCount(1);
+ await expect(page.locator('.ranking-table tbody tr')).toContainText('Explorador-');
  await expect(page.locator('.group-ranking input[type=checkbox]')).toHaveCount(0);
  await page.goto('#/optidex');await expect(page.locator('.cartridge')).toHaveCount(28);
  await page.goto('#/cuenta');await expect(page.getByText('SESIÓN INICIADA',{exact:true})).toBeVisible();
