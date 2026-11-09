@@ -5,7 +5,6 @@ import {coursePath,groupPath,scopeKey} from './repository.js';
 import {conflict,denied} from './errors.js';
 import {plan,type Plan} from './plans.js';
 import {liveInvite,type Clock} from './invitations.js';
-import {invalidateRankingCache} from './participation.js';
 const memberGrant=(s:Scope,uid:string,status:string)=>({schemaVersion:1,...s,uid,status});
 const pointer=(s:Scope,uid:string,status:string)=>({...context(s),uid,status});
 export async function membershipState(r:Reader,s:Scope,uid:string) {
@@ -49,8 +48,8 @@ export async function decideMembership(r:Reader,s:Scope,actor:Actor,input:Input,
   if(approve&&!state.active) {
     version++;writes.push(...admissionWrites(state,s,req.uid,req.label,inv.inviteId,clock,commandId));
   }
-  return plan({outcome:approve?'membership-approved':'membership-rejected',requestId:req.requestId,uid:req.uid,version},writes,
-    [{scope:s,action:approve?'membership-approved':'membership-rejected',subjectUid:req.uid,version}]);
+  const result=plan({outcome:approve?'membership-approved':'membership-rejected',requestId:req.requestId,uid:req.uid,version},writes,
+    [{scope:s,action:approve?'membership-approved':'membership-rejected',subjectUid:req.uid,version}]);if(approve&&!state.active)result.invalidations=[s];return result;
 }
 export async function revokeMembership(r:Reader,s:Scope,input:Input,clock:Clock):Promise<Plan> {
   const uid=input.uid!,root=groupPath(s),state=await membershipState(r,s,uid);
@@ -59,13 +58,13 @@ export async function revokeMembership(r:Reader,s:Scope,input:Input,clock:Clock)
   const scopes={...state.index.activeScopes};delete scopes[scopeKey(s)];const version=state.detail.revision+1;
   const roster=rosterData(await r.get(`${root}/roster/${uid}`),s,uid);
   if(roster.status!=='active')throw conflict();
-  return plan({outcome:'membership-revoked',uid,version},[
+  const result=plan({outcome:'membership-revoked',uid,version},[
     {path:`${root}/members/${uid}`,data:memberGrant(s,uid,'revoked')},
     {path:`${root}/membershipDetails/${uid}`,data:{...state.detail,revision:version,lastRevokedAt:clock.timestamp(clock.now()),updatedAt:clock.time()}},
     {path:`${coursePath(s.courseId)}/academicMemberships/${uid}`,data:{...state.index,activeScopes:scopes}},
     {path:`users/${uid}/enrollments/${scopeKey(s)}`,data:pointer(s,uid,'revoked')},
     {path:`${root}/roster/${uid}`,data:{...roster,status:'revoked'}},
-  ],[{scope:s,action:'membership-revoked',subjectUid:uid,version}]);
+  ],[{scope:s,action:'membership-revoked',subjectUid:uid,version}]);result.invalidations=[s];return result;
 }
 export async function transferMembership(r:Reader,source:Scope,input:Input,clock:Clock,commandId:string):Promise<Plan> {
   const destination={...source,groupId:input.destinationGroupId!},uid=input.uid!;
@@ -84,6 +83,6 @@ export async function transferMembership(r:Reader,source:Scope,input:Input,clock
   if(!to.active)writes.push({path:`${groupPath(destination)}/members/${uid}`,data:memberGrant(destination,uid,'active')},
     {path:`${groupPath(destination)}/membershipDetails/${uid}`,data:{...to.detail,revision:version,lastAdmissionId:commandId,updatedAt:clock.time()}},
     {path:`${groupPath(destination)}/roster/${uid}`,data:{...context(destination),uid,label:roster!.label,labelSource:'self-chosen',status:'active'}});
-  return plan({outcome:'membership-transferred',uid,sourceVersion:from.detail.revision+1,destinationVersion:version},writes,
-    [{scope:source,action:'transfer-out',subjectUid:uid,version:from.detail.revision+1},{scope:destination,action:'transfer-in',subjectUid:uid,version}]);
+  const result=plan({outcome:'membership-transferred',uid,sourceVersion:from.detail.revision+1,destinationVersion:version},writes,
+    [{scope:source,action:'transfer-out',subjectUid:uid,version:from.detail.revision+1},{scope:destination,action:'transfer-in',subjectUid:uid,version}]);result.invalidations=[source,destination];return result;
 }

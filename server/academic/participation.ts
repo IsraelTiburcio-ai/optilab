@@ -33,8 +33,7 @@ export async function setRankingVisibility(r:AcademicReadView,actor:Actor,i:Inpu
  const s=scopeOf(i);await student(r,actor.uid,s);if(!['anonymous','name','gamertag'].includes(i.mode!))throw denied();const current=visibilityDocument(await r.get(visibilityPath(s,actor.uid)),actor.uid,s);if(current.revision!==i.expectedVersion)throw conflict();
  if(i.mode==='name'){const profile=await ownProfile(r,actor.uid);if(typeof profile.profile?.fullName!=='string'||!profile.profile.fullName)throw conflict();}
  if(i.mode==='gamertag'){const [profile,player]=await Promise.all([ownProfile(r,actor.uid),ownPlayer(r,actor.uid)]);if(!profile.profile?.shareGameIdentity||typeof player.identity?.gamertag!=='string')throw conflict();}
- invalidateRankingCache(s);
- return plan({outcome:'ranking-visibility-saved',revision:current.revision+1},[{path:visibilityPath(s,actor.uid),data:{schemaVersion:1,...s,uid:actor.uid,mode:i.mode,revision:current.revision+1,updatedAt:time()}}]);
+ const result=plan({outcome:'ranking-visibility-saved',revision:current.revision+1},[{path:visibilityPath(s,actor.uid),data:{schemaVersion:1,...s,uid:actor.uid,mode:i.mode,revision:current.revision+1,updatedAt:time()}}]);result.invalidations=[s];return result;
 }
 
 function controlDocument(d:Data|null,s:Scope){
@@ -46,7 +45,7 @@ export function participationDocument(d:Data|null,uid:string,s:Scope){
  for(const [id,f] of Object.entries(d.activities) as [string,Data][]){if(!validActivityId(id)||!f||typeof f!=='object'||Array.isArray(f)||Object.keys(f).some(k=>!['opened','declared','reported','completed','openedAt','declaredAt','reportedAt','completedAt','lastActivityAt'].includes(k))||!Number.isFinite(millis(f.lastActivityAt))||!['opened','declared','reported'].some(k=>f[k]===true)||['opened','declared','reported','completed'].some(k=>f[k]!==undefined&&f[k]!==true)||f.completed===true&&f.reported!==true||['opened','declared','reported','completed'].some(k=>f[k]===true? !Number.isFinite(millis(f[k+'At']))||millis(f[k+'At'])>millis(f.lastActivityAt):f[k+'At']!==undefined))throw conflict();}
  return d;
 }
-export async function configureParticipation(r:AcademicReadView,policy:Policy,actor:Actor,i:Input,time:()=>unknown){const s=scopeOf(i);await policy.group(r,actor.uid,s,'manageMembers');const path=`${groupPath(s)}/rankingControl/current`,old=controlDocument(await r.get(path),s);if((old?.revision??0)!==i.expectedVersion)throw conflict();invalidateRankingCache(s);return plan({outcome:'group-participation-configured',revision:(old?.revision??0)+1},[{path,data:{schemaVersion:1,...s,enabled:i.enabled,revision:(old?.revision??0)+1,updatedBy:actor.uid,updatedAt:time()}}]);}
+export async function configureParticipation(r:AcademicReadView,policy:Policy,actor:Actor,i:Input,time:()=>unknown){const s=scopeOf(i);await policy.group(r,actor.uid,s,'manageMembers');const path=`${groupPath(s)}/rankingControl/current`,old=controlDocument(await r.get(path),s);if((old?.revision??0)!==i.expectedVersion)throw conflict();const result=plan({outcome:'group-participation-configured',revision:(old?.revision??0)+1},[{path,data:{schemaVersion:1,...s,enabled:i.enabled,revision:(old?.revision??0)+1,updatedBy:actor.uid,updatedAt:time()}}]);result.invalidations=[s];return result;}
 export async function setRankingParticipation(r:AcademicReadView,actor:Actor,i:Input,time:()=>unknown){const s=scopeOf(i);await student(r,actor.uid,s);const gate=controlDocument(await r.get(`${groupPath(s)}/rankingControl/current`),s);if(i.enabled&&gate?.enabled===false)throw denied();const current=preference(await r.get(preferencePath(s,actor.uid)),actor.uid,s);if((current?.revision??0)!==i.expectedVersion)throw conflict();if(i.enabled&&!(await ownPlayer(r,actor.uid)).identity)throw conflict();return plan({outcome:'ranking-preference-saved',revision:(current?.revision??0)+1},[{path:preferencePath(s,actor.uid),data:{schemaVersion:1,uid:actor.uid,...s,enabled:i.enabled,revision:(current?.revision??0)+1,updatedAt:time()}}]);}
 export async function recordGroupActivity(r:AcademicReadView,actor:Actor,i:Input,time:()=>unknown){
  const s=scopeOf(i);await student(r,actor.uid,s);if(!(await syncAdmission(r,actor)).allowed)throw denied();const event=await r.get(`users/${actor.uid}/reportedAttempts/${i.activityId}--${i.attemptId}`);
@@ -60,8 +59,8 @@ export async function recordGroupActivity(r:AcademicReadView,actor:Actor,i:Input
  // Monotonic facts, never scores. Replaying a stored event cannot inflate participation.
  if(previous[event.kind]===true&&(!completed||previous.completed===true)&&millis(previous[event.kind+'At'])>=millis(event.serverReceivedAt))return plan({outcome:'activity-already-projected',count:0});
  if(millis(previous.lastActivityAt)>millis(value.lastActivityAt))value.lastActivityAt=previous.lastActivityAt;
- activities[i.activityId!]=value;if(Object.keys(activities).length>300)throw conflict();invalidateRankingCache(s);
- return plan({outcome:'group-activity-projected',count:1},[{path,data:{schemaVersion:1,uid:actor.uid,...s,activities,updatedAt:time()}}]);
+ activities[i.activityId!]=value;if(Object.keys(activities).length>300)throw conflict();
+ const result=plan({outcome:'group-activity-projected',count:1},[{path,data:{schemaVersion:1,uid:actor.uid,...s,activities,updatedAt:time()}}]);result.invalidations=[s];return result;
 }
 async function allRows(r:Pick<AcademicReadView,'get'|'page'>,path:string):Promise<{id:string;data:Data}[]>{
  const rows:{id:string;data:Data}[]=[];let cursor:string|undefined;
@@ -76,8 +75,9 @@ function anonymousName(alias:string,used:Set<string>):string{
 type RankingBase={board:Data;aliases:Map<string,string>};
 const rankingCache=new Map<string,{expires:number;value:RankingBase}>();
 const rankingInflight=new Map<string,Promise<RankingBase>>();
+let rankingEpoch=0;
 const rankingKey=(s:Scope)=>`${s.courseId}/${s.termId}/${s.groupId}`;
-export function invalidateRankingCache(scope?:Scope){if(!scope){rankingCache.clear();return;}rankingCache.delete(rankingKey(scope));}
+export function invalidateRankingCache(scope?:Scope){rankingEpoch++;if(!scope){rankingCache.clear();rankingInflight.clear();return;}rankingCache.delete(rankingKey(scope));rankingInflight.delete(rankingKey(scope));}
 function withSelf(base:RankingBase,uid:string):Data{const row=(base.board.rows as Data[]).find(item=>item.alias===base.aliases.get(uid))??null;return {...base.board,self:row};}
 async function buildGroupRanking(r:Pick<AcademicReadView,'get'|'page'>,s:Scope,teacherView:boolean):Promise<RankingBase>{
  const group=await r.get(groupPath(s)),control=controlDocument(await r.get(`${groupPath(s)}/rankingControl/current`),s),groupTitle=typeof group?.title==='string'?group.title:'';
@@ -104,8 +104,8 @@ export async function groupRanking(r:Pick<AcademicReadView,'get'|'page'>,policy:
  const s=scopeOf(i);let teacherView=false;try{await policy.group(r,actor.uid,s,'readHistory');teacherView=true;}catch(e){if((e as {status?:number}).status!==403)throw e;await student(r,actor.uid,s);}
  if(!teacherView){const key=rankingKey(s),cached=rankingCache.get(key);if(cached&&cached.expires>Date.now())return withSelf(cached.value,actor.uid);
   const pending=rankingInflight.get(key);if(pending)return withSelf(await pending,actor.uid);
-  const request=buildGroupRanking(r,s,false);rankingInflight.set(key,request);
-  try{const base=await request;rankingCache.set(key,{expires:Date.now()+5000,value:base});return withSelf(base,actor.uid);}finally{rankingInflight.delete(key);}
+  const epoch=rankingEpoch,request=buildGroupRanking(r,s,false);rankingInflight.set(key,request);
+  try{const base=await request;if(epoch===rankingEpoch)rankingCache.set(key,{expires:Date.now()+5000,value:base});return withSelf(base,actor.uid);}finally{rankingInflight.delete(key);}
  }
  return (await buildGroupRanking(r,s,true)).board;
 }

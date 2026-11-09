@@ -1,4 +1,4 @@
-import {student,configureParticipation,setRankingParticipation,setRankingVisibility,recordGroupActivity,groupRanking} from './participation.js';
+import {student,configureParticipation,setRankingParticipation,setRankingVisibility,recordGroupActivity,groupRanking,invalidateRankingCache} from './participation.js';
 import type {Actor,Input,Operation,Data} from './contracts.js';
 import {reads} from './contracts.js';
 import {scopeOf,parseInput,exact,isRecord,identifier,integer} from './validation.js';
@@ -61,7 +61,7 @@ export class AcademicService {
     }
     await this.options.afterPreflight?.(op,actor);
     const commandId=hash(`${actor.uid}:${i.idempotencyKey}`),fingerprint=hash(canonical({operation:op,input:i}));
-    return this.repo.transaction(async tx=>{
+    const committed=await this.repo.transaction(async tx=>{
       // Mandatory fresh checks INSIDE the transaction, including receipt replays.
       await this.authorize(tx,actor,op,i);
       const receipt=await tx.get(`academicOperations/${commandId}`);
@@ -72,7 +72,7 @@ export class AcademicService {
         for(const key of ['inviteId','requestId','uid','termId','courseId','groupId','activityId'])if(key in result&&!identifier(result[key],128))throw conflict();
         for(const key of ['version','profileVersion','sourceVersion','destinationVersion','revision','placementRevision','count','gymId'])if(key in result&&!integer(result[key],0,2147483647))throw conflict();
         if('status' in result&&!['draft','published','hidden','archived'].includes(result.status))throw conflict();
-        return {...receipt.result,replayed:true,tokenAvailable:false};
+        return {result:{...receipt.result,replayed:true,tokenAvailable:false},invalidations:[]};
       }
       const s=scopeOf(i);
       if(verifiedTarget!==null) {
@@ -97,8 +97,10 @@ export class AcademicService {
         op==='moveActivity'?await moveActivity(tx,this.policy,actor,i,this.clock.time):
         op==='setActivityStatus'?await setActivityStatus(tx,this.policy,actor,i,this.clock.time):null;
       if(!p)throw new ApiError(404,'NOT_FOUND','Operación no disponible.');
-      return commitPlan(tx,actor,op,i,commandId,fingerprint,p,this.sdk.time);
+      return {result:commitPlan(tx,actor,op,i,commandId,fingerprint,p,this.sdk.time),invalidations:p.invalidations??[]};
     });
+    for(const scope of committed.invalidations)invalidateRankingCache(scope);
+    return committed.result;
   }
 }
 function canonical(value:unknown):string{return JSON.stringify(value,(_k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);}
