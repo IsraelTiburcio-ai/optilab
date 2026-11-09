@@ -31,12 +31,14 @@ import './styles/sync.css';
 import {LoadingContent} from './components/LoadingShell';
 import {SiteHeader} from './components/SiteHeader';
 import {ContinueActivity} from './components/ContinueActivity';
+import {HomeRanking} from './academic/HomeRanking';
 const Account=lazy(()=>import('./pages/Account'));
 const ExternalActivityPlayer=lazy(()=>import('./pages/ExternalActivityPlayer'));
 const PublishedActivityPlayer=lazy(()=>import('./pages/PublishedActivityPlayer'));
 const OriginalGamePlayer=lazy(()=>import('./pages/OriginalGamePlayer'));
 const TeacherPanel=academicEnabled?lazy(()=>import('./academic/TeacherPanel')):null;
 const EnrollmentPage=academicEnabled?lazy(()=>import('./academic/EnrollmentPage')):null;
+const RankingPage=academicEnabled?lazy(()=>import('./academic/RankingPage')):null;
 const links=[['/','Inicio',HomeIcon],['/mapa','Mapa',MapIcon],['/optidex','OptiDex',BookOpen],['/entrenar','Entrenar',Signpost],['/aventura','Mi aventura',UserRound],['/cuenta','Cuenta',KeyRound]] as const;
 function PageTitle({kicker,title,description}:{kicker:string;title:string;description:string}){return <header className="page-title"><span className="eyebrow">{kicker}</span><h1>{title}</h1><p>{description}</p></header>}
 function Home() {
@@ -53,7 +55,7 @@ function Home() {
     <Link className="button primary" to={!state.avatarId?'/entrenador':!state.companionId?'/companero':'/mapa'}>{hasTeam?'Continuar aventura':state.avatarId?'Elegir compañero':'Comenzar aventura'} <ArrowRight size={20}/></Link>
     <span className="hero-note">Sin registros. A tu ritmo. Desde cualquier lugar.</span>
   </div><div className="hero-scene"><Landscape/>{!hasTeam&&<div className="hero-world-ensemble" aria-hidden="true"><AvatarPortrait id="avatar-02" decorative eager priority/><CompanionPortrait id="piv" stage={1} decorative eager priority/><CompanionPortrait id="nexo" stage={1} decorative eager priority/></div>}{hasTeam?<div className="hero-team"><AvatarPortrait id={state.avatarId} eager priority/><CompanionPortrait id={state.companionId} stage={evolution.stage} eager priority/></div>:<Mascot id={1}/>}<span className="scene-note"><Sparkles size={16}/> {hasTeam?'¡La aventura continúa!':'¡Hay mucho por descubrir!'}</span><span className="coordinate">REGIÓN OPTILAB · 01—05</span></div></section>
-    <ContinueActivity/><section className="adventure-strip"><div><Compass/><span><strong>5 gimnasios</strong><small>Un universo por explorar</small></span></div><div><BookOpen/><span><strong>28 microjuegos</strong><small>Conceptos que cobran vida</small></span></div><div><Shield/><span><strong>Tu propio progreso</strong><small>{Object.keys(state.practiced).length} actividades practicadas</small></span></div></section>
+    <ContinueActivity/>{academicEnabled&&<HomeRanking/>}<section className="adventure-strip"><div><Compass/><span><strong>5 gimnasios</strong><small>Un universo por explorar</small></span></div><div><BookOpen/><span><strong>28 microjuegos</strong><small>Conceptos que cobran vida</small></span></div><div><Shield/><span><strong>Tu propio progreso</strong><small>{Object.keys(state.practiced).length} actividades practicadas</small></span></div></section>
     <section className="home-next"><div className="section-heading"><div><span className="eyebrow">ELIGE TU SIGUIENTE PASO</span><h2>La aventura apenas comienza.</h2></div><span className="hand-note">La curiosidad es tu brújula ↗</span></div>
       <div className="entry-grid"><Link to="/mapa" className="entry-card green"><MapIcon/><span className="eyebrow">EXPLORAR</span><h3>Cinco destinos.<br/>Mil conexiones.</h3><p>Conoce la región y entra al gimnasio que más te llame.</p><span>Explorar gimnasios <ArrowRight size={18}/></span></Link>
         <Link to="/entrenar" className="entry-card sand"><Signpost/><span className="eyebrow">ENTRENAR</span><h3>Un pequeño paso.<br/>Un gran avance.</h3><p>Diseña una ruta de práctica para tu siguiente sesión.</p><span>Mi entrenamiento <ArrowRight size={18}/></span></Link>
@@ -114,6 +116,7 @@ export default function App(){
         <Route path="/actividad/:activityId" element={<Suspense fallback={<p role="status">Abriendo la actividad complementaria…</p>}><ExternalActivityPlayer/></Suspense>}/>
         {academicEnabled&&<Route path="/vista-docente/:courseId/:termId/:groupId/actividad/:activityId" element={<Suspense fallback={<LoadingContent/>}><PublishedActivityPlayer preview/></Suspense>}/>}
         {academicEnabled&&<Route path="/grupo/:courseId/:termId/:groupId/actividad/:activityId" element={<Suspense fallback={<p role="status">Abriendo la actividad de tu clase…</p>}><PublishedActivityPlayer/></Suspense>}/>}
+        {RankingPage&&<Route path="/grupo/:courseId/:termId/:groupId/ranking" element={<Suspense fallback={<LoadingContent/>}><RankingPage/></Suspense>}/>}
         <Route path="/jugar-original/:gameId" element={<Suspense fallback={<p role="status">Abriendo el juego…</p>}><AcademicGameAccess><OriginalGamePlayer/></AcademicGameAccess></Suspense>}/>
         <Route path="/optidex" element={<OptiDex/>}/><Route path="/entrenar" element={<Training/>}/><Route path="/reto" element={<Exam/>}/>
         <Route path="/aventura" element={<><Profile/><details><summary>Ver bitácora de partidas</summary><GameHistory/></details></>}/>

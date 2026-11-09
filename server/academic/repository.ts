@@ -15,7 +15,7 @@ export function academicPath(path:string):string {
   const id='[A-Za-z0-9_-]{1,128}',c='[A-Za-z0-9_-]{1,80}';
   const allowed=[`syncProductionControl/current`,`syncPilotControl/current`,`syncPilotMembers/${id}`,`singleOperatorTestControl/current`,`courses/${c}`,`courses/${c}/(?:staff|members|administration|academicMemberships)/${id}`,`courses/${c}/academicSettings/current`,
     `courses/${c}/terms/${c}`,`courses/${c}/terms/${c}/groups/${c}`,
-    `courses/${c}/terms/${c}/groups/${c}/(?:staff|members|administration|membershipDetails|invitations|membershipRequests|roster|membershipEvents|gymLayouts|rankingPreferences|rankingControl|participation|rankingAliases)/${id}`,
+    `courses/${c}/terms/${c}/groups/${c}/(?:staff|members|administration|membershipDetails|invitations|membershipRequests|roster|membershipEvents|gymLayouts|rankingPreferences|rankingControl|rankingVisibility|participation|rankingAliases)/${id}`,
     `courses/${c}/terms/${c}/groups/${c}/settings/current`,`courses/${c}/terms/${c}/groups/${c}/enrollmentLink/current`,
     `users/${id}/(?:enrollments|teachingScopes)/${id}`,`users/${id}/sync/current`,`users/${id}/epochs/${id}/(?:fields|diagnostics|gameRuns)/${id}`,`users/${id}/reportedAttempts/[A-Za-z0-9_:-]{1,240}`,`academicOperations/${id}`,`academicAudit/${id}`,`academicProfiles/${id}`,`playerIdentities/${id}`,`gamertagReservations/${id}`,
     `courses/${c}/activities/${id}`,`courses/${c}/activities/${id}/revisions/${id}`,`courses/${c}/terms/${c}/groups/${c}/groupActivities/${id}`,`courses/${c}/terms/${c}/groups/${c}/activityPlacements/${id}`];

@@ -27,7 +27,7 @@ test('ranking automático asigna alias opacos a matrículas antiguas de forma co
  await denied('teacherB','groupRanking',scope());await denied('studentA','groupRanking',scope('b'));
  assert.equal((await sdk.db.collection(aliasCollection).get()).size,0);
  const [initial,concurrent]=await Promise.all([run('studentA','groupRanking',scope()),run('teacherA','groupRanking',scope())]);
- assert.deepEqual(initial.rows,concurrent.rows);assert.equal(initial.rows.length,2);
+ assert.deepEqual(initial.rows.map((r:any)=>[r.alias,r.participation]),concurrent.rows.map((r:any)=>[r.alias,r.participation]));assert.equal(initial.rows.length,2);
  assert.ok(initial.rows.every((r:any)=>/^Explorador-[a-f0-9]{32}$/.test(r.alias)&&r.participation===0));
  assert.notEqual(initial.rows[0].alias,initial.rows[1].alias);
  const first=await event('studentA');await run('studentA','recordGroupActivity',first);assert.equal((await run('studentA','recordGroupActivity',first)).replayed,true);await run('studentA','recordGroupActivity',await event('studentA'));await run('studentB','recordGroupActivity',await event('studentB'));
@@ -38,6 +38,20 @@ test('ranking automático asigna alias opacos a matrículas antiguas de forma co
  assert.deepEqual((await sdk.db.doc(detailsPath).get()).data(),legacyBefore);assert.deepEqual((await sdk.db.doc(invalidPath).get()).data(),invalidBefore);assert.equal((await sdk.db.collection(aliasCollection).get()).size,2);
  await run('studentA','setRankingParticipation',{...scope(),enabled:true,expectedVersion:0,idempotencyKey:key()});await run('studentA','setRankingParticipation',{...scope(),enabled:false,expectedVersion:1,idempotencyKey:key()});assert.equal((await run('studentB','groupRanking',scope())).rows.length,2);
  await denied('teacherB','configureParticipation',{...scope(),enabled:true,expectedVersion:1,idempotencyKey:key()});
+});
+test('ranking names follow explicit visibility and teacher names stay authorized',async()=>{
+ await setup();
+ const initial=await run('studentB','groupRanking',scope());
+ const rowA=()=>initial.rows.find((row:any)=>row.alias&&row.displayName);
+ assert.ok(initial.rows.every((row:any)=>/^Explorador [A-F0-9]{4,}$/.test(row.displayName)));
+ const visibility=await run('studentA','rankingVisibility',scope());assert.equal(visibility.mode,'anonymous');assert.equal(visibility.revision,0);
+ await run('studentA','setRankingVisibility',{...scope(),mode:'name',expectedVersion:0,idempotencyKey:key()});
+ const named=await run('studentB','groupRanking',scope());assert.ok(named.rows.some((row:any)=>row.displayName==='Adulto de prueba'));
+ const teacherNamed=await run('teacherA','groupRanking',scope());assert.ok(teacherNamed.rows.some((row:any)=>row.displayName==='Adulto de prueba'));
+ assert.ok(!JSON.stringify(teacherNamed).includes(f.actors.studentA.email));
+ await run('studentA','setRankingVisibility',{...scope(),mode:'anonymous',expectedVersion:1,idempotencyKey:key()});
+ const anonymous=await run('studentB','groupRanking',scope());assert.ok(anonymous.rows.every((row:any)=>/^Explorador [A-F0-9]{4,}$/.test(row.displayName)));
+ assert.ok(rowA());
 });
 test('solo eventos persistidos del mismo UID/contexto; no acepta puntos ni altera historial',async()=>{await setup();const input=await event('studentA');const path=`users/${f.actors.studentA.uid}/reportedAttempts/${input.activityId}--${input.attemptId}`,before=(await sdk.db.doc(path).get()).data();await denied('studentB','recordGroupActivity',input);await denied('studentA','recordGroupActivity',{...input,attemptId:key()});await denied('studentA','recordGroupActivity',{...input,score:999},400);await run('studentA','recordGroupActivity',input);assert.deepEqual((await sdk.db.doc(path).get()).data(),before);await sdk.db.doc('syncProductionControl/current').set({version:1,readsEnabled:false,writesEnabled:false});await denied('studentA','recordGroupActivity',await event('studentA'));});
 test('finalización comunicada actualiza estadísticas; Wordwall no adquiere una telemetría inventada',async()=>{await setup();const result={completed:true,matchedPairs:8,totalPairs:8,attempts:8,errors:0,elapsedMs:10000,accuracy:100};await run('studentA','recordGroupActivity',await event('studentA','memorama-simplex','reported',result));const view=await run('teacherA','groupProgress',{...scope(),periodDays:0});const student=view.students.find((s:any)=>s.uid===f.actors.studentA.uid);assert.equal(student.completedGames,1);assert.equal(student.practicedGames,1);assert.equal(student.validated,0);assert.equal(student.pendingGames,27);assert.equal((await run('teacherB','groupProgress',{...scope('b'),periodDays:0})).studentsTotal,0);
