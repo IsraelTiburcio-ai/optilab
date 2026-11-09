@@ -1,0 +1,838 @@
+{
+  "schema": "optilab.brand-assets/v1",
+  "generated_at": "2026-11-09T21:40:01.045218Z",
+  "provider": {
+    "name": "cloudinary",
+    "mcp_server": "https://asset-management.mcp.cloudinary.com/mcp",
+    "cloud_name": "de7zwptxx",
+    "folder": "optilab/brand"
+  },
+  "source_package": {
+    "name": "OptiLab_Identidad_Arquitectura_01",
+    "zip_sha256": "20184f1cd47b6f387d10ef52ac3c33694fdf0fb02d7ea77add59fe5e342a2aea",
+    "readme_sha256": "abbd6ca86fcbd018d7a41fdef184a7ecb9bd114f14c327eba2e504285df52763",
+    "note": "Reconstrucción vectorial interpretada del diseño aprobado; el kit original no está aplicado a la interfaz."
+  },
+  "delivery_defaults": {
+    "fetch_format": "f_auto",
+    "quality": "q_auto",
+    "crop": "c_limit",
+    "aspect_ratio": "preserved",
+    "transparency": "preserved",
+    "format_policy": "Cloudinary chooses the best format supported by the client"
+  },
+  "cdn_assets": [
+    {
+      "id": "logo-horizontal-color-transparent",
+      "public_id": "optilab/brand/logo-horizontal-color-transparent",
+      "asset_id": "293ccc7ae1850f9b9720c9488f68b011",
+      "source_file": "PNG/01_Logo_horizontal_COLOR_transparente.png",
+      "format": "png",
+      "width": 2048,
+      "height": 620,
+      "mode": "RGBA",
+      "has_alpha": true,
+      "has_transparency": true,
+      "bytes": 60660,
+      "sha256": "002df89f646f934848a77afbdd39c0077f402fcb874fca9e0eca8b3c5b2f9c00",
+      "version": 1794260314,
+      "original_url": "https://res.cloudinary.com/de7zwptxx/image/upload/v1794260314/optilab/brand/logo-horizontal-color-transparent.png",
+      "delivery_variants": [
+        {
+          "name": "w1600",
+          "width": 1600,
+          "height": 484,
+          "transformation": "f_auto,q_auto,w_1600,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_1600,c_limit/v1794260314/optilab/brand/logo-horizontal-color-transparent"
+        },
+        {
+          "name": "w800",
+          "width": 800,
+          "height": 242,
+          "transformation": "f_auto,q_auto,w_800,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_800,c_limit/v1794260314/optilab/brand/logo-horizontal-color-transparent"
+        },
+        {
+          "name": "w480",
+          "width": 480,
+          "height": 145,
+          "transformation": "f_auto,q_auto,w_480,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_480,c_limit/v1794260314/optilab/brand/logo-horizontal-color-transparent"
+        }
+      ]
+    },
+    {
+      "id": "logo-horizontal-color-cream",
+      "public_id": "optilab/brand/logo-horizontal-color-cream",
+      "asset_id": "d3bd595845daf16f14f4af63df0c96e8",
+      "source_file": "PNG/02_Logo_horizontal_COLOR_fondo_crema.png",
+      "format": "png",
+      "width": 2048,
+      "height": 620,
+      "mode": "RGB",
+      "has_alpha": false,
+      "has_transparency": false,
+      "bytes": 52136,
+      "sha256": "13b156faf1522910cf1d64dd295db9fff10b1d3937ecc15aa210a2a6cff249f8",
+      "version": 1794260315,
+      "original_url": "https://res.cloudinary.com/de7zwptxx/image/upload/v1794260315/optilab/brand/logo-horizontal-color-cream.png",
+      "delivery_variants": [
+        {
+          "name": "w1600",
+          "width": 1600,
+          "height": 484,
+          "transformation": "f_auto,q_auto,w_1600,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_1600,c_limit/v1794260315/optilab/brand/logo-horizontal-color-cream"
+        },
+        {
+          "name": "w800",
+          "width": 800,
+          "height": 242,
+          "transformation": "f_auto,q_auto,w_800,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_800,c_limit/v1794260315/optilab/brand/logo-horizontal-color-cream"
+        },
+        {
+          "name": "w480",
+          "width": 480,
+          "height": 145,
+          "transformation": "f_auto,q_auto,w_480,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_480,c_limit/v1794260315/optilab/brand/logo-horizontal-color-cream"
+        }
+      ]
+    },
+    {
+      "id": "logo-horizontal-color-dark",
+      "public_id": "optilab/brand/logo-horizontal-color-dark",
+      "asset_id": "b6034611b1e55b37eb29b6e89c165542",
+      "source_file": "PNG/03_Logo_horizontal_COLOR_fondo_oscuro.png",
+      "format": "png",
+      "width": 2048,
+      "height": 620,
+      "mode": "RGB",
+      "has_alpha": false,
+      "has_transparency": false,
+      "bytes": 52278,
+      "sha256": "c8e5ef3fde07e3a24a063a7583a0e4ff1e1725199302ac5f003b45f2b6daaf28",
+      "version": 1794260315,
+      "original_url": "https://res.cloudinary.com/de7zwptxx/image/upload/v1794260315/optilab/brand/logo-horizontal-color-dark.png",
+      "delivery_variants": [
+        {
+          "name": "w1600",
+          "width": 1600,
+          "height": 484,
+          "transformation": "f_auto,q_auto,w_1600,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_1600,c_limit/v1794260315/optilab/brand/logo-horizontal-color-dark"
+        },
+        {
+          "name": "w800",
+          "width": 800,
+          "height": 242,
+          "transformation": "f_auto,q_auto,w_800,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_800,c_limit/v1794260315/optilab/brand/logo-horizontal-color-dark"
+        },
+        {
+          "name": "w480",
+          "width": 480,
+          "height": 145,
+          "transformation": "f_auto,q_auto,w_480,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_480,c_limit/v1794260315/optilab/brand/logo-horizontal-color-dark"
+        }
+      ]
+    },
+    {
+      "id": "logo-horizontal-negative-transparent",
+      "public_id": "optilab/brand/logo-horizontal-negative-transparent",
+      "asset_id": "b3175e5b6e0db15a910dc8b40e039c35",
+      "source_file": "PNG/04_Logo_horizontal_NEGATIVO_transparente.png",
+      "format": "png",
+      "width": 2048,
+      "height": 620,
+      "mode": "RGBA",
+      "has_alpha": true,
+      "has_transparency": true,
+      "bytes": 38829,
+      "sha256": "b117405f1b21311ec762a6cf6b22a4258b536693232493529e3bc164dc0280d7",
+      "version": 1794260316,
+      "original_url": "https://res.cloudinary.com/de7zwptxx/image/upload/v1794260316/optilab/brand/logo-horizontal-negative-transparent.png",
+      "delivery_variants": [
+        {
+          "name": "w1600",
+          "width": 1600,
+          "height": 484,
+          "transformation": "f_auto,q_auto,w_1600,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_1600,c_limit/v1794260316/optilab/brand/logo-horizontal-negative-transparent"
+        },
+        {
+          "name": "w800",
+          "width": 800,
+          "height": 242,
+          "transformation": "f_auto,q_auto,w_800,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_800,c_limit/v1794260316/optilab/brand/logo-horizontal-negative-transparent"
+        },
+        {
+          "name": "w480",
+          "width": 480,
+          "height": 145,
+          "transformation": "f_auto,q_auto,w_480,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_480,c_limit/v1794260316/optilab/brand/logo-horizontal-negative-transparent"
+        }
+      ]
+    },
+    {
+      "id": "logo-horizontal-monochrome-dark",
+      "public_id": "optilab/brand/logo-horizontal-monochrome-dark",
+      "asset_id": "9f54237089ff63e6bab2d3603fc11dec",
+      "source_file": "PNG/05_Logo_horizontal_MONOCROMO_oscuro.png",
+      "format": "png",
+      "width": 2048,
+      "height": 620,
+      "mode": "RGBA",
+      "has_alpha": true,
+      "has_transparency": true,
+      "bytes": 48194,
+      "sha256": "82d94c45dea6001c60db71bcf20c18e1f856fba2526783c7bc3e554bbf39c78d",
+      "version": 1794260317,
+      "original_url": "https://res.cloudinary.com/de7zwptxx/image/upload/v1794260317/optilab/brand/logo-horizontal-monochrome-dark.png",
+      "delivery_variants": [
+        {
+          "name": "w1600",
+          "width": 1600,
+          "height": 484,
+          "transformation": "f_auto,q_auto,w_1600,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_1600,c_limit/v1794260317/optilab/brand/logo-horizontal-monochrome-dark"
+        },
+        {
+          "name": "w800",
+          "width": 800,
+          "height": 242,
+          "transformation": "f_auto,q_auto,w_800,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_800,c_limit/v1794260317/optilab/brand/logo-horizontal-monochrome-dark"
+        },
+        {
+          "name": "w480",
+          "width": 480,
+          "height": 145,
+          "transformation": "f_auto,q_auto,w_480,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_480,c_limit/v1794260317/optilab/brand/logo-horizontal-monochrome-dark"
+        }
+      ]
+    },
+    {
+      "id": "logo-vertical-color-transparent",
+      "public_id": "optilab/brand/logo-vertical-color-transparent",
+      "asset_id": "b37e50513db0349c2c36c5bee524ae81",
+      "source_file": "PNG/06_Logo_vertical_COLOR_transparente.png",
+      "format": "png",
+      "width": 1100,
+      "height": 1200,
+      "mode": "RGBA",
+      "has_alpha": true,
+      "has_transparency": true,
+      "bytes": 47152,
+      "sha256": "aca6329ad8bf1c99357133b3e6c93a19e26f45915a98906720062af6d9c187e0",
+      "version": 1794260317,
+      "original_url": "https://res.cloudinary.com/de7zwptxx/image/upload/v1794260317/optilab/brand/logo-vertical-color-transparent.png",
+      "delivery_variants": [
+        {
+          "name": "w1024",
+          "width": 1024,
+          "height": 1117,
+          "transformation": "f_auto,q_auto,w_1024,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_1024,c_limit/v1794260317/optilab/brand/logo-vertical-color-transparent"
+        },
+        {
+          "name": "w512",
+          "width": 512,
+          "height": 559,
+          "transformation": "f_auto,q_auto,w_512,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_512,c_limit/v1794260317/optilab/brand/logo-vertical-color-transparent"
+        }
+      ]
+    },
+    {
+      "id": "logo-vertical-color-dark",
+      "public_id": "optilab/brand/logo-vertical-color-dark",
+      "asset_id": "c71919aa5df66f0188eb44560cc3413d",
+      "source_file": "PNG/07_Logo_vertical_COLOR_fondo_oscuro.png",
+      "format": "png",
+      "width": 1100,
+      "height": 1200,
+      "mode": "RGB",
+      "has_alpha": false,
+      "has_transparency": false,
+      "bytes": 44869,
+      "sha256": "90491ce0294ca2b6e86b63d38977f8fdb12e420ee88fe794b4a64798ff951b00",
+      "version": 1794260318,
+      "original_url": "https://res.cloudinary.com/de7zwptxx/image/upload/v1794260318/optilab/brand/logo-vertical-color-dark.png",
+      "delivery_variants": [
+        {
+          "name": "w1024",
+          "width": 1024,
+          "height": 1117,
+          "transformation": "f_auto,q_auto,w_1024,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_1024,c_limit/v1794260318/optilab/brand/logo-vertical-color-dark"
+        },
+        {
+          "name": "w512",
+          "width": 512,
+          "height": 559,
+          "transformation": "f_auto,q_auto,w_512,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_512,c_limit/v1794260318/optilab/brand/logo-vertical-color-dark"
+        }
+      ]
+    },
+    {
+      "id": "isotipo-color-transparent",
+      "public_id": "optilab/brand/isotipo-color-transparent",
+      "asset_id": "cfa023c6569116c3190e7c03f0861d24",
+      "source_file": "PNG/08_Isotipo_COLOR_transparente.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "mode": "RGBA",
+      "has_alpha": true,
+      "has_transparency": true,
+      "bytes": 130379,
+      "sha256": "a952d4efdb3711f1df2d5fcb9db896b6ff08b29e34b08a8922acbd30e2fca5a4",
+      "version": 1794260319,
+      "original_url": "https://res.cloudinary.com/de7zwptxx/image/upload/v1794260319/optilab/brand/isotipo-color-transparent.png",
+      "delivery_variants": [
+        {
+          "name": "w1024",
+          "width": 1024,
+          "height": 1024,
+          "transformation": "f_auto,q_auto,w_1024,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_1024,c_limit/v1794260319/optilab/brand/isotipo-color-transparent"
+        },
+        {
+          "name": "w512",
+          "width": 512,
+          "height": 512,
+          "transformation": "f_auto,q_auto,w_512,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_512,c_limit/v1794260319/optilab/brand/isotipo-color-transparent"
+        },
+        {
+          "name": "w256",
+          "width": 256,
+          "height": 256,
+          "transformation": "f_auto,q_auto,w_256,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_256,c_limit/v1794260319/optilab/brand/isotipo-color-transparent"
+        },
+        {
+          "name": "w128",
+          "width": 128,
+          "height": 128,
+          "transformation": "f_auto,q_auto,w_128,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_128,c_limit/v1794260319/optilab/brand/isotipo-color-transparent"
+        }
+      ]
+    },
+    {
+      "id": "isotipo-color-cream",
+      "public_id": "optilab/brand/isotipo-color-cream",
+      "asset_id": "1e6edacc355308d94c276c6b2ec98d6f",
+      "source_file": "PNG/09_Isotipo_COLOR_fondo_crema.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "mode": "RGB",
+      "has_alpha": false,
+      "has_transparency": false,
+      "bytes": 97931,
+      "sha256": "74f24c2cc90817a3c2a01e6a8a758b99ab654221ecaa05ef2ec1169cd4ece7ed",
+      "version": 1794260320,
+      "original_url": "https://res.cloudinary.com/de7zwptxx/image/upload/v1794260320/optilab/brand/isotipo-color-cream.png",
+      "delivery_variants": [
+        {
+          "name": "w1024",
+          "width": 1024,
+          "height": 1024,
+          "transformation": "f_auto,q_auto,w_1024,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_1024,c_limit/v1794260320/optilab/brand/isotipo-color-cream"
+        },
+        {
+          "name": "w512",
+          "width": 512,
+          "height": 512,
+          "transformation": "f_auto,q_auto,w_512,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_512,c_limit/v1794260320/optilab/brand/isotipo-color-cream"
+        },
+        {
+          "name": "w256",
+          "width": 256,
+          "height": 256,
+          "transformation": "f_auto,q_auto,w_256,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_256,c_limit/v1794260320/optilab/brand/isotipo-color-cream"
+        },
+        {
+          "name": "w128",
+          "width": 128,
+          "height": 128,
+          "transformation": "f_auto,q_auto,w_128,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_128,c_limit/v1794260320/optilab/brand/isotipo-color-cream"
+        }
+      ]
+    },
+    {
+      "id": "isotipo-negative-white-transparent",
+      "public_id": "optilab/brand/isotipo-negative-white-transparent",
+      "asset_id": "e37fa49adb97d5c8844ef971b5f2745e",
+      "source_file": "PNG/10_Isotipo_NEGATIVO_blanco_transparente.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "mode": "RGBA",
+      "has_alpha": true,
+      "has_transparency": true,
+      "bytes": 75707,
+      "sha256": "33f21d50eddc77a102a454f0033b7d48200a2796c97f7828164df005ee2c2aed",
+      "version": 1794260321,
+      "original_url": "https://res.cloudinary.com/de7zwptxx/image/upload/v1794260321/optilab/brand/isotipo-negative-white-transparent.png",
+      "delivery_variants": [
+        {
+          "name": "w1024",
+          "width": 1024,
+          "height": 1024,
+          "transformation": "f_auto,q_auto,w_1024,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_1024,c_limit/v1794260321/optilab/brand/isotipo-negative-white-transparent"
+        },
+        {
+          "name": "w512",
+          "width": 512,
+          "height": 512,
+          "transformation": "f_auto,q_auto,w_512,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_512,c_limit/v1794260321/optilab/brand/isotipo-negative-white-transparent"
+        },
+        {
+          "name": "w256",
+          "width": 256,
+          "height": 256,
+          "transformation": "f_auto,q_auto,w_256,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_256,c_limit/v1794260321/optilab/brand/isotipo-negative-white-transparent"
+        },
+        {
+          "name": "w128",
+          "width": 128,
+          "height": 128,
+          "transformation": "f_auto,q_auto,w_128,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_128,c_limit/v1794260321/optilab/brand/isotipo-negative-white-transparent"
+        }
+      ]
+    },
+    {
+      "id": "isotipo-monochrome-ink-transparent",
+      "public_id": "optilab/brand/isotipo-monochrome-ink-transparent",
+      "asset_id": "4c1eb0cbaeb7f7d87bedb3206fda8237",
+      "source_file": "PNG/11_Isotipo_MONOCROMO_tinta_transparente.png",
+      "format": "png",
+      "width": 2048,
+      "height": 2048,
+      "mode": "RGBA",
+      "has_alpha": true,
+      "has_transparency": true,
+      "bytes": 89418,
+      "sha256": "17ba5053cbc68223024569f6d21e018a9a965c667fb605902869246527515ca4",
+      "version": 1794260321,
+      "original_url": "https://res.cloudinary.com/de7zwptxx/image/upload/v1794260321/optilab/brand/isotipo-monochrome-ink-transparent.png",
+      "delivery_variants": [
+        {
+          "name": "w1024",
+          "width": 1024,
+          "height": 1024,
+          "transformation": "f_auto,q_auto,w_1024,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_1024,c_limit/v1794260321/optilab/brand/isotipo-monochrome-ink-transparent"
+        },
+        {
+          "name": "w512",
+          "width": 512,
+          "height": 512,
+          "transformation": "f_auto,q_auto,w_512,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_512,c_limit/v1794260321/optilab/brand/isotipo-monochrome-ink-transparent"
+        },
+        {
+          "name": "w256",
+          "width": 256,
+          "height": 256,
+          "transformation": "f_auto,q_auto,w_256,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_256,c_limit/v1794260321/optilab/brand/isotipo-monochrome-ink-transparent"
+        },
+        {
+          "name": "w128",
+          "width": 128,
+          "height": 128,
+          "transformation": "f_auto,q_auto,w_128,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_128,c_limit/v1794260321/optilab/brand/isotipo-monochrome-ink-transparent"
+        }
+      ]
+    },
+    {
+      "id": "logotype-name-color",
+      "public_id": "optilab/brand/logotype-name-color",
+      "asset_id": "04c0010ea01da37b1b4ca11cec825614",
+      "source_file": "PNG/12_Logotipo_solo_nombre_COLOR.png",
+      "format": "png",
+      "width": 1600,
+      "height": 350,
+      "mode": "RGBA",
+      "has_alpha": true,
+      "has_transparency": true,
+      "bytes": 27386,
+      "sha256": "616069e4612701b865a1d95c9017a3e9b6e9adfae6cd76698894bf76423e0dc1",
+      "version": 1794260322,
+      "original_url": "https://res.cloudinary.com/de7zwptxx/image/upload/v1794260322/optilab/brand/logotype-name-color.png",
+      "delivery_variants": [
+        {
+          "name": "w1200",
+          "width": 1200,
+          "height": 263,
+          "transformation": "f_auto,q_auto,w_1200,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_1200,c_limit/v1794260322/optilab/brand/logotype-name-color"
+        },
+        {
+          "name": "w600",
+          "width": 600,
+          "height": 131,
+          "transformation": "f_auto,q_auto,w_600,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_600,c_limit/v1794260322/optilab/brand/logotype-name-color"
+        }
+      ]
+    },
+    {
+      "id": "logotype-name-negative",
+      "public_id": "optilab/brand/logotype-name-negative",
+      "asset_id": "b88e37d7766100d3264ec1f8a6cd94cd",
+      "source_file": "PNG/13_Logotipo_solo_nombre_NEGATIVO.png",
+      "format": "png",
+      "width": 1600,
+      "height": 350,
+      "mode": "RGBA",
+      "has_alpha": true,
+      "has_transparency": true,
+      "bytes": 21021,
+      "sha256": "4d57ce76a90f9c9afeb755252b10458c873159f8aa155dcbfe9d90c8362d5ba2",
+      "version": 1794260322,
+      "original_url": "https://res.cloudinary.com/de7zwptxx/image/upload/v1794260322/optilab/brand/logotype-name-negative.png",
+      "delivery_variants": [
+        {
+          "name": "w1200",
+          "width": 1200,
+          "height": 263,
+          "transformation": "f_auto,q_auto,w_1200,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_1200,c_limit/v1794260322/optilab/brand/logotype-name-negative"
+        },
+        {
+          "name": "w600",
+          "width": 600,
+          "height": 131,
+          "transformation": "f_auto,q_auto,w_600,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_600,c_limit/v1794260322/optilab/brand/logotype-name-negative"
+        }
+      ]
+    },
+    {
+      "id": "avatar-social",
+      "public_id": "optilab/brand/avatar-social",
+      "asset_id": "caf99fe78ba31f989235b4a28fdcc88d",
+      "source_file": "PNG/17_Avatar_social_1080.png",
+      "format": "png",
+      "width": 1080,
+      "height": 1080,
+      "mode": "RGBA",
+      "has_alpha": true,
+      "has_transparency": true,
+      "bytes": 51814,
+      "sha256": "e05939bc2d4f03b3332c7c0ef5439b0ed6ef97b1050d18f2f2bc1dd780dd4253",
+      "version": 1794260323,
+      "original_url": "https://res.cloudinary.com/de7zwptxx/image/upload/v1794260323/optilab/brand/avatar-social.png",
+      "delivery_variants": [
+        {
+          "name": "w1080",
+          "width": 1080,
+          "height": 1080,
+          "transformation": "f_auto,q_auto,w_1080,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_1080,c_limit/v1794260323/optilab/brand/avatar-social"
+        },
+        {
+          "name": "w512",
+          "width": 512,
+          "height": 512,
+          "transformation": "f_auto,q_auto,w_512,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_512,c_limit/v1794260323/optilab/brand/avatar-social"
+        },
+        {
+          "name": "w320",
+          "width": 320,
+          "height": 320,
+          "transformation": "f_auto,q_auto,w_320,c_limit",
+          "url": "https://res.cloudinary.com/de7zwptxx/image/upload/f_auto,q_auto,w_320,c_limit/v1794260323/optilab/brand/avatar-social"
+        }
+      ]
+    }
+  ],
+  "local_assets": [
+    {
+      "kind": "svg",
+      "path": "public/brand/svg/optilab-icono-app.svg",
+      "source_file": "SVG/OptiLab_icono_app.svg",
+      "format": "svg",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 1408,
+      "sha256": "87967d83fc56f7a4ad0ddb6288410412db1bcfd057be5e7f590147ee6ecf2457",
+      "purpose": "scalable brand source",
+      "vite_path": "brand/svg/optilab-icono-app.svg"
+    },
+    {
+      "kind": "svg",
+      "path": "public/brand/svg/optilab-isotipo-color.svg",
+      "source_file": "SVG/OptiLab_isotipo_color.svg",
+      "format": "svg",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 1337,
+      "sha256": "90d67c5ab33a7ab4a261bb61b1dbf62d90f8fe3419be733d3cb59c9cd084bc09",
+      "purpose": "scalable brand source",
+      "vite_path": "brand/svg/optilab-isotipo-color.svg"
+    },
+    {
+      "kind": "svg",
+      "path": "public/brand/svg/optilab-isotipo-monocromo.svg",
+      "source_file": "SVG/OptiLab_isotipo_monocromo.svg",
+      "format": "svg",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 914,
+      "sha256": "92ed2a909089e30b695a551a022444b32317bd44f8ed40ed0256987b24746d7c",
+      "purpose": "scalable brand source",
+      "vite_path": "brand/svg/optilab-isotipo-monocromo.svg"
+    },
+    {
+      "kind": "svg",
+      "path": "public/brand/svg/optilab-isotipo-negativo.svg",
+      "source_file": "SVG/OptiLab_isotipo_negativo.svg",
+      "format": "svg",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 914,
+      "sha256": "e358fce60571b9ed5c67c2e88f092ce70056c8aac2145eb3c52bd8725624aa13",
+      "purpose": "scalable brand source",
+      "vite_path": "brand/svg/optilab-isotipo-negativo.svg"
+    },
+    {
+      "kind": "svg",
+      "path": "public/brand/svg/optilab-logo-negativo.svg",
+      "source_file": "SVG/OptiLab_logo_negativo.svg",
+      "format": "svg",
+      "width": 2048,
+      "height": 620,
+      "bytes": 3991,
+      "sha256": "f657bf75603e501df4a4a44637a0b748e4acdfdeaaaad7324b505ef7368de27c",
+      "purpose": "scalable brand source",
+      "vite_path": "brand/svg/optilab-logo-negativo.svg"
+    },
+    {
+      "kind": "svg",
+      "path": "public/brand/svg/optilab-logo-principal.svg",
+      "source_file": "SVG/OptiLab_logo_principal.svg",
+      "format": "svg",
+      "width": 2048,
+      "height": 620,
+      "bytes": 4414,
+      "sha256": "bec0262d4c313ff75135f5fef85fdd5b5115905da916d6c305d54a475d558467",
+      "purpose": "scalable brand source",
+      "vite_path": "brand/svg/optilab-logo-principal.svg"
+    },
+    {
+      "kind": "svg",
+      "path": "public/brand/svg/optilab-logo-sobre-fondo-oscuro.svg",
+      "source_file": "SVG/OptiLab_logo_sobre_fondo_oscuro.svg",
+      "format": "svg",
+      "width": 2048,
+      "height": 620,
+      "bytes": 4462,
+      "sha256": "da09b1d0b99aa33b1cd5da664212696aac0582ba68dd9264e1ae7f693507f725",
+      "purpose": "scalable brand source",
+      "vite_path": "brand/svg/optilab-logo-sobre-fondo-oscuro.svg"
+    },
+    {
+      "kind": "svg",
+      "path": "public/brand/svg/optilab-logotipo-color.svg",
+      "source_file": "SVG/OptiLab_logotipo_color.svg",
+      "format": "svg",
+      "width": 1600,
+      "height": 350,
+      "bytes": 3251,
+      "sha256": "72794c1677411c7e06e750a64cc7d265d516401131716af76837b9e460f076ec",
+      "purpose": "scalable brand source",
+      "vite_path": "brand/svg/optilab-logotipo-color.svg"
+    },
+    {
+      "kind": "pwa",
+      "path": "public/brand/pwa/apple-touch-icon.png",
+      "format": "png",
+      "bytes": 8014,
+      "sha256": "2646605fe84d363266ffe8f66a04c6774494ec1bc35e2d775c455a9e020d9c2b",
+      "purpose": "PWA/browser icon",
+      "width": 180,
+      "height": 180,
+      "mode": "RGBA",
+      "has_alpha": true,
+      "has_transparency": true,
+      "source_file": "Web/apple-touch-icon.png",
+      "vite_path": "brand/pwa/apple-touch-icon.png"
+    },
+    {
+      "kind": "pwa",
+      "path": "public/brand/pwa/favicon.ico",
+      "format": "ico",
+      "bytes": 30213,
+      "sha256": "50d4bb5fc645f98bb48d318aacb332eea7fe950c64848f02343cbf062daecbb9",
+      "purpose": "PWA/browser icon",
+      "source_file": "Web/favicon.ico",
+      "vite_path": "brand/pwa/favicon.ico"
+    },
+    {
+      "kind": "pwa",
+      "path": "public/brand/pwa/favicon.svg",
+      "format": "svg",
+      "bytes": 951,
+      "sha256": "ade8fdec289800728b68d215a41734ac6f18a471553168265d821b6d40743f08",
+      "purpose": "PWA/browser icon",
+      "source_file": "Web/OptiLab_favicon.svg",
+      "vite_path": "brand/pwa/favicon.svg"
+    },
+    {
+      "kind": "pwa",
+      "path": "public/brand/pwa/icon-192.png",
+      "format": "png",
+      "bytes": 8469,
+      "sha256": "25e062f3551440c4fecfa9f9df3c9083445db0b057ab70dbcd791b59d23a1171",
+      "purpose": "PWA/browser icon",
+      "width": 192,
+      "height": 192,
+      "mode": "RGBA",
+      "has_alpha": true,
+      "has_transparency": true,
+      "source_file": "Web/icon-192.png",
+      "vite_path": "brand/pwa/icon-192.png"
+    },
+    {
+      "kind": "pwa",
+      "path": "public/brand/pwa/icon-512.png",
+      "format": "png",
+      "bytes": 22010,
+      "sha256": "d72d0f5d592129d15004637de1f435ebb07de4c360b0828ab89f35e12431b1bc",
+      "purpose": "PWA/browser icon",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA",
+      "has_alpha": true,
+      "has_transparency": true,
+      "source_file": "Web/icon-512.png",
+      "vite_path": "brand/pwa/icon-512.png"
+    },
+    {
+      "kind": "app-icon",
+      "path": "public/brand/app-icons/app-icon-cream-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "mode": "RGBA",
+      "has_alpha": true,
+      "has_transparency": true,
+      "bytes": 49112,
+      "sha256": "9263d7578f234147161ce80b155effc94c562e8dc5c77192aa943295916ecbb6",
+      "purpose": "high-resolution application icon source",
+      "source_file": "PNG/15_Icono_APP_crema_1024.png",
+      "vite_path": "brand/app-icons/app-icon-cream-1024.png"
+    },
+    {
+      "kind": "app-icon",
+      "path": "public/brand/app-icons/app-icon-dark-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "mode": "RGBA",
+      "has_alpha": true,
+      "has_transparency": true,
+      "bytes": 48414,
+      "sha256": "abf60a16fe86cd28704d20c830f2fc062115de82ac0ea3ce4aacc1305700e611",
+      "purpose": "high-resolution application icon source",
+      "source_file": "PNG/14_Icono_APP_oscuro_1024.png",
+      "vite_path": "brand/app-icons/app-icon-dark-1024.png"
+    },
+    {
+      "kind": "app-icon",
+      "path": "public/brand/app-icons/app-icon-mono-dark-1024.png",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "mode": "RGBA",
+      "has_alpha": true,
+      "has_transparency": true,
+      "bytes": 40116,
+      "sha256": "f57e74697cd393e644bba5d7ee30a5d9b1b3cabce416dd882c4a8279c1e69b19",
+      "purpose": "high-resolution application icon source",
+      "source_file": "PNG/16_Icono_APP_mono_oscuro_1024.png",
+      "vite_path": "brand/app-icons/app-icon-mono-dark-1024.png"
+    }
+  ],
+  "deduplicated": [
+    {
+      "source": "Web/18_Favicon_180x180.png",
+      "kept": "public/brand/pwa/apple-touch-icon.png",
+      "reason": "byte-identical duplicate"
+    },
+    {
+      "source": "Web/18_Favicon_512x512.png",
+      "kept": "public/brand/pwa/icon-512.png",
+      "reason": "byte-identical duplicate"
+    }
+  ],
+  "omitted": [
+    {
+      "source": "PNG/14_Icono_APP_oscuro_1024.png",
+      "reason": "retained locally as app-icon source; PWA uses local 192/512"
+    },
+    {
+      "source": "PNG/15_Icono_APP_crema_1024.png",
+      "reason": "retained locally as app-icon source; PWA uses local 192/512"
+    },
+    {
+      "source": "PNG/16_Icono_APP_mono_oscuro_1024.png",
+      "reason": "retained locally as app-icon source; PWA uses local 192/512"
+    },
+    {
+      "source": "VISTA_PREVIA.png",
+      "reason": "presentation preview, not a delivery asset"
+    },
+    {
+      "source": "Web/18_Favicon_*.png",
+      "reason": "redundant sizes; ICO and SVG cover browser favicons"
+    }
+  ],
+  "integration": {
+    "status": "not_wired",
+    "interface_changed": false,
+    "notes": [
+      "Los recursos PWA y SVG están en brand/ para revisión; no se modificaron HTML, manifest ni estilos.",
+      "Las URLs de entrega son transformaciones en la URL; no se almacenaron derivados duplicados."
+    ]
+  },
+  "verification": {
+    "checked_at": "2026-11-09T21:40:01.045218Z",
+    "local_assets": 16,
+    "cdn_assets": 14,
+    "delivery_variants": 42,
+    "variants_with_transparency": 30,
+    "max_aspect_ratio_delta": 0.0019,
+    "remote_original_urls_checked": 14,
+    "remote_variant_urls_checked": 42,
+    "remote_formats_observed": [
+      "webp",
+      "png"
+    ],
+    "visual_review": "contact sheets reviewed on checkerboard and dark background; alpha, framing, and proportional scaling confirmed",
+    "duplicate_public_ids": 0
+  }
+}
