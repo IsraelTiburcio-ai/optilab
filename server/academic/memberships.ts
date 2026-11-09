@@ -5,6 +5,7 @@ import {coursePath,groupPath,scopeKey} from './repository.js';
 import {conflict,denied} from './errors.js';
 import {plan,type Plan} from './plans.js';
 import {liveInvite,type Clock} from './invitations.js';
+import {invalidateRankingCache} from './participation.js';
 const memberGrant=(s:Scope,uid:string,status:string)=>({schemaVersion:1,...s,uid,status});
 const pointer=(s:Scope,uid:string,status:string)=>({...context(s),uid,status});
 export async function membershipState(r:Reader,s:Scope,uid:string) {

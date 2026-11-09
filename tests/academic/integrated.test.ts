@@ -35,7 +35,7 @@ test('ranking automático asigna alias opacos a matrículas antiguas de forma co
  assert.deepEqual(board.rows.map((r:any)=>r.alias).sort(),initial.rows.map((r:any)=>r.alias).sort());
  await run('studentA','recordGroupActivity',await event('studentA','system-lab'));const ranked=await run('studentB','groupRanking',scope());assert.deepEqual(ranked.rows.map((r:any)=>[r.participation,r.position]),[[2,1],[1,2]]);assert.deepEqual(ranked.rows.map((r:any)=>r.alias).sort(),initial.rows.map((r:any)=>r.alias).sort());
  const raw=JSON.stringify(board);for(const actor of ['studentA','studentB'] as const){assert.ok(!raw.includes(f.actors[actor].uid));assert.ok(!raw.includes(f.actors[actor].email));}assert.ok(!raw.includes(aliasA));assert.ok(!raw.includes(aliasB));
- assert.deepEqual((await sdk.db.doc(detailsPath).get()).data(),legacyBefore);assert.deepEqual((await sdk.db.doc(invalidPath).get()).data(),invalidBefore);assert.equal((await sdk.db.collection(aliasCollection).get()).size,2);
+ assert.deepEqual((await sdk.db.doc(detailsPath).get()).data(),legacyBefore);assert.deepEqual((await sdk.db.doc(invalidPath).get()).data(),invalidBefore);assert.equal((await sdk.db.collection(aliasCollection).get()).size,0);
  await run('studentA','setRankingParticipation',{...scope(),enabled:true,expectedVersion:0,idempotencyKey:key()});await run('studentA','setRankingParticipation',{...scope(),enabled:false,expectedVersion:1,idempotencyKey:key()});assert.equal((await run('studentB','groupRanking',scope())).rows.length,2);
  await denied('teacherB','configureParticipation',{...scope(),enabled:true,expectedVersion:1,idempotencyKey:key()});
 });

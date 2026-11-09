@@ -17,12 +17,17 @@ const blankActivity=():Activity=>({explicit:new Set(),opened:new Set(),declared:
 const inPeriod=(at:number,from:number|null,to:number)=>Number.isFinite(at)&&(from===null||at>=from)&&at<=to;
 const countGames=(games:string[],set:Set<string>)=>games.reduce((total,id)=>total+(set.has(id)?1:0),0);
 const pct=(numerator:number,denominator:number)=>denominator>0?Math.round(numerator*100/denominator):0;
-async function activeIds(repo:AcademicReadView,path:string,matches:(id:string,data:Data)=>boolean):Promise<Set<string>>{
+async function activeIds(repo:Pick<AcademicReadView,'get'|'page'>,path:string,matches:(id:string,data:Data)=>boolean):Promise<Set<string>>{
   const ids=new Set<string>();let cursor:string|undefined;
   for(let page=0;page<20;page++){const rows=await repo.page(path,50,cursor);for(const {id,data} of rows)if(matches(id,data))ids.add(id);if(rows.length<50)return ids;cursor=rows.at(-1)!.id;}
   return ids;
 }
-async function isTeacherAccount(repo:AcademicReadView,uid:string):Promise<boolean>{
+async function allRows(repo:Pick<AcademicReadView,'get'|'page'>,path:string):Promise<{id:string;data:Data}[]>{
+  const rows:{id:string;data:Data}[]=[];let cursor:string|undefined;
+  for(let page=0;page<20;page++){const batch=await repo.page(path,50,cursor);rows.push(...batch);if(batch.length<50)return rows;cursor=batch.at(-1)!.id;}
+  return rows;
+}
+async function isTeacherAccount(repo:Pick<AcademicReadView,'get'|'page'>,uid:string):Promise<boolean>{
   const rows=await repo.page(`users/${uid}/teachingScopes`,1,undefined,'active');
   return rows.length>0;
 }
@@ -117,27 +122,23 @@ export async function groupProgress(repo:AcademicReadView,policy:Policy,actor:Ac
   };
 }
 
-export async function activeMembers(repo:AcademicReadView,s:Scope):Promise<{members:ActiveMember[];truncated:boolean}> {
+export async function activeMembers(repo:Pick<AcademicReadView,'get'|'page'>,s:Scope):Promise<{members:ActiveMember[];truncated:boolean}> {
   const root=groupPath(s),members:ActiveMember[]=[];
   const groupTeachers=await activeIds(repo,`${root}/staff`,(id,data)=>grant(data,id,s,true));
   const courseTeachers=await activeIds(repo,`${coursePath(s.courseId)}/staff`,(id,data)=>grant(data,id,s,false));
   const groupAdmins=await activeIds(repo,`${root}/administration`,(id,data)=>data?.uid===id&&data?.status==='active');
   const courseAdmins=await activeIds(repo,`${coursePath(s.courseId)}/administration`,(id,data)=>data?.uid===id&&data?.status==='active');
-  let cursor:string|undefined;
-  for(;;) {
-    const rows=await repo.page(`${root}/roster`,50,cursor);
-    for(const {id,data} of rows) {
-      const row=roster(data,s,id);
-      if(row.status!=='active')continue;
-      if(members.length===100)return {members,truncated:true};
-      const [member,courseMember]=await Promise.all([repo.get(`${root}/members/${id}`),repo.get(`${coursePath(s.courseId)}/members/${id}`)]);
-      if(!grant(member,id,s,true)||!grant(courseMember,id,s,false))continue;
-      if(groupTeachers.has(id)||courseTeachers.has(id)||groupAdmins.has(id)||courseAdmins.has(id)||await isTeacherAccount(repo,id))continue;
-      members.push({uid:id,label:row.label});
-    }
-    if(rows.length<50)return {members,truncated:false};
-    cursor=rows.at(-1)!.id;
+  const groupMembers=new Map((await allRows(repo,`${root}/members`)).map(row=>[row.id,row.data]));
+  const courseMembers=new Map((await allRows(repo,`${coursePath(s.courseId)}/members`)).map(row=>[row.id,row.data]));
+  const rosterRows=await allRows(repo,`${root}/roster`),limited=rosterRows.length>100;
+  for(const {id,data} of rosterRows.slice(0,100)) {
+    const row=roster(data,s,id);
+    if(row.status!=='active')continue;
+    if(!grant(groupMembers.get(id)??null,id,s,true)||!grant(courseMembers.get(id)??null,id,s,false))continue;
+    if(groupTeachers.has(id)||courseTeachers.has(id)||groupAdmins.has(id)||courseAdmins.has(id)||await isTeacherAccount(repo,id))continue;
+    members.push({uid:id,label:row.label});
   }
+  return {members,truncated:limited};
 }
 
 async function readActivity(repo:AcademicReadView,uid:string,from:number|null,to:number,attemptLimit=200,scope?:Scope):Promise<Activity> {

@@ -7,7 +7,6 @@ import {scopeOf,exact,integer} from './validation.js';
 import {denied,conflict} from './errors.js';
 import {plan} from './plans.js';
 import {millis} from './models.js';
-import {randomBytes} from 'node:crypto';
 import type {AcademicTransaction} from './repository.js';
 import {ownPlayer} from './players.js';
 import {ownProfile,teacherProfile} from './profiles.js';
@@ -34,6 +33,7 @@ export async function setRankingVisibility(r:AcademicReadView,actor:Actor,i:Inpu
  const s=scopeOf(i);await student(r,actor.uid,s);if(!['anonymous','name','gamertag'].includes(i.mode!))throw denied();const current=visibilityDocument(await r.get(visibilityPath(s,actor.uid)),actor.uid,s);if(current.revision!==i.expectedVersion)throw conflict();
  if(i.mode==='name'){const profile=await ownProfile(r,actor.uid);if(typeof profile.profile?.fullName!=='string'||!profile.profile.fullName)throw conflict();}
  if(i.mode==='gamertag'){const [profile,player]=await Promise.all([ownProfile(r,actor.uid),ownPlayer(r,actor.uid)]);if(!profile.profile?.shareGameIdentity||typeof player.identity?.gamertag!=='string')throw conflict();}
+ invalidateRankingCache(s);
  return plan({outcome:'ranking-visibility-saved',revision:current.revision+1},[{path:visibilityPath(s,actor.uid),data:{schemaVersion:1,...s,uid:actor.uid,mode:i.mode,revision:current.revision+1,updatedAt:time()}}]);
 }
 
@@ -46,7 +46,7 @@ export function participationDocument(d:Data|null,uid:string,s:Scope){
  for(const [id,f] of Object.entries(d.activities) as [string,Data][]){if(!validActivityId(id)||!f||typeof f!=='object'||Array.isArray(f)||Object.keys(f).some(k=>!['opened','declared','reported','completed','openedAt','declaredAt','reportedAt','completedAt','lastActivityAt'].includes(k))||!Number.isFinite(millis(f.lastActivityAt))||!['opened','declared','reported'].some(k=>f[k]===true)||['opened','declared','reported','completed'].some(k=>f[k]!==undefined&&f[k]!==true)||f.completed===true&&f.reported!==true||['opened','declared','reported','completed'].some(k=>f[k]===true? !Number.isFinite(millis(f[k+'At']))||millis(f[k+'At'])>millis(f.lastActivityAt):f[k+'At']!==undefined))throw conflict();}
  return d;
 }
-export async function configureParticipation(r:AcademicReadView,policy:Policy,actor:Actor,i:Input,time:()=>unknown){const s=scopeOf(i);await policy.group(r,actor.uid,s,'manageMembers');const path=`${groupPath(s)}/rankingControl/current`,old=controlDocument(await r.get(path),s);if((old?.revision??0)!==i.expectedVersion)throw conflict();return plan({outcome:'group-participation-configured',revision:(old?.revision??0)+1},[{path,data:{schemaVersion:1,...s,enabled:i.enabled,revision:(old?.revision??0)+1,updatedBy:actor.uid,updatedAt:time()}}]);}
+export async function configureParticipation(r:AcademicReadView,policy:Policy,actor:Actor,i:Input,time:()=>unknown){const s=scopeOf(i);await policy.group(r,actor.uid,s,'manageMembers');const path=`${groupPath(s)}/rankingControl/current`,old=controlDocument(await r.get(path),s);if((old?.revision??0)!==i.expectedVersion)throw conflict();invalidateRankingCache(s);return plan({outcome:'group-participation-configured',revision:(old?.revision??0)+1},[{path,data:{schemaVersion:1,...s,enabled:i.enabled,revision:(old?.revision??0)+1,updatedBy:actor.uid,updatedAt:time()}}]);}
 export async function setRankingParticipation(r:AcademicReadView,actor:Actor,i:Input,time:()=>unknown){const s=scopeOf(i);await student(r,actor.uid,s);const gate=controlDocument(await r.get(`${groupPath(s)}/rankingControl/current`),s);if(i.enabled&&gate?.enabled===false)throw denied();const current=preference(await r.get(preferencePath(s,actor.uid)),actor.uid,s);if((current?.revision??0)!==i.expectedVersion)throw conflict();if(i.enabled&&!(await ownPlayer(r,actor.uid)).identity)throw conflict();return plan({outcome:'ranking-preference-saved',revision:(current?.revision??0)+1},[{path:preferencePath(s,actor.uid),data:{schemaVersion:1,uid:actor.uid,...s,enabled:i.enabled,revision:(current?.revision??0)+1,updatedAt:time()}}]);}
 export async function recordGroupActivity(r:AcademicReadView,actor:Actor,i:Input,time:()=>unknown){
  const s=scopeOf(i);await student(r,actor.uid,s);if(!(await syncAdmission(r,actor)).allowed)throw denied();const event=await r.get(`users/${actor.uid}/reportedAttempts/${i.activityId}--${i.attemptId}`);
@@ -60,38 +60,54 @@ export async function recordGroupActivity(r:AcademicReadView,actor:Actor,i:Input
  // Monotonic facts, never scores. Replaying a stored event cannot inflate participation.
  if(previous[event.kind]===true&&(!completed||previous.completed===true)&&millis(previous[event.kind+'At'])>=millis(event.serverReceivedAt))return plan({outcome:'activity-already-projected',count:0});
  if(millis(previous.lastActivityAt)>millis(value.lastActivityAt))value.lastActivityAt=previous.lastActivityAt;
- activities[i.activityId!]=value;if(Object.keys(activities).length>300)throw conflict();
+ activities[i.activityId!]=value;if(Object.keys(activities).length>300)throw conflict();invalidateRankingCache(s);
  return plan({outcome:'group-activity-projected',count:1},[{path,data:{schemaVersion:1,uid:actor.uid,...s,activities,updatedAt:time()}}]);
+}
+async function allRows(r:Pick<AcademicReadView,'get'|'page'>,path:string):Promise<{id:string;data:Data}[]>{
+ const rows:{id:string;data:Data}[]=[];let cursor:string|undefined;
+ for(let page=0;page<20;page++){const batch=await r.page(path,50,cursor);rows.push(...batch);if(batch.length<50)return rows;cursor=batch.at(-1)!.id;}
+ return rows;
 }
 function anonymousName(alias:string,used:Set<string>):string{
  const hex=alias.replace(/^Explorador-/,'').toUpperCase();
  for(const length of [4,6,8,12,16,32]){const name=`Explorador ${hex.slice(0,length)}`;if(!used.has(name))return name;}
  return `Explorador ${hex}`;
 }
-export async function groupRanking(r:AcademicTransaction,policy:Policy,actor:Actor,i:Input){
- const s=scopeOf(i);let teacherView=false;try{await policy.group(r,actor.uid,s,'readHistory');teacherView=true;}catch(e){if((e as {status?:number}).status!==403)throw e;await student(r,actor.uid,s);}
- const group=await r.get(groupPath(s)),control=controlDocument(await r.get(`${groupPath(s)}/rankingControl/current`),s);if(control?.enabled===false)return {scope:s,enabled:false,controlRevision:control?.revision??0,criterion:'unique-group-openings-v1',trust:'client-reported-participation',truncated:false,rows:[],self:null,groupTitle:typeof group?.title==='string'?group.title:''};
+type RankingBase={board:Data;aliases:Map<string,string>};
+const rankingCache=new Map<string,{expires:number;value:RankingBase}>();
+const rankingInflight=new Map<string,Promise<RankingBase>>();
+const rankingKey=(s:Scope)=>`${s.courseId}/${s.termId}/${s.groupId}`;
+export function invalidateRankingCache(scope?:Scope){if(!scope){rankingCache.clear();return;}rankingCache.delete(rankingKey(scope));}
+function withSelf(base:RankingBase,uid:string):Data{const row=(base.board.rows as Data[]).find(item=>item.alias===base.aliases.get(uid))??null;return {...base.board,self:row};}
+async function buildGroupRanking(r:Pick<AcademicReadView,'get'|'page'>,s:Scope,teacherView:boolean):Promise<RankingBase>{
+ const group=await r.get(groupPath(s)),control=controlDocument(await r.get(`${groupPath(s)}/rankingControl/current`),s),groupTitle=typeof group?.title==='string'?group.title:'';
+ if(control?.enabled===false)return {aliases:new Map(),board:{scope:s,enabled:false,controlRevision:control?.revision??0,criterion:'unique-group-openings-v1',trust:'client-reported-participation',truncated:false,rows:[],self:null,groupTitle}};
  const {members,truncated}=await activeMembers(r,s),rows:{alias:string;displayName:string;participation:number;position:number|null}[]=[];const aliasesByUid=new Map<string,string>(),usedNames=new Set<string>();
- // Only this group's materialized facts are read; no private profile, email, UID or score is returned.
- const aliasesToCreate:{path:string;data:Data}[]=[];
+ const [aliasRows,visibilityRows,participationRows]=await Promise.all([allRows(r,`${groupPath(s)}/rankingAliases`),allRows(r,`${groupPath(s)}/rankingVisibility`),allRows(r,`${groupPath(s)}/participation`)]);
+ const aliasMap=new Map(aliasRows.map(row=>[row.id,row.data])),visibilityMap=new Map(visibilityRows.map(row=>[row.id,row.data])),participationMap=new Map(participationRows.map(row=>[row.id,row.data]));
  for(const member of members){
- const path=`${groupPath(s)}/rankingAliases/${member.uid}`,stored=await r.get(path);
- if(stored&&(!exact(stored,['schemaVersion','courseId','termId','groupId','uid','alias'])||stored.schemaVersion!==1||stored.courseId!==s.courseId||stored.termId!==s.termId||stored.groupId!==s.groupId||stored.uid!==member.uid||typeof stored.alias!=='string'||!/^Explorador-[a-f0-9]{32}$/.test(stored.alias)))throw conflict();
- const alias=stored?.alias??'Explorador-'+randomBytes(16).toString('hex');aliasesByUid.set(member.uid,alias);
- if(!stored)aliasesToCreate.push({path,data:{schemaVersion:1,...s,uid:member.uid,alias}});
- const visibility=visibilityDocument(await r.get(visibilityPath(s,member.uid)),member.uid,s);
- const profile=teacherView||visibility.mode!=='anonymous'?await teacherProfile(r,s,member.uid):null;
- const preferred=teacherView?(profile?.fullName??member.label):visibility.mode==='name'?(profile?.fullName??''):visibility.mode==='gamertag'&&profile?.shareGameIdentity?(profile.gameIdentity?.nickname??''):'';
- const displayName=preferred&&preferred.trim()?preferred:anonymousName(alias,usedNames);usedNames.add(displayName);
- const projected=participationDocument(await r.get(`${groupPath(s)}/participation/${member.uid}`),member.uid,s);
- const count=Object.values(projected?.activities??{}).filter((v:any)=>v?.opened===true).length;
- rows.push({alias,displayName,participation:count,position:null});}
- // Firestore requires every read to finish before the first write. Concurrent
- // requests retry on the alias document, so only the committed value is returned.
- for(const entry of aliasesToCreate)r.set(entry.path,entry.data);
+  const stored=aliasMap.get(member.uid)??null;
+  if(stored&&(!exact(stored,['schemaVersion','courseId','termId','groupId','uid','alias'])||stored.schemaVersion!==1||stored.courseId!==s.courseId||stored.termId!==s.termId||stored.groupId!==s.groupId||stored.uid!==member.uid||typeof stored.alias!=='string'||!/^Explorador-[a-f0-9]{32}$/.test(stored.alias)))throw conflict();
+  const alias=stored?.alias??'Explorador-'+hash(`${s.courseId}:${s.termId}:${s.groupId}:${member.uid}`).slice(0,32);aliasesByUid.set(member.uid,alias);
+  const visibility=visibilityDocument(visibilityMap.get(member.uid)??null,member.uid,s);
+  const profile=teacherView||visibility.mode!=='anonymous'?await teacherProfile(r,s,member.uid):null;
+  const preferred=teacherView?(profile?.fullName??member.label):visibility.mode==='name'?(profile?.fullName??''):visibility.mode==='gamertag'&&profile?.shareGameIdentity?(profile.gameIdentity?.nickname??''):'';
+  const displayName=preferred&&preferred.trim()?preferred:anonymousName(alias,usedNames);usedNames.add(displayName);
+  const projected=participationDocument(participationMap.get(member.uid)??null,member.uid,s);
+  const count=Object.values(projected?.activities??{}).filter((v:any)=>v?.opened===true).length;
+  rows.push({alias,displayName,participation:count,position:null});
+ }
  rows.sort((a,b)=>b.participation-a.participation||a.alias.localeCompare(b.alias,'es'));let previous=-1,position=0;rows.forEach((row,index)=>{if(row.participation!==previous)position=index+1;previous=row.participation;row.position=truncated?null:position;});
- const selfAlias=aliasesByUid.get(actor.uid),self=rows.find(row=>row.alias===selfAlias)??null;
- return {scope:s,enabled:true,controlRevision:control?.revision??0,criterion:'unique-group-openings-v1',trust:'client-reported-participation',truncated,rows,self,groupTitle:typeof group?.title==='string'?group.title:''};
+ return {aliases:aliasesByUid,board:{scope:s,enabled:true,controlRevision:control?.revision??0,criterion:'unique-group-openings-v1',trust:'client-reported-participation',truncated,rows,self:null,groupTitle}};
+}
+export async function groupRanking(r:Pick<AcademicReadView,'get'|'page'>,policy:Policy,actor:Actor,i:Input){
+ const s=scopeOf(i);let teacherView=false;try{await policy.group(r,actor.uid,s,'readHistory');teacherView=true;}catch(e){if((e as {status?:number}).status!==403)throw e;await student(r,actor.uid,s);}
+ if(!teacherView){const key=rankingKey(s),cached=rankingCache.get(key);if(cached&&cached.expires>Date.now())return withSelf(cached.value,actor.uid);
+  const pending=rankingInflight.get(key);if(pending)return withSelf(await pending,actor.uid);
+  const request=buildGroupRanking(r,s,false);rankingInflight.set(key,request);
+  try{const base=await request;rankingCache.set(key,{expires:Date.now()+5000,value:base});return withSelf(base,actor.uid);}finally{rankingInflight.delete(key);}
+ }
+ return (await buildGroupRanking(r,s,true)).board;
 }
 export async function syncAdmission(r:AcademicReadView,actor:Actor){
  const [control,grantDoc]=await Promise.all([r.get('syncProductionControl/current'),r.get(`syncPilotMembers/${actor.uid}`)]);
