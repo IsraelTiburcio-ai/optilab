@@ -44,7 +44,7 @@ export function GameCard({game, index = 0,academicScope,preview=false}: {game: G
     <div className="cartridge-body">
       <h3>{game.nombre}</h3><p>{game.tema}</p>
       <div className="game-actions">
-        {preview?<a className="button play" href={game.juego_url} target="_blank" rel="noopener noreferrer">Vista previa <ArrowUpRight size={17}/></a>:integrated ? <Link className="button play" to={`${memorama?'/jugar':'/jugar-original'}/${game.repo}${academicScope?'?'+new URLSearchParams(academicScope):''}`}>Jugar <ArrowRight size={17}/><span className="sr-only"> {game.nombre} dentro de OptiLab</span></Link> :
+        {preview?integrated?<Link className="button play" to={`${memorama?'/jugar':'/jugar-original'}/${game.repo}?preview=1`}>Jugar como docente <ArrowRight size={17}/><span className="sr-only"> {game.nombre} en vista previa</span></Link>:<a className="button play" href={game.juego_url} target="_blank" rel="noopener noreferrer">Vista previa <ArrowUpRight size={17}/></a>:integrated ? <Link className="button play" to={`${memorama?'/jugar':'/jugar-original'}/${game.repo}${academicScope?'?'+new URLSearchParams(academicScope):''}`}>Jugar <ArrowRight size={17}/><span className="sr-only"> {game.nombre} dentro de OptiLab</span></Link> :
           <a className="button play" href={game.juego_url} target="_blank" rel="noopener noreferrer">Jugar <ArrowUpRight size={17}/><span className="sr-only"> {game.nombre}, nueva pestaña</span></a>}
         <button className="text-button" onClick={() => setDetails(!details)} aria-expanded={details}>{details ? 'Cerrar' : 'Detalles'}</button>
       </div>

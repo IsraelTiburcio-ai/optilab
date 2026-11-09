@@ -1,6 +1,7 @@
 import {useIntegratedFeatures} from '../integration/features';
 import {ActivityFinished} from '../components/ActivityFinished';
 import {useAuth} from '../auth/AuthProvider';
+import {useAcademicAccess} from '../academic/AcademicAccess';
 import {useAttempts} from '../attempts/local';
 import {iframeLoadGate} from '../integration/iframeLoadGate';
 import {useEffect, useRef, useState} from 'react';
@@ -14,13 +15,13 @@ import {GAME_ID, GAME_URL, GAME_ORIGIN, PROTOCOL, parseMessage, type SavedGameRe
 import './GamePlayer.css';
 
 export default function GamePlayer() {
-  const {id} = useParams(),auth=useAuth(),location=useLocation();
+  const {id} = useParams(),auth=useAuth(),location=useLocation(),access=useAcademicAccess(),requestedPreview=new URLSearchParams(location.search).get('preview')==='1',preview=requestedPreview&&access.teacher;
   const [attempt, setAttempt] = useState(0);
   if (id !== GAME_ID) return <section className="paper"><h1>Este juego todavía no tiene integración</h1><Link className="button" to="/optidex">Volver al OptiDex</Link></section>;
-  return <PlayerSession key={`${auth.user?.uid??'guest'}:${location.search}:${attempt}`} retry={() => setAttempt(n => n + 1)}/>;
+  return <PlayerSession key={`${auth.user?.uid??'guest'}:${location.search}:${attempt}`} preview={preview} retry={() => setAttempt(n => n + 1)}/>;
 }
 
-function PlayerSession({retry}: {retry: () => void}) {
+function PlayerSession({retry,preview}: {retry: () => void;preview:boolean}) {
   const integrated=useIntegratedFeatures();
   const attempts=useAttempts();
   const {state, saveGameResult} = useProgress();
@@ -52,7 +53,7 @@ function PlayerSession({retry}: {retry: () => void}) {
       const message = parseMessage(event.data, session);
       if (!message) return;
       if (message.type === 'game:ready') {
-        if (!ready) { attempts.record(GAME_ID,'opened',session+':open'); ready = true; setPhase('ready'); }
+        if (!ready) { if(!preview)attempts.record(GAME_ID,'opened',session+':open'); ready = true; setPhase('ready'); }
         return;
       }
       if (!ready) return;
@@ -67,8 +68,8 @@ function PlayerSession({retry}: {retry: () => void}) {
       if (message.type === 'game:completed' && message.runId === activeRun && !recorded.has(message.runId)) {
         const completed: SavedGameResult = {...message.result, gameId: GAME_ID, runId: message.runId, date: new Date().toISOString()};
         recorded.add(message.runId);
-        attempts.record(GAME_ID,'reported',message.runId,{...message.result});
-        save.current(completed);
+        if(!preview)attempts.record(GAME_ID,'reported',message.runId,{...message.result});
+        if(!preview)save.current(completed);
         setResult(completed);
         setPhase('completed');
       }
@@ -84,11 +85,12 @@ function PlayerSession({retry}: {retry: () => void}) {
       clearTimeout(timeout);
     };
     // A fresh mounted session owns this listener; saves use the latest store callback.
-  }, [session, source, loadGate, attempts.scope, attempts.ready]);
+  }, [session, source, loadGate, attempts.scope, attempts.ready,preview]);
 
   const status = {loading: 'Abriendo el portal…', ready: 'Conectado · voltea una carta para iniciar', playing: 'Partida en curso', completed: 'Partida completada · resultado recibido', unavailable: 'No se pudo conectar con el juego'}[phase];
   const previous = state.gameResults.filter(r => r.gameId === GAME_ID).at(-1);
   return <div className="game-player">
+    {preview&&<p className="notice" role="status">Vista previa docente: no se registran intentos, progreso, estadísticas ni recompensas.</p>}
     <div className="player-navigation"><Link className="back-link" to="/gimnasio/3">← Regresar al gimnasio</Link>
       <a className="text-button" href={GAME_URL} target="_blank" rel="noopener noreferrer">Abrir juego independiente <ArrowUpRight size={15}/></a></div>
     <header className="player-title"><div><span className="eyebrow">FORTALEZA SIMPLEX · JUEGO INTEGRADO</span><h1>Memorama Simplex</h1><p>Encuentra conexiones. Tu partida se queda en esta aventura.</p></div><Mascot id={3}/></header>
@@ -103,7 +105,7 @@ function PlayerSession({retry}: {retry: () => void}) {
       {phase === 'unavailable' && <section className="player-fallback"><h2>El portal necesita otro camino</h2><p>La conexión no está disponible. Puedes reintentar o jugar en el sitio independiente. Abrirlo no registra una victoria en OptiLab.</p><a className="button primary" href={GAME_URL} target="_blank" rel="noopener noreferrer">Jugar en otra pestaña <ArrowUpRight size={18}/></a><button className="button" onClick={retry}>Reintentar conexión</button></section>}
     </div>
     </GameArena>
-    {integrated&&result&&<ActivityFinished activityId={GAME_ID} gymId={3} replay={retry}/>}
+    {!preview&&integrated&&result&&<ActivityFinished activityId={GAME_ID} gymId={3} replay={retry}/>}
     {result ? <GameResultPanel result={result} live/> : previous && <details className="previous-game-result"><summary>Consultar último resultado guardado</summary><GameResultPanel result={previous}/></details>}
     <p className="muted player-honesty">Solo se registra finalización cuando el juego informa las ocho parejas encontradas. Salir antes no cuenta como completar; puedes registrar práctica manual desde su ficha.</p>
   </div>;

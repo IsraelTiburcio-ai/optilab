@@ -4,6 +4,7 @@ import {useEffect,useRef,useState} from 'react';
 import {Link,useParams,useLocation} from 'react-router-dom';
 import {ArrowUpRight,Shield} from 'lucide-react';
 import {useAuth} from '../auth/AuthProvider';
+import {useAcademicAccess} from '../academic/AcademicAccess';
 import {gyms,type Game} from '../data';
 import {GameArena} from '../components/GameArena';
 import {embeddedOriginalGame,originalGameIframePolicy} from '../integration/originalGames';
@@ -15,21 +16,22 @@ import './OriginalGamePlayer.css';
 
 export default function OriginalGamePlayer(){
   const [attempt,setAttempt]=useState(0);
-  const auth=useAuth(),location=useLocation();
+  const auth=useAuth(),location=useLocation(),access=useAcademicAccess(),requestedPreview=new URLSearchParams(location.search).get('preview')==='1',preview=requestedPreview&&access.teacher;
   const {gameId}=useParams(),game=embeddedOriginalGame(gameId??'');
   if(!game)return <section className="paper"><h1>Este juego no está disponible en el reproductor integrado</h1><Link className="button" to="/optidex">Volver al OptiDex</Link></section>;
-  return <OriginalSession key={`${auth.user?.uid??'guest'}:${location.search}:${game.repo}:${attempt}`} game={game} replay={()=>setAttempt(n=>n+1)}/>;
+  return <OriginalSession key={`${auth.user?.uid??'guest'}:${location.search}:${game.repo}:${attempt}`} game={game} preview={preview} replay={()=>setAttempt(n=>n+1)}/>;
 }
-function OriginalSession({game,replay}:{game:Game;replay:()=>void}){
+function OriginalSession({game,replay,preview}:{game:Game;replay:()=>void;preview:boolean}){
   const integrated=useIntegratedFeatures();
   const gym=gyms.find(g=>g.id===game.gimnasio)!;
   const frame=useRef<HTMLIFrameElement>(null),[session]=useState(()=>crypto.randomUUID());
   const source=originalResultSource(game.juego_url,game.repo,session,window.location.origin);
-  const telemetry=useOriginalResults(game.repo,session,source,frame);
+  const telemetry=useOriginalResults(game.repo,session,source,frame,preview);
   const [phase,setPhase]=useState<'loading'|'loaded'|'slow'|'error'>('loading');
   useEffect(()=>{const timer=setTimeout(()=>setPhase(old=>old==='loading'?'slow':old),15000);return ()=>clearTimeout(timer);},[]);
   const status={loading:'Abriendo el juego…',loaded:telemetry.enabled?'Visor abierto · conector de resultados':'Visor abierto · sin resultados conectados',slow:'El juego está tardando en aparecer',error:'No pudimos confirmar la carga del juego'}[phase];
   return <section className="game-player original-player" aria-label="Reproductor de juego original">
+    {preview&&<p className="notice" role="status">Vista previa docente: no se registran intentos, progreso, estadísticas ni recompensas.</p>}
     <div className="player-navigation"><Link className="back-link" to={`/gimnasio/${gym.id}`}>← Regresar al gimnasio</Link><a className="text-button" href={game.juego_url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">Abrir juego independiente <ArrowUpRight size={16}/></a></div>
     <header className="player-title"><div><span className="eyebrow">{gym.name} · Juego integrado</span><h1>{game.nombre}</h1><p>{game.tema}</p></div></header>
     <GameArena title={game.nombre} region={gym.name} returnTo={`/gimnasio/${gym.id}`} controls={<p className="player-status" role="status"><Shield size={17}/><span>{status}</span></p>}>
@@ -37,7 +39,7 @@ function OriginalSession({game,replay}:{game:Game;replay:()=>void}){
     </GameArena>
     <p className="player-honesty">Ampliar y restaurar conserva la partida. Salir de esta pantalla o recargar la reinicia. {telemetry.enabled?(integrated?'Los informes compatibles se registran con tu consentimiento; una finalización completa marca práctica sin inventar puntos ni calificaciones. El resultado de esta sesión se conserva como intento informado y no concede puntos, calificaciones ni recompensas.':'Los informes compatibles se registran con tu consentimiento. La práctica sigue siendo manual. El resultado de esta sesión se conserva como intento informado y no concede puntos, calificaciones ni recompensas.'):'Este conector no comunica resultados, finalizaciones ni recompensas a OptiLab.'}</p>
     {telemetry.enabled&&<p aria-live="polite" className="muted">{({waiting:'Resultados de sesión: esperando un conector compatible del juego.',connected:'Resultados de sesión: conector disponible.',playing:'Resultados de sesión: partida en curso, sin resultado todavía.',ended:'Resultados de sesión: informe recibido.',aborted:'Partida interrumpida: no se recibió resultado.',retired:'El visor cambió de documento. Vuelve a abrir el juego para conectar resultados.'})[telemetry.status]}</p>}
-    {integrated&&telemetry.report?.result.reason==='completed'&&<ActivityFinished activityId={game.repo} gymId={gym.id} replay={replay}/>}
+    {!preview&&integrated&&telemetry.report?.result.reason==='completed'&&<ActivityFinished activityId={game.repo} gymId={gym.id} replay={replay}/>}
     {telemetry.report&&isResultPilot(game.repo)&&<OriginalSessionResult gameId={game.repo} {...telemetry.report}/>}
     <section className="paper original-fallback" aria-labelledby="original-fallback-title"><h2 id="original-fallback-title">¿No aparece o no responde?</h2><p>El juego se ejecuta aislado y no puede usar almacenamiento local en este visor. Algunos bloqueos no se pueden detectar automáticamente. Puedes abrirlo de forma independiente.</p><a className="button" href={game.juego_url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">Abrir en otra pestaña <ArrowUpRight size={17}/></a></section>
   </section>;

@@ -1,6 +1,5 @@
 import {integratedBuild} from '../integration/features';
 import {GroupRankingDisclosure} from './GroupRanking';
-import {RankingPrivacy} from './RankingPrivacy';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {useAuth} from '../auth/AuthProvider';
 import {academicClient,type AcademicCall} from './client';
@@ -23,9 +22,9 @@ function ClassesSession({uid}:{uid:string}){
   },[uid]);
   const page=useAcademicPage(call,'myScopes',{kind:'student'},revision,ready);
   return <section className="paper academic-classes" aria-labelledby="my-classes-title"><div className="section-heading"><div><span className="eyebrow">TU COMUNIDAD DE APRENDIZAJE</span><h2 id="my-classes-title">Mis clases</h2></div><button className="button" disabled={!ready||page.loading} onClick={()=>setRevision(n=>n+1)}>Actualizar mis clases</button></div>
-    <p>Tu matrícula académica es independiente de tu progreso personal. Consulta aquí el estado confirmado por el servidor.</p>
+    <p>Tu matrícula académica es independiente de tu progreso personal. Consulta aquí el estado confirmado por el servidor.</p><p className="muted">En el ranking, tu nombre académico y gamertag son visibles para integrantes activos de tus grupos y docentes autorizados; nunca para invitados ni otros grupos.</p>
     {page.loading?<p role="status">Consultando tus clases…</p>:page.error?<p role="alert" className="teacher-error">{page.error}</p>:!page.data?.items.length?<p role="status">{page.hasPrevious||page.data?.nextCursor?'No hay clases disponibles en esta página':'Todavía no perteneces a un grupo de clase'}</p>:<ul className="academic-class-list">{page.data.items.map(item=><li key={`${item.courseId}/${item.termId}/${item.groupId}`}>
-      <div><span className="eyebrow">{item.courseTitle||'Curso no disponible'}</span><h3>{item.title||'Grupo no disponible'}</h3><p>Periodo: {item.termTitle||'No disponible'}</p></div><span className={`teacher-badge ${item.status==='active'?'academic-enrolled':''}`}>{item.status==='active'?'Inscrito':'Inactivo · baja confirmada'}</span>{integratedBuild&&item.status==='active'&&<GroupRankingDisclosure scope={item}/>}{item.status==='active'&&<RankingPrivacy scope={item}/>}
+      <div><span className="eyebrow">{item.courseTitle||'Curso no disponible'}</span><h3>{item.title||'Grupo no disponible'}</h3><p>Periodo: {item.termTitle||'No disponible'}</p></div><span className={`teacher-badge ${item.status==='active'?'academic-enrolled':''}`}>{item.status==='active'?'Inscrito':'Inactivo · baja confirmada'}</span>{integratedBuild&&item.status==='active'&&<GroupRankingDisclosure scope={item}/>}
     </li>)}</ul>}
     <Pagination {...page} nextCursor={page.data?.nextCursor} disabled={page.loading||!ready}/>
   </section>;

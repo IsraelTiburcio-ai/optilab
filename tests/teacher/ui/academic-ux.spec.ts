@@ -25,8 +25,17 @@ test('ranking automático del grupo y conservación de sesión al navegar',async
  await createStudentIdentity(fixture,'studentA','Persona ficticia',`ux_${crypto.randomUUID().slice(0,8)}`);await loginExisting(page,fixture,'studentA');await page.goto('#/aventura');
  await page.getByText('Ranking de mi grupo',{exact:true}).click();
  await expect(page.locator('.ranking-mini-cards li')).toHaveCount(1);
- await expect(page.locator('.ranking-mini-cards li')).toContainText('Explorador');
+ await expect(page.locator('.ranking-mini-cards li')).toContainText('Persona ficticia');await expect(page.locator('.ranking-mini-cards li')).toContainText('ux_');
  await expect(page.locator('.group-ranking input[type=checkbox]')).toHaveCount(0);
  await page.goto('#/optidex');await expect(page.locator('.cartridge')).toHaveCount(28);
  await page.goto('#/cuenta');await expect(page.getByText('SESIÓN INICIADA',{exact:true})).toBeVisible();
+});
+test('el modo de vista previa docente no se activa con una URL manipulada por un alumno',async({page,fixture})=>{
+ await createStudentIdentity(fixture,'studentA','Alumno Sin Preview',`nopreview_${crypto.randomUUID().slice(0,8)}`);await loginExisting(page,fixture,'studentA');await page.goto('#/jugar/memorama-simplex?preview=1');await expect(page.getByText('Vista previa docente: no se registran intentos, progreso, estadísticas ni recompensas.')).toHaveCount(0);
+});
+test('la profesora juega dentro de OptiLab sin registrar intentos ni recompensas',async({page,fixture})=>{
+ const uid=fixture.f.actors.teacherA.uid,before=(await fixture.sdk.db.collection(`users/${uid}/reportedAttempts`).get()).size;
+ await loginExisting(page,fixture,'teacherA');await page.goto('#/gimnasio/1');const card=page.locator('.game-grid .cartridge').filter({hasText:'System Catch'});await expect(card).toBeVisible();await card.getByRole('link',{name:/Jugar como docente/}).click();
+ await expect(page.locator('.game-player')).toBeVisible();await expect(page.locator('.notice').filter({hasText:'Vista previa docente: no se registran intentos, progreso, estadísticas ni recompensas.'})).toBeVisible();await expect(page.getByRole('heading',{name:'Actividad finalizada'})).toHaveCount(0);
+ expect((await fixture.sdk.db.collection(`users/${uid}/reportedAttempts`).get()).size).toBe(before);
 });

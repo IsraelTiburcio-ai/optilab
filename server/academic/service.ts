@@ -1,4 +1,4 @@
-import {student,configureParticipation,setRankingParticipation,setRankingVisibility,recordGroupActivity,groupRanking,invalidateRankingCache} from './participation.js';
+import {student,configureParticipation,setRankingParticipation,recordGroupActivity,groupRanking,invalidateRankingCache} from './participation.js';
 import type {Actor,Input,Operation,Data} from './contracts.js';
 import {reads} from './contracts.js';
 import {scopeOf,parseInput,exact,isRecord,identifier,integer} from './validation.js';
@@ -30,7 +30,7 @@ export class AcademicService {
     this.policy=options.policy??defaultPolicy;this.progressAttemptLimit=options.progressAttemptLimit??200;this.clock={now:()=>Date.now(),time:sdk.time,timestamp:sdk.timestamp};
   }
   private async authorize(r:Reader,actor:Actor,op:Operation,i:Input) {
-    if(op==='setRankingParticipation'||op==='setRankingVisibility'||op==='recordGroupActivity')return student(r,actor.uid,scopeOf(i));
+    if(op==='setRankingParticipation'||op==='recordGroupActivity')return student(r,actor.uid,scopeOf(i));
     if(op==='requestMembership'||op==='updateAcademicProfile'||op==='savePlayerIdentity')return; // Own UID only.
     if(op==='redeemInvitation'){await validateRedemption(r,scopeOf(i),{...i,uid:actor.uid},this.clock);return;}
     if(op==='createTerm'||op==='createGroup')return this.policy.course(r,actor.uid,i.courseId!,op==='createTerm'?'createTerms':'createGroups');
@@ -79,7 +79,7 @@ export class AcademicService {
         const req=request(await tx.get(`${groupPath(s)}/membershipRequests/${i.requestId}`),s,i.requestId!);
         if(req.uid!==verifiedTarget)throw conflict();
       }
-      const p=op==='configureParticipation'?await configureParticipation(tx,this.policy,actor,i,this.clock.time):op==='setRankingParticipation'?await setRankingParticipation(tx,actor,i,this.clock.time):op==='setRankingVisibility'?await setRankingVisibility(tx,actor,i,this.clock.time):op==='recordGroupActivity'?await recordGroupActivity(tx,actor,i,this.clock.time):op==='createInvitation'||op==='reissueInvitation'?await createInvitation(tx,s,actor,i,this.clock,op==='reissueInvitation'):
+      const p=op==='configureParticipation'?await configureParticipation(tx,this.policy,actor,i,this.clock.time):op==='setRankingParticipation'?await setRankingParticipation(tx,actor,i,this.clock.time):op==='recordGroupActivity'?await recordGroupActivity(tx,actor,i,this.clock.time):op==='createInvitation'||op==='reissueInvitation'?await createInvitation(tx,s,actor,i,this.clock,op==='reissueInvitation'):
         op==='revokeInvitation'?await revokeInvitation(tx,s,i):
         op==='requestMembership'?await requestMembership(tx,s,actor,i,this.clock):
         op==='approveMembership'||op==='rejectMembership'?await decideMembership(tx,s,actor,i,this.clock,op==='approveMembership',commandId):
@@ -100,6 +100,7 @@ export class AcademicService {
       return {result:commitPlan(tx,actor,op,i,commandId,fingerprint,p,this.sdk.time),invalidations:p.invalidations??[]};
     });
     for(const scope of committed.invalidations)invalidateRankingCache(scope);
+    if(op==='updateAcademicProfile'||op==='savePlayerIdentity')invalidateRankingCache();
     return committed.result;
   }
 }

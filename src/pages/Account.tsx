@@ -105,7 +105,7 @@ export default function Account() {
       </>}
       <Link className="account-guest-link" to="/mapa">{auth.user ? 'Explorar el mapa' : 'Continuar como invitado'} <ArrowRight size={16}/></Link>
     </section></div>
-    {academicEnabled&&<p className="notice">En grupos activos, el ranking incluye automáticamente un alias opaco y aperturas de actividades informadas para el grupo; no muestra tu nombre, correo ni UID. Las preferencias de participación anteriores ya no controlan la inclusión. La docente puede pausar el ranking. Los consentimientos de aventura e historial siguen siendo independientes.</p>}
+    {academicEnabled&&<p className="notice">En grupos activos, el ranking muestra tu nombre académico y gamertag a integrantes activos del grupo y docentes autorizados; no muestra tu correo ni UID. Las preferencias de participación anteriores ya no controlan la inclusión. La docente puede pausar el ranking. Los consentimientos de aventura e historial siguen siendo independientes.</p>}
     {syncEnabled&&<section id="sincronizacion" aria-label="Sincronización y respaldos"><h2>Sincronización y respaldos</h2><Suspense fallback={<p role="status">Preparando respaldos…</p>}><SyncPanel/></Suspense></section>}
     <AttemptHistory key={auth.user?.uid??'guest'}/>
   </section>;

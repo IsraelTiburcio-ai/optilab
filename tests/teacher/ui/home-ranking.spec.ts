@@ -14,19 +14,15 @@ test('invitado no recibe datos privados ni consulta el ranking',async({page})=>{
 });
 test('Inicio muestra dos participantes y abre el ranking completo del grupo correcto',async({page,fixture})=>{
  await approvePendingStudents(fixture,['studentB']);await seedParticipation(fixture,'studentA',7);await seedParticipation(fixture,'studentB',0);
- await createStudentIdentity(fixture,'studentA','Alumno Inicio','inicio_'+id().slice(0,8));expect((await fixture.call('studentA','setRankingVisibility',{...fixture.scope(),mode:'name',expectedVersion:0,idempotencyKey:id()})).status).toBe(200);await loginExisting(page,fixture,'studentA');await page.goto('#/');
+ await createStudentIdentity(fixture,'studentA','Alumno Inicio','inicio_'+id().slice(0,8));await loginExisting(page,fixture,'studentA');await page.goto('#/');
  const home=page.locator('.home-ranking');await expect(home).toContainText('Ranking de mi grupo');await expect(home.locator('.home-ranking-list li')).toHaveCount(2);if(process.env.UX_CAPTURE_DIR)await home.screenshot({path:`${process.env.UX_CAPTURE_DIR}/${test.info().project.use.browserName}-home-ranking-2.png`});await expect(home).toContainText('7 actividades');await expect(home).toContainText('0 actividades');
  const link=home.getByRole('link',{name:'Ver ranking completo'});const href=await link.getAttribute('href');await link.click();await expect(page.getByRole('heading',{name:'Ranking de mi grupo',exact:true})).toBeVisible();await expect(page.locator('.ranking-mini-cards li')).toHaveCount(2);if(process.env.UX_CAPTURE_DIR)await page.screenshot({path:`${process.env.UX_CAPTURE_DIR}/${test.info().project.use.browserName}-ranking-full-2.png`,fullPage:true});await expect(page).toHaveURL(new RegExp(href!.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
  await expect(page.locator('.ranking-mini-cards')).toContainText('Alumno Inicio');
 });
-test('la preferencia de nombre se aplica en el servidor y se revoca',async({page,fixture})=>{
+test('Inicio muestra nombre académico y gamertag sin exponer datos privados',async({page,fixture})=>{
  await approvePendingStudents(fixture,['studentB']);await seedParticipation(fixture,'studentA',2);await seedParticipation(fixture,'studentB',0);
  await createStudentIdentity(fixture,'studentA','Nombre Visible A','vis_a_'+id().slice(0,6));await createStudentIdentity(fixture,'studentB','Nombre Visible B','vis_b_'+id().slice(0,6));
- const scope=fixture.scope();const before=(await fixture.call('studentB','groupRanking',scope)).body;expect(before.rows.some((row:any)=>row.displayName==='Nombre Visible A')).toBe(false);
- const set=await fixture.call('studentA','setRankingVisibility',{...scope,mode:'name',expectedVersion:0,idempotencyKey:id()});expect(set.status).toBe(200);const named=(await fixture.call('studentB','groupRanking',scope)).body;expect(named.rows.some((row:any)=>row.displayName==='Nombre Visible A')).toBe(true);
- const teacher=(await fixture.call('teacherA','groupRanking',scope)).body;expect(teacher.rows.some((row:any)=>row.displayName==='Nombre Visible A')).toBe(true);expect(JSON.stringify(teacher)).not.toContain(fixture.f.actors.studentA.email);
- const revoke=await fixture.call('studentA','setRankingVisibility',{...scope,mode:'anonymous',expectedVersion:set.body.revision,idempotencyKey:id()});expect(revoke.status).toBe(200);const anonymous=(await fixture.call('studentB','groupRanking',scope)).body;expect(anonymous.rows.every((row:any)=>/^Explorador [A-F0-9]{4,}$/.test(row.displayName))).toBe(true);
- await loginExisting(page,fixture,'studentB');await page.goto('#/aventura');await expect(page.locator('.ranking-privacy-settings')).toBeVisible();await expect(page.locator('.ranking-privacy-settings')).toContainText('Mantenerme anónimo');
+ const scope=fixture.scope(),board=(await fixture.call('studentB','groupRanking',scope)).body;expect(JSON.stringify(board)).not.toContain(fixture.f.actors.studentA.email);expect(JSON.stringify(board)).not.toContain(fixture.f.actors.studentA.uid);await loginExisting(page,fixture,'studentA');await page.goto('#/');await expect(page.locator('.home-ranking')).toContainText('Nombre Visible A');await expect(page.locator('.home-ranking')).toContainText('vis_a_');
 });
 test('el cambio de cuenta no muestra el ranking anterior',async({page,fixture})=>{
  const scopeB=fixture.scope('b');
@@ -35,7 +31,6 @@ test('el cambio de cuenta no muestra el ranking anterior',async({page,fixture})=
  expect((await fixture.call('teacherB','approveMembership',{...scopeB,requestId:request.requestId,expectedVersion:1,idempotencyKey:id()})).status).toBe(200);
  await seedParticipation(fixture,'studentA',2);await seedParticipation(fixture,'studentB',1,scopeB);
  await createStudentIdentity(fixture,'studentA','Alumno Cambio A',`ca_${id().slice(0,7)}`);await createStudentIdentity(fixture,'studentB','Alumno Cambio B',`cb_${id().slice(0,7)}`);
- await fixture.call('studentA','setRankingVisibility',{...fixture.scope(),mode:'name',expectedVersion:0,idempotencyKey:id()});await fixture.call('studentB','setRankingVisibility',{...scopeB,mode:'name',expectedVersion:0,idempotencyKey:id()});
  await loginExisting(page,fixture,'studentA');await page.goto('#/');await expect(page.locator('.home-ranking')).toContainText('Alumno Cambio A');
  await page.goto('#/cuenta');await page.getByRole('button',{name:'Cerrar sesión',exact:true}).click();await loginExisting(page,fixture,'studentB');await page.goto('#/');const home=page.locator('.home-ranking');await expect(home).toContainText('Alumno Cambio B');await expect(home).not.toContainText('Alumno Cambio A');
 });
