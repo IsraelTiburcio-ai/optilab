@@ -58,6 +58,6 @@ export async function redeemInvitation(r:Reader,s:Scope,actor:Actor,i:Input,auth
   const writes=admissionWrites(state,s,actor.uid,actor.label,d.inviteId,clock,commandId);
   writes.push({path:enrollmentLinkPath(s),data:{...d,acceptedCount:d.acceptedCount+1,windowStartedAt,windowCount:windowCount+1}});
   if(p.email!==auth.email||p.emailVerified!==auth.emailVerified)writes.push({path:`academicProfiles/${actor.uid}`,data:{...p,...auth,revision:p.revision+1,updatedAt:clock.time()}});
-  return plan({outcome:'membership-active',uid:actor.uid,version:state.detail.revision+1},writes,
-    [{scope:s,action:'membership-redeemed',subjectUid:actor.uid,version:state.detail.revision+1}]);
+  const result=plan({outcome:'membership-active',uid:actor.uid,version:state.detail.revision+1},writes,
+    [{scope:s,action:'membership-redeemed',subjectUid:actor.uid,version:state.detail.revision+1}]);result.invalidations=[s];return result;
 }

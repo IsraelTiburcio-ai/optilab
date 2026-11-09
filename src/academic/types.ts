@@ -60,13 +60,17 @@ export interface GroupProgress {
   activities:{manualDeclared?:number;practiced?:number;opened:number;declared:number;reported:number;completed:number;validated:number};
   gyms:GroupProgressGym[];gymMetrics:GroupProgressGymMetric[];students:GroupProgressStudent[];truncated:boolean;
 }
+export type RankingVisibilityMode='anonymous'|'name'|'gamertag';
+export interface RankingRow {alias:string;displayName:string;participation:number;position:number|null}
 type Command={idempotencyKey:string};type CAS={expectedVersion:number};
 type InviteFields={expiresInSeconds:number;maxUses:number;maxPending:number};
 export interface Api {
   configureParticipation:{input:Scope&Command&CAS&{enabled:boolean};output:MutationResult};
   syncAdmission:{input:Record<string,never>;output:{allowed:boolean;mode:'private-pilot'|'single-operator-test'|'production'|null;expiresAt:string|null}};
   rankingPreference:{input:Scope;output:{enabled:boolean;revision:number}};
-  groupRanking:{input:Scope;output:{scope:Scope;enabled:boolean;controlRevision:number;criterion:'unique-group-openings-v1';trust:'client-reported-participation';truncated:boolean;rows:{alias:string;participation:number;position:number|null}[];self:{alias:string;participation:number;position:number|null}|null}};
+  rankingVisibility:{input:Scope;output:{mode:RankingVisibilityMode;revision:number;canUseName:boolean;canUseGamertag:boolean}};
+  setRankingVisibility:{input:Scope&Command&CAS&{mode:RankingVisibilityMode};output:MutationResult};
+  groupRanking:{input:Scope;output:{scope:Scope;groupTitle:string;enabled:boolean;controlRevision:number;criterion:'unique-group-openings-v1';trust:'client-reported-participation';truncated:boolean;rows:RankingRow[];self:RankingRow|null}};
   setRankingParticipation:{input:Scope&Command&CAS&{enabled:boolean};output:MutationResult};
   recordGroupActivity:{input:Scope&Command&{activityId:string;attemptId:string};output:MutationResult};
   getPlayerIdentity:{input:Record<string,never>;output:{identity:PlayerIdentity|null}};
@@ -105,4 +109,4 @@ export interface Api {
   moveActivity:{input:Scope&Command&{activityId:string;gymId:number;expectedVersion:number};output:MutationResult};
   setActivityStatus:{input:Scope&Command&{activityId:string;status:'hidden'|'archived';expectedVersion:number};output:MutationResult};
 }
-export type CommandName=Exclude<keyof Api,'syncAdmission'|'rankingPreference'|'groupRanking'|'myScopes'|'roster'|'groupRequests'|'groupInvitations'|'groupProgress'|'getAcademicProfile'|'requestStatus'|'getPlayerIdentity'|'gamertagAvailability'|'groupEnrollmentLink'|'activityWorkspace'|'teacherPublishedGroupActivities'|'publishedGroupActivities'|'publishedActivity'>;
+export type CommandName=Exclude<keyof Api,'syncAdmission'|'rankingPreference'|'rankingVisibility'|'groupRanking'|'myScopes'|'roster'|'groupRequests'|'groupInvitations'|'groupProgress'|'getAcademicProfile'|'requestStatus'|'getPlayerIdentity'|'gamertagAvailability'|'groupEnrollmentLink'|'activityWorkspace'|'teacherPublishedGroupActivities'|'publishedGroupActivities'|'publishedActivity'>;

@@ -1,4 +1,4 @@
-import {student,configureParticipation,setRankingParticipation,recordGroupActivity,groupRanking} from './participation.js';
+import {student,configureParticipation,setRankingParticipation,setRankingVisibility,recordGroupActivity,groupRanking,invalidateRankingCache} from './participation.js';
 import type {Actor,Input,Operation,Data} from './contracts.js';
 import {reads} from './contracts.js';
 import {scopeOf,parseInput,exact,isRecord,identifier,integer} from './validation.js';
@@ -30,7 +30,7 @@ export class AcademicService {
     this.policy=options.policy??defaultPolicy;this.progressAttemptLimit=options.progressAttemptLimit??200;this.clock={now:()=>Date.now(),time:sdk.time,timestamp:sdk.timestamp};
   }
   private async authorize(r:Reader,actor:Actor,op:Operation,i:Input) {
-    if(op==='setRankingParticipation'||op==='recordGroupActivity')return student(r,actor.uid,scopeOf(i));
+    if(op==='setRankingParticipation'||op==='setRankingVisibility'||op==='recordGroupActivity')return student(r,actor.uid,scopeOf(i));
     if(op==='requestMembership'||op==='updateAcademicProfile'||op==='savePlayerIdentity')return; // Own UID only.
     if(op==='redeemInvitation'){await validateRedemption(r,scopeOf(i),{...i,uid:actor.uid},this.clock);return;}
     if(op==='createTerm'||op==='createGroup')return this.policy.course(r,actor.uid,i.courseId!,op==='createTerm'?'createTerms':'createGroups');
@@ -45,7 +45,7 @@ export class AcademicService {
     const {operation:op,input:i}=parseInput(name,value,this.maxTtl);
     // Authorization, metadata and page rows share one read-only snapshot.
     // Ranking lazily provisions opaque aliases in one authorization-checked transaction.
-    if(op==='groupRanking')return this.repo.transaction(tx=>groupRanking(tx,this.policy,actor,i));
+    if(op==='groupRanking')return groupRanking(this.repo,this.policy,actor,i);
     if(reads.has(op))return this.repo.readTransaction(view=>readOperation(view,this.policy,actor,op,i,this.progressAttemptLimit));
     await this.authorize(this.repo,actor,op,i);
     let identity:AuthIdentity|null=null;
@@ -61,7 +61,7 @@ export class AcademicService {
     }
     await this.options.afterPreflight?.(op,actor);
     const commandId=hash(`${actor.uid}:${i.idempotencyKey}`),fingerprint=hash(canonical({operation:op,input:i}));
-    return this.repo.transaction(async tx=>{
+    const committed=await this.repo.transaction(async tx=>{
       // Mandatory fresh checks INSIDE the transaction, including receipt replays.
       await this.authorize(tx,actor,op,i);
       const receipt=await tx.get(`academicOperations/${commandId}`);
@@ -72,14 +72,14 @@ export class AcademicService {
         for(const key of ['inviteId','requestId','uid','termId','courseId','groupId','activityId'])if(key in result&&!identifier(result[key],128))throw conflict();
         for(const key of ['version','profileVersion','sourceVersion','destinationVersion','revision','placementRevision','count','gymId'])if(key in result&&!integer(result[key],0,2147483647))throw conflict();
         if('status' in result&&!['draft','published','hidden','archived'].includes(result.status))throw conflict();
-        return {...receipt.result,replayed:true,tokenAvailable:false};
+        return {result:{...receipt.result,replayed:true,tokenAvailable:false},invalidations:[]};
       }
       const s=scopeOf(i);
       if(verifiedTarget!==null) {
         const req=request(await tx.get(`${groupPath(s)}/membershipRequests/${i.requestId}`),s,i.requestId!);
         if(req.uid!==verifiedTarget)throw conflict();
       }
-      const p=op==='configureParticipation'?await configureParticipation(tx,this.policy,actor,i,this.clock.time):op==='setRankingParticipation'?await setRankingParticipation(tx,actor,i,this.clock.time):op==='recordGroupActivity'?await recordGroupActivity(tx,actor,i,this.clock.time):op==='createInvitation'||op==='reissueInvitation'?await createInvitation(tx,s,actor,i,this.clock,op==='reissueInvitation'):
+      const p=op==='configureParticipation'?await configureParticipation(tx,this.policy,actor,i,this.clock.time):op==='setRankingParticipation'?await setRankingParticipation(tx,actor,i,this.clock.time):op==='setRankingVisibility'?await setRankingVisibility(tx,actor,i,this.clock.time):op==='recordGroupActivity'?await recordGroupActivity(tx,actor,i,this.clock.time):op==='createInvitation'||op==='reissueInvitation'?await createInvitation(tx,s,actor,i,this.clock,op==='reissueInvitation'):
         op==='revokeInvitation'?await revokeInvitation(tx,s,i):
         op==='requestMembership'?await requestMembership(tx,s,actor,i,this.clock):
         op==='approveMembership'||op==='rejectMembership'?await decideMembership(tx,s,actor,i,this.clock,op==='approveMembership',commandId):
@@ -97,8 +97,10 @@ export class AcademicService {
         op==='moveActivity'?await moveActivity(tx,this.policy,actor,i,this.clock.time):
         op==='setActivityStatus'?await setActivityStatus(tx,this.policy,actor,i,this.clock.time):null;
       if(!p)throw new ApiError(404,'NOT_FOUND','Operación no disponible.');
-      return commitPlan(tx,actor,op,i,commandId,fingerprint,p,this.sdk.time);
+      return {result:commitPlan(tx,actor,op,i,commandId,fingerprint,p,this.sdk.time),invalidations:p.invalidations??[]};
     });
+    for(const scope of committed.invalidations)invalidateRankingCache(scope);
+    return committed.result;
   }
 }
 function canonical(value:unknown):string{return JSON.stringify(value,(_k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);}
