@@ -30,6 +30,7 @@ import {GymGameGrid,useStudentGymConfig,StudentGymContext,ExternalCard,type Item
 import './styles/sync.css';
 import {LoadingContent} from './components/LoadingShell';
 import {SiteHeader} from './components/SiteHeader';
+import {BrandLogo} from './components/BrandLogo';
 import {ContinueActivity} from './components/ContinueActivity';
 import {HomeRanking} from './academic/HomeRanking';
 const Account=lazy(()=>import('./pages/Account'));
@@ -127,6 +128,6 @@ export default function App(){
         <Route path="*" element={<><h1>Te saliste del sendero</h1><Link className="button" to="/mapa">Volver al mapa</Link></>}/>
       </Routes>
     </main>
-    <footer className="site-footer"><span className="footer-brand">OPTILAB <span>Un pequeño juego. Una gran idea.</span></span><span>Optimización I · Proyecto educativo independiente</span><span>Hecho para aprender, a tu manera. <Sparkles size={14}/></span></footer>
+    <footer className="site-footer"><Link to="/" className="footer-brand" aria-label="OptiLab inicio"><BrandLogo variant="wordmark" className="footer-logo"/><span>Un pequeño juego. Una gran idea.</span></Link><span>Optimización I · Proyecto educativo independiente</span><span>Hecho para aprender, a tu manera. <Sparkles size={14}/></span></footer>
   </>;
 }

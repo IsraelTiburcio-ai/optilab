@@ -43,7 +43,7 @@ jobs:
         env:
           CI: 'true'
       - name: Guest/config regression
-        run: npx playwright test tests/account-guest.spec.ts tests/auth-config.spec.ts tests/attempts.spec.ts --browser ${{ matrix.browser }}
+        run: npx playwright test tests/account-guest.spec.ts tests/auth-config.spec.ts tests/attempts.spec.ts tests/brand-integration.spec.ts --browser ${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

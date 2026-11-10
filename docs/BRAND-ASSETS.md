@@ -71,6 +71,8 @@ npm run build
 
 La verificación remota es independiente del build para que Cloudinary no sea una dependencia de CI o despliegue.
 
-## Integración pendiente
+## Integración actual
 
-Este paquete no está conectado a `index.html`, al manifiesto PWA, a estilos ni a componentes. La aplicación debe seguir mostrando la identidad anterior hasta la PR de interfaz #60.
+La PR #60 aplica el logo principal en el header, el logotipo en el footer, la paleta corporativa y los recursos favicon/Apple Touch/manifest PWA. Los SVG siguen siendo locales y los PNG de entrega siguen en Cloudinary.
+
+La evidencia visual y las métricas están en `docs/brand-audit/`.

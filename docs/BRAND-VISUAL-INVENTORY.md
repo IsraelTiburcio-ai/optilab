@@ -1,6 +1,6 @@
 # OptiLab · inventario visual y correspondencia para #60
 
-Estado: propuesta de revisión. No se modificó la interfaz. Base: `5318040` (main con #58) más la infraestructura de #59.
+Estado: auditoría previa a la implementación; la PR #60 aplicó esta correspondencia. Base de la captura: `5318040` (main con #58) más la infraestructura de #59. La evidencia antes/después está en `docs/brand-audit/`.
 
 ## 1. Resumen ejecutivo
 
@@ -114,12 +114,12 @@ Contrastes relevantes: `#06392F`/crema 11.79:1; `#073E33`/crema 11.03:1; `#FFBA4
 4. Imágenes grandes: seguir usando Cloudinary con `f_auto,q_auto`, `srcset`, `sizes` y `c_limit`; no convertir SVG a WebP.
 5. No precargar todos los recursos. Mantener `priority/eager` solo donde ya está el LCP actual (hero y primera isla del mapa).
 6. Respetar `prefers-reduced-motion`; no añadir animaciones al logo.
-7. Conserved avatares, criaturas, insignias, paisaje, portadas, glifos y colores de gimnasio.
+7. Conservar avatares, criaturas, insignias, paisaje, portadas, glifos y colores de gimnasio.
 8. Validar 390/820/1440, teclado, axe, contraste, CLS y LCP antes de cerrar #60.
 
 ## 7. Evidencia y límites
 
-- Capturas actuales: `docs/brand-audit/current-header-1440.png`, `current-header-390.png`, `current-home-1440.png`, `current-home-390.png`.
-- Mapa visual: `docs/brand-audit/brand-map.png`.
-- No se modificaron `src/`, `index.html`, `public/` (salvo los assets nuevos de #59), dashboard, ranking, navegación móvil, juegos ni backend.
-- No se re-subieron ni regeneraron recursos de Cloudinary para este inventario.
+- Auditoría previa: `docs/brand-audit/current-header-1440.png`, `current-header-390.png`, `current-home-1440.png`, `current-home-390.png` y `brand-map.png`.
+- Implementación #60: header, footer, favicon/Apple Touch/manifest PWA y tokens de marca; capturas antes/después y métricas en `docs/brand-audit/`.
+- No se modificaron dashboard, ranking, navegación móvil, lógica de juegos, autenticación ni backend.
+- No se re-subieron ni regeneraron recursos de Cloudinary para esta integración.

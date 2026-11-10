@@ -1,0 +1,46 @@
+{
+  "capturedAt": "2026-11-09T22:54:03.006Z",
+  "base": "http://127.0.0.1:5305/optilab/",
+  "before": {
+    "390": {
+      "lcp": 60,
+      "cls": 0.14984429764165874
+    },
+    "820": {
+      "lcp": 60,
+      "cls": 0.07429477185900332
+    },
+    "1440": {
+      "lcp": 64,
+      "cls": 0.0026500758209019207
+    }
+  },
+  "after": {
+    "390": {
+      "lcp": 60,
+      "cls": 0.14935312895694838,
+      "headerHeight": 78,
+      "scrollWidth": 390,
+      "innerWidth": 390
+    },
+    "820": {
+      "lcp": 56,
+      "cls": 0.07635633271228547,
+      "headerHeight": 95,
+      "scrollWidth": 820,
+      "innerWidth": 820
+    },
+    "1440": {
+      "lcp": 64,
+      "cls": 0.0026500758209019207,
+      "headerHeight": 100,
+      "scrollWidth": 1440,
+      "innerWidth": 1440
+    }
+  },
+  "notes": [
+    "Local Vite preview, single Chromium run; LCP timing is local and not a production field measurement.",
+    "Header height and horizontal overflow unchanged.",
+    "CLS values are unchanged from the pre-change baseline."
+  ]
+}

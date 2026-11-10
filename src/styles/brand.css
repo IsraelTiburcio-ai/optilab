@@ -1,0 +1,27 @@
+:root{--brand-ink:#06392F;--brand-green:#138158;--brand-green-light:#46A36D;--brand-amber:#FFBA49;--brand-coral:#D76242;--brand-deep:#073E33;--brand-cream:#F9F5E9;--ink:#06392F;--green:#06392F;--coral:#D76242;--cream:#F9F5E9;color:#06392F;background:#F9F5E9}
+.brand{display:flex;align-items:center;position:relative;padding-bottom:12px}
+.brand .brand-logo{display:block;width:auto;height:46px;flex:none}
+.brand small{position:absolute;left:0;bottom:0;color:#40574B;font:8px 'DM Sans',sans-serif;letter-spacing:1.2px;white-space:nowrap}
+.site-header{border-bottom-color:#C8D2C2}
+.site-header nav a{color:#43584B}
+.site-header nav a.active{background:#E4EDDE;color:#06392F}
+.site-header nav a:hover{background:#EFF2E7}
+.header-progress{border-color:#C8D2C2}
+.primary{background:#06392F;border-color:#052D26;color:#F9F5E9;box-shadow:0 4px 0 #052D26}
+.play{background:#06392F;border-color:#06392F}
+.practice-check,.practice-toggle[aria-pressed=true]>span{background:#06392F}
+.filters button.active{background:#06392F;border-color:#06392F;color:#F9F5E9}
+.focus-ring:focus-visible,button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline-color:#D76242}
+.hero-copy>.eyebrow{color:#40574B}
+.hero h1 em{color:#138158}
+.hero h1 em:after{border-bottom-color:#FFBA49}
+.site-footer{border-top-color:#C8D2C2;color:#40574B}
+.footer-brand{display:inline-flex;flex-direction:column;align-items:flex-start;gap:4px;color:#06392F;font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px}
+.footer-brand .brand-logo{display:block;width:auto;height:22px}
+.footer-brand span{display:block;margin:0;font:9px 'DM Sans',sans-serif;color:#40574B}
+.exam-callout{background:#073E33;color:#F9F5E9}
+.exam-callout p{color:#D9E7DC}
+.exam-callout .eyebrow{color:#FFBA49}
+.exam-callout>svg{color:#FFBA49}
+@media(max-width:900px){.brand .brand-logo{height:40px}}
+@media(max-width:700px){.brand{padding-bottom:10px}.brand .brand-logo{height:36px}.brand small{font-size:7px}.site-header nav{background:#F9F5E9f5;border-top-color:#C8D2C2}.footer-brand{align-items:center}.footer-brand .brand-logo{height:20px}}
